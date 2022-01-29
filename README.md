@@ -29,7 +29,6 @@ There is a Database Dump inside a .database folder. Use database_setup.sql as an
 
 ## License
 This project is licensed under CC0 License.
-Please, give appropriate credit.
 
 ## Credits
 There is a list of all libraries that are used in ULS.
