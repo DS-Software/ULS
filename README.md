@@ -27,6 +27,10 @@ The only file you need to modify is config.php.
 ### Database Configuration
 There is a Database Dump inside a .database folder. Use database_setup.sql as an Import File in PHPMyAdmin or just execute the SQL commands inside the file.
 
+## License
+This project is licensed under CC0 License.
+Please, give appropriate credit.
+
 ## Credits
 There is a list of all libraries that are used in ULS.
 * ApMailer (https://github.com/anton-pribora/ApMailer)
