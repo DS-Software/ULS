@@ -143,9 +143,6 @@
 				alert("Вам было отправлено письмо для продолжения регистрации!");
 				location.href = "<?php echo($login_site) ?>";
 			}
-			if(reg_result.reason == "THIS_EMAIL_IS_USED_BY_ANOTHER_USER"){
-				alert("Этот E-Mail уже был использован!");
-			}
 			if(reg_result.reason == "INVALID_EMAIL"){
 				alert("Введённый E-Mail недействителен!");
 			}

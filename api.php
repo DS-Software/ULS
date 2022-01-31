@@ -333,7 +333,7 @@ if($section == "UNAUTH"){
 					$verification['password'] = true;
 				}
 				else{
-					returnError('WRONG_PASSWORD');
+					returnError('WRONG_CREDENTIALS');
 				}
 				
 				$true_email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $session_id . '_' . $user_info['SLID']);
@@ -346,7 +346,7 @@ if($section == "UNAUTH"){
 				}
 			}
 			else{
-				returnError('WRONG_LOGIN');
+				returnError('WRONG_CREDENTIALS');
 			}
 			
 		// ---
@@ -433,7 +433,12 @@ if($section == "UNAUTH"){
 			echo(json_encode($return));
 		}
 		else{
-			returnError('THIS_EMAIL_IS_USED_BY_ANOTHER_USER');
+			$return = array(
+				'result' => 'OK',
+				'description' => 'emailVerificationNeeded'
+			);
+					
+			echo(json_encode($return));
 		}
 	}
 	
@@ -533,7 +538,12 @@ if($section == "UNAUTH"){
 			echo(json_encode($return));
 		}
 		else{
-			returnError('NO_ACCOUNT');
+			$return = array(
+				'result' => 'OK',
+				'description' => 'emailVerificationNeeded'
+			);
+					
+			echo(json_encode($return));
 		}
 	}
 	if($method == "restore_password"){

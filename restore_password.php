@@ -60,9 +60,6 @@
 				alert("Вам было отправлено письмо для восстановления пароля!");
 				location.href = "<?php echo($login_site) ?>";
 			}
-			if(reg_result.reason == "NO_ACCOUNT"){
-				alert("Этот E-Mail не привязан ни к одному аккаунту!");
-			}
 			if(reg_result.reason == "INVALID_EMAIL"){
 				alert("Введённый E-Mail недействителен!");
 			}
