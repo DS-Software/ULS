@@ -4,7 +4,7 @@ This is a PHP implementation of a login system for DS Software.
 
 ## Usage
 
-DS Software is a standalone login system, so you don't have to install anything else.
+DS Software ULS is a standalone login system, so you don't have to install anything else.
 ### Configuration
 The only file you need to modify is config.php.
 * Configuration Steps:
