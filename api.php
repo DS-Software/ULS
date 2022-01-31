@@ -161,6 +161,8 @@ if($section == "UNAUTH"){
 			
 		);
 		
+		usleep(random_int(0, 999999));
+		
 		//session verification
 			$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $user_ip . "_" . $service_key);
 			
@@ -192,11 +194,11 @@ if($section == "UNAUTH"){
 					$verification['password'] = true;
 				}
 				else{
-					returnError('WRONG_PASSWORD');
+					returnError('WRONG_CREDENTIALS');
 				}
 			}
 			else{
-				returnError('WRONG_LOGIN');
+				returnError('WRONG_CREDENTIALS');
 			}
 			
 		// ---

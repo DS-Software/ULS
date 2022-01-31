@@ -173,11 +173,8 @@ if($maintenance_mode){
 					if(auth_result.reason == 'THIS_SESSION_IS_EXPIRED'){
 						alert('Устаревшая сессия, обновите страницу!');
 					}
-					if(auth_result.reason == 'WRONG_LOGIN'){
-						alert('Неверный логин!');
-					}
-					if(auth_result.reason == 'WRONG_PASSWORD'){
-						alert('Неверный пароль!');
+					if(auth_result.reason == 'WRONG_CREDENTIALS'){
+						alert("Неверный логин и/или пароль!");
 					}
 				}
 				else{
