@@ -37,9 +37,6 @@
 		}
 		else{
 			getUserEmail();
-			if("<?php echo($_COOKIE['redirect']) ?>" != ""){
-				location.href = "service_redirect.php";
-			}
 		}
 	}
 	
@@ -150,9 +147,6 @@
 			xhr.onload = function (e) {
 				if (xhr.readyState == 4 && xhr.status == 200) {
 					if(xhr.responseText != ''){
-						if(xhr.responseText == '{"result":"FAULT","reason":"GIVEN_EMAIL_WAS_REGISTERED"}'){
-							alert("Этот E-Mail используется другим пользователем!");
-						}
 						if(xhr.responseText == '{"result":"FAULT","reason":"GIVEN_EMAIL_IS_INVALID"}'){
 							alert("Вы ввели недействительный E-Mail!");
 						}

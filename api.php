@@ -7,16 +7,9 @@ require_once "libs/Base32.php";
 require_once "libs/Hotp.php";
 require_once "libs/Totp.php";
 require_once "libs/browser_libs.php";
+require_once "apps/integration_config.php";
 
 use lfkeitel\phptotp\{Base32,Totp};
-
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    if(in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)){
-		header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-		header('Access-Control-Allow-Credentials: true');
-		header('Access-Control-Max-Age: 86400');
-	}
-}
 
 function returnError($message){
 	$error = array(
@@ -777,6 +770,36 @@ if($section == "UNAUTH"){
 			returnError("WRONG_SESSION");
 		}
 	}
+	
+	if($method == "checkIDToken"){
+		$project_secret = $_GET['secret'];
+		$project = $login_db->getProjectInfoBySecret($project_secret);
+		
+		if($project['project_id'] != ""){
+			$id_token = $_GET['id_token'];
+			$user_id = $_GET['user_id'];
+			
+			$test_uinfo = $login_db->get_user_info($user_id);
+			if($test_uinfo['user_email'] != ""){
+				$true_token = hash('sha512', $test_uinfo['user_id'] . "_" . $test_uinfo['user_email'] . "_" . $test_uinfo['password_hash'] . "_" . $test_uinfo['api_key_seed'] . "_" . $test_uinfo['SLID'] . "_" . $test_uinfo['2fa_secret'] . "_" . $project['secret_key']);
+				
+				if($true_token == $id_token){
+					$return = array(
+						'result' => "OK",
+						'description' => "VALID",
+						'uls_id' => $test_uinfo['user_id']
+					);
+					echo(json_encode($return));
+				}
+				else{
+					returnError("INVALID_TOKEN");
+				}
+			}
+			else{
+				returnError("INVALID_USER");
+			}
+		}
+	}
 }
 else{
 	$access_token = $_REQUEST['access_token'];
@@ -797,126 +820,46 @@ else{
 	if($verified){
 		if($section == "projects"){
 			if($method == "login"){
-				$project = $_GET['project'];
+				$project_public = $_GET['public'];
+				$project = $login_db->getProjectInfoByPublic($project_public);
 				
-				$true_user_id = $uinfo['user_id'];
-				$true_user_ip = $_SERVER['REMOTE_ADDR'];
-				$true_user_email = $uinfo['user_email'];
+				if($project['project_id'] == ""){
+					returnError("UNKNOWN_PROJECT");
+				}
+				
+				$login_db->updateProjectLastUsed($project['project_id']);
+				
 				$timestamp = time();
+				$session = hash('sha256', $uinfo['user_id'] . "_" . $project['secret_key'] . "_" . bin2hex(random_bytes(32)) . "_" . $timestamp);
 				
-				if($projects[$project]['url'] != ""){
-					$project_info = $projects[$project];
-					
-					$project_api = $project_info['api'];
-					$project_url = $project_info['url'];
-					$project_service_key = $project_info['key'];
-					
-					$ver_code = hash("sha512", "{$true_user_id}_{$true_user_ip}_{$true_user_email}_{$timestamp}_{$project_service_key}");
-					
-					$request_params = array(
-						'section' => "UNAUTH",
-						'method' => "loginViaULS",
-						'uls_id' => $true_user_id,
-						'user_ip' => $true_user_ip,
-						'user_email' => $true_user_email,
-						'timestamp' => $timestamp,
-						'verification_code' => $ver_code
-					);
-
-					$get_params = http_build_query($request_params);
-
-					$final_url = $project_api . "?" . $get_params;
-					
-					$return = array(
-						'result' => "OK",
-						'url' => $final_url
-					);
-					
-					echo(json_encode($return));
+				$id_token = hash('sha512', $uinfo['user_id'] . "_" . $uinfo['user_email'] . "_" . $uinfo['password_hash'] . "_" . $uinfo['api_key_seed'] . "_" . $uinfo['SLID'] . "_" . $uinfo['2fa_secret'] . "_" . $project['secret_key']);
+				
+				$ver_code = hash('sha512', $uinfo['user_id'] . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $session . "_" . $timestamp . "_" . $id_token . "_" . $project['secret_key']);
+				
+				if(strpos($project['redirect_uri'], "?") !== false){
+					$params = "&";
 				}
 				else{
-					returnError("WRONG_OR_UNCONFIGURED_PROJECT");
-				}
-			}
-			
-			if($method == "getUserValidationCode"){
-				$user_id = $_COOKIE['user_id'];
-				$SLID = $_COOKIE['SLID'];
-				$email = $_COOKIE['email'];
-				$session = $_COOKIE['session'];
-				$user_ip = $_COOKIE['user_ip'];
-				$user_key = $_COOKIE['user_verkey'];
-				$totp_timestamp = $_COOKIE['totp_timestamp'];
-				$totp_verification = $_COOKIE['totp_verification'];
-				$true_timestamp = time();
-				
-				$verified = false;
-		
-				$ver_user_info = $login_db->get_user_info($user_id);
-				if($ver_user_info['user_id'] == $user_id && $ver_user_info['user_id'] != null){
-					if($ver_user_info['SLID'] == $SLID){
-						if($user_ip == $_SERVER['REMOTE_ADDR']){
-							$true_hash = hash("sha512", "{$session}_{$email}_{$user_id}_{$SLID}_{$_SERVER['REMOTE_ADDR']}_{$service_key}");
-							
-							if($true_hash == $user_key){
-								$verified = true;
-							}
-						}
-					}
+					$params = "?";
 				}
 				
-				if($ver_user_info['2fa_active'] == 1){
-					
-					if($totp_timestamp + 2678400 < time()){
-						setcookie('totp_timestamp', '', 0, $domain_name);
-						setcookie('totp_verification', '', 0, $domain_name);
-						$totp_timestamp = null;
-						$totp_verification = null;
-					}
-					
-					$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}");
-					
-					if($_REQUEST['totp_logout'] == "true"){
-						setcookie('user_verkey', '', 0, $domain_name);
-						setcookie('user_ip', '', 0, $domain_name);
-						setcookie('session', '', 0, $domain_name);
-						setcookie('email', '', 0, $domain_name);
-						setcookie('SLID', '', 0, $domain_name);
-						setcookie('user_id', '', 0, $domain_name);
-						
-						die();
-					}
-					
-					if($true_totp_ver != $totp_verification && $verified){
-						$verified = false;
-						$return = array(
-							'result' => "OK",
-							'code' => null,
-							'created' => null,
-							'verification' => null
-						);
-						
-						echo(json_encode($return, 1));
-						die();
-					}
-				}
+				$request_params = array(
+					'uls_id' => $uinfo['user_id'],
+					'session' => $session,
+					'timestamp' => $timestamp,
+					'user_token' => $id_token,
+					'sign' => $ver_code
+				);
+
+				$params .= http_build_query($request_params);
 				
-				if($verified){
-					$code = hash("sha512", "{$user_id}_{$SLID}_{$email}_{$session}_{$user_ip}_{$user_key}_{$totp_timestamp}_{$totp_verification}_{$true_timestamp}_{$service_oauth}");
-					
-					$verification = hash("sha512", "{$user_id}_{$code}_{$service_verification}");
-					
-					$return = array(
-						'result' => "OK",
-						'code' => $code,
-						'created' => $true_timestamp,
-						'verification' => $verification
-					);
-					echo(json_encode($return));
-				}
-				else{
-					returnError("UNABLE_TO_VERIFY_USER");
-				}
+				$redirect_url = $project['redirect_uri'] . $params;
+				
+				$return = array(
+					'result' => "OK",
+					'redirect' => $redirect_url
+				);
+				echo(json_encode($return));
 			}
 		}
 		if($section == "users"){
@@ -960,9 +903,6 @@ else{
 					if(filter_var($new_email, FILTER_VALIDATE_EMAIL)){
 						if(!$login_db->wasEmailRegistered($new_email)){
 							$login_db->changeUserEmail($user_id, $new_email);
-						}
-						else{
-							returnError("GIVEN_EMAIL_WAS_REGISTERED");
 						}
 					}
 					else{
@@ -1139,6 +1079,106 @@ else{
 				}
 				else{
 					returnError("WRONG_SESSION");
+				}
+			}
+		}
+		
+		if($section == "integration"){
+			if($method == "getUserProjects"){
+				$projects = $login_db->getUserProjects($user_id);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				
+				$return = array(
+					'result' => "OK",
+					'projects' => $projects
+				);
+				echo(json_encode($return));
+			}
+			if($method == "createProject"){
+				if(strlen($_GET['name']) < 3 OR strlen($_GET['name']) > 32){
+					returnError("TOO_LONG_OR_TOO_SHORT");
+				}
+				else{
+					$login_db->createProject($user_id, htmlentities($_GET['name']));
+					
+					$return = array(
+						'result' => "OK"
+					);
+					echo(json_encode($return));
+				}
+			}
+			if($method == "getProjectInfo"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$return = array(
+					'result' => "OK",
+					'project_id' => $project['project_id'],
+					'project_name' => $project['project_name'],
+					'redirect_uri' => $project['redirect_uri'],
+					'secret_key' => $project['secret_key'],
+					'public_key' => $project['public_key']
+				);
+				echo(json_encode($return));
+			}
+			
+			if($method == "issueNewPublic"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$login_db->regenerateProjectPublic($project['project_id']);
+				$return = array(
+					'result' => "OK"
+				);
+				echo(json_encode($return));
+			}
+			
+			if($method == "issueNewSecret"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$login_db->regenerateProjectSecret($project['project_id']);
+				$return = array(
+					'result' => "OK"
+				);
+				echo(json_encode($return));
+			}
+			
+			if($method == "changeRedirect"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$login_db->changeRedirectURL($project['project_id'], $_GET['redirect_url']);
+				$return = array(
+					'result' => "OK"
+				);
+				echo(json_encode($return));
+			}
+			
+			if($method == "changeName"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				if(strlen($_GET['name']) < 3 OR strlen($_GET['name']) > 32){
+					returnError("TOO_LONG_OR_TOO_SHORT");
+				}
+				else{
+					$login_db->changeProjectName($project['project_id'], htmlentities($_GET['name']));
+					
+					$return = array(
+						'result' => "OK"
+					);
+					echo(json_encode($return));
 				}
 			}
 		}

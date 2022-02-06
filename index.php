@@ -8,14 +8,6 @@
 <?php
 require 'config.php';
 
-if(isset($_REQUEST['redirect'])){
-	$redirect = $_REQUEST['redirect'];
-	
-	if($projects[$redirect]['url'] != ''){
-		setcookie("redirect", $redirect, time() + 2629743, $domain_name);
-	}
-}
-
 if($maintenance_mode){
 	?>
 	<div class="main_module">
