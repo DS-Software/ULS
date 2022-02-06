@@ -209,6 +209,13 @@ class database{
 			}
 		}
 		
+		public function deleteProject($project_id){
+			$login_db = $this->ldb;
+			$project_id = $login_db->real_escape_string($project_id);
+			$req = "DELETE FROM `projects` WHERE `project_id`='$project_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
+		
 		public function getUserProjects($owner_id){
 			$login_db = $this->ldb;
 			$owner_id = $login_db->real_escape_string($owner_id);

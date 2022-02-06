@@ -75,7 +75,7 @@
 				location.href = "<?php echo($int_url) ?>?error=unauthorized";
 			}
 			
-			name_container.innerHTML = escapeHtml(project.project_name) + "<span class=\"bh\">&nbsp;</span>";
+			name_container.innerHTML = escapeHtml(project.project_name) + "&nbsp;&nbsp;<span class=\"bh\"><button onclick=\"deleteProject()\" class=\"button-7-new\">Удалить проект</button></span>";
 			redirect_url.innerHTML = "<b class=\"bt_noflex\">" + escapeHtml(project.redirect_uri) + "</b>";
 			if(project.redirect_uri == ""){
 				redirect_url.innerHTML = "<b class=\"bt_noflex\">Не настроен!</b>";
@@ -228,5 +228,17 @@
 		xhr.open('GET', login_url + '/api.php?section=integration&method=changeName&access_token=' + window.token + "&project=" + window.project + "&name=" + encodeURIComponent(new_name), true);
 		xhr.send();
 		return true;
+	}
+	
+	function deleteProject(new_name){
+		var ensurance = confirm("Вы уверены, что хотите УДАЛИТЬ этот проект? Это действие нельзя отменить!!!");
+		if(ensurance){
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', login_url + '/api.php?section=integration&method=delete&access_token=' + window.token + "&project=" + window.project, true);
+			xhr.send();
+			xhr.onload = function (e) {
+				back();
+			}
+		}
 	}
 </script>

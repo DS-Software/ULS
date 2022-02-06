@@ -1181,6 +1181,14 @@ else{
 					echo(json_encode($return));
 				}
 			}
+			if($method == "delete"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$login_db->deleteProject($project['project_id']);
+			}
 		}
 	}
 }
