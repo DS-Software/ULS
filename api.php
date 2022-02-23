@@ -217,10 +217,9 @@ if($section == "UNAUTH"){
 			}
 			else{
 				//UNKNOWN IP
-				
 					$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $session_id . '_' . $user_info['SLID']);
 				
-					$auth_link = $login_site . "/api.php?section=UNAUTH&method=emailIPValidation&rand_session_id=$rand_session_id&session_id=$session_id&timestamp=$timestamp&login=$login&password_hash=$password_token&email_ver_id=$email_ver_id";
+					$auth_link = $login_site . "/auth_manager.php?method=emailIPValidation&rand_session_id=$rand_session_id&session_id=$session_id&timestamp=$timestamp&login=$login&password_hash=$password_token&email_ver_id=$email_ver_id";
 					
 					require_once 'libs/apmailer.php';
 		
@@ -261,6 +260,8 @@ if($section == "UNAUTH"){
 					$auth_email_HTML = strtr($NewIPEmail, $replaceArray);
 					
 					$email->message_send($messageNewIPSubject, $messageFrom, $messageTo, $auth_email_HTML);
+					
+					$login_db->setLastSID($log_user_id, $session_id);
 					
 					$return = array(
 						'result' => 'OK',
@@ -345,22 +346,28 @@ if($section == "UNAUTH"){
 		// ---
 		
 		if($verification['password'] && $verification['timestamp'] && $verification['session_ver'] && $verification['email_ver_id']){
-			setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
-			setcookie("email", $login, time() + 2678400, $domain_name);
-			setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
-			setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
-			setcookie("session", $session_id, time() + 2678400, $domain_name);
-			setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
-			
-			$login_db->set_current_user_ip($log_user_id, $_SERVER['REMOTE_ADDR']);
-			
-			$return = array(
-				'result' => 'OK',
-				'description' => 'Success'
-			);
-					
-			echo(json_encode($return));
-			header("Location: $login_site");
+			$last_sid = $login_db->getLastSID($log_user_id);
+			if($last_sid == $session_id){
+				setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
+				setcookie("email", $login, time() + 2678400, $domain_name);
+				setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
+				setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+				setcookie("session", $session_id, time() + 2678400, $domain_name);
+				setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
+				
+				$login_db->set_current_user_ip($log_user_id, $_SERVER['REMOTE_ADDR']);
+				$login_db->clearLastSID($log_user_id);
+				
+				$return = array(
+					'result' => 'OK',
+					'description' => 'Success'
+				);
+						
+				echo(json_encode($return));
+			}
+			else{
+				returnError('UNAUTHORIZED_REQUEST');
+			}
 		}
 	}
 	
@@ -373,10 +380,15 @@ if($section == "UNAUTH"){
 		
 		if(!$login_db->wasEmailRegistered($login)){
 			$timestamp = time();
+			$rsid = bin2hex(random_bytes($session_length / 2));
+			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
 			$encrypted_password_hash = safe_encrypt($password_hash, $encryption_key);
-			$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $password_hash . '_' . $timestamp);
+			setcookie("register_password", $encrypted_password_hash, $timestamp + 900, $domain_name);
+			setcookie("register_verify", hash("sha256", $encrypted_password_hash . "_" . $service_key  . "_" . $session_id), $timestamp + 900, $domain_name);
+			
+			$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $password_hash . '_' . $timestamp . "_" . $session_id);
 				
-			$auth_link = $login_site . "/api.php?section=UNAUTH&method=register_new_user" .  '&ts=' . "$timestamp&login=$login&password_hash=$encrypted_password_hash&email_ver_id=$email_ver_id";			
+			$auth_link = $login_site . "/auth_manager.php?method=registerNewUser&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id&session_id=$session_id&rand_session_id=$rsid";
 			
 			require_once 'libs/apmailer.php';
 		
@@ -435,38 +447,71 @@ if($section == "UNAUTH"){
 		}
 	}
 	
-	if($method == "register_new_user"){
-		$timestamp = $_GET['ts'];
+	if($method == "registerNewUser"){
+		$timestamp = $_GET['timestamp'];
 		$login = $_GET['login'];
-		$password_hash = $_GET['password_hash'];
 		$email_ver_id = $_GET['email_ver_id'];
+		$session_id = $_GET['session_id'];
+		$rand_session_id = $_GET['rand_session_id'];
+		$password_hash = $_COOKIE['register_password'];
+		$register_verify = $_COOKIE['register_verify'];
 		
 		if($timestamp + 900 >= time()){
 			if(!$login_db->wasEmailRegistered($login)){
-				$real_password_hash = safe_decrypt($password_hash, $encryption_key);			
-				if($real_password_hash !== False){
-					$true_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $real_password_hash . '_' . $timestamp);
-					if($true_ver_id == $email_ver_id){
-						$user_id = $login_db->create_new_user($login, $real_password_hash);
-						$login_db->set_current_user_ip($user_id, $_SERVER['REMOTE_ADDR']);
-						$login_db->regenerateSLID($user_id);
-						$login_db->regenerateAPIKey($user_id);
-						header("Location: $login_site");
+				$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
+				if($true_session_id == $session_id){
+					$true_register_verify = hash("sha256", $password_hash . "_" . $service_key  . "_" . $session_id);
+					if($true_register_verify == $register_verify){
+						$real_password_hash = safe_decrypt($password_hash, $encryption_key);			
+						if($real_password_hash !== False){
+							$true_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $real_password_hash . '_' . $timestamp . "_" . $session_id);
+							if($true_ver_id == $email_ver_id){
+								$user_id = $login_db->create_new_user($login, $real_password_hash);
+								$login_db->set_current_user_ip($user_id, $_SERVER['REMOTE_ADDR']);
+								$login_db->regenerateSLID($user_id);
+								$login_db->regenerateAPIKey($user_id);
+								$user_info = $login_db->get_user_info($user_id);
+								
+								setcookie('register_password', '', 0, '/');
+								setcookie('register_verify', '', 0, '/');
+								
+								setcookie("user_id", $user_id, time() + 2678400, $domain_name);
+								setcookie("email", $login, time() + 2678400, $domain_name);
+								setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
+								setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+								setcookie("session", $session_id, time() + 2678400, $domain_name);
+								setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
+								
+								$login_db->set_current_user_ip($log_user_id, $_SERVER['REMOTE_ADDR']);
+								
+								$return = array(
+									'result' => 'OK',
+									'description' => 'Success'
+								);
+								echo(json_encode($return));
+							}
+							else{
+								returnError("UNABLE_TO_CREATE_ACCOUNT");
+							}
+						}
+						else{
+							returnError("UNABLE_TO_CREATE_ACCOUNT");
+						}
 					}
 					else{
-						header("Location: $login_site?error=INVALID_LINK");
+						returnError("UNABLE_TO_CREATE_ACCOUNT");
 					}
 				}
 				else{
-					header("Location: $login_site?error=PASSWORD_CORRUPTED");
+					returnError("UNABLE_TO_CREATE_ACCOUNT");
 				}
 			}
 			else{
-				header("Location: $login_site?error=EMAIL_WAS_TAKEN");
+				returnError("UNABLE_TO_CREATE_ACCOUNT");
 			}
 		}
 		else{
-			header("Location: $login_site?error=EXPIRED_LINK");
+			returnError("UNABLE_TO_CREATE_ACCOUNT");
 		}
 	}
 	
@@ -477,11 +522,15 @@ if($section == "UNAUTH"){
 		}
 		
 		if($login_db->wasEmailRegistered($login)){
-			$user_info = $login_db->get_user_info($login_db->getUIDByEMail($login));
 			$timestamp = time();
-			$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $timestamp . "_" . $user_info['SLID']);
+			$rsid = bin2hex(random_bytes($session_length / 2));
+			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
+			
+			$log_user_id = $login_db->getUIDByEMail($login);
+			$user_info = $login_db->get_user_info($log_user_id);
+			$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $timestamp . "_" . $user_info['SLID'] . "_" . $session_id);
 				
-			$auth_link = $login_site . "/api.php?section=UNAUTH&method=restore_password&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id";
+			$auth_link = $login_site . "/auth_manager.php?method=restorePassword&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id&rand_session_id=$rsid&session_id=$session_id";
 					
 			require_once 'libs/apmailer.php';
 		
@@ -522,6 +571,8 @@ if($section == "UNAUTH"){
 			$auth_email_HTML = strtr($restorePasswordEmail, $replaceArray);
 					
 			$email->message_send($messageRestoreSubject, $messageFrom, $messageTo, $auth_email_HTML);
+			
+			$login_db->setLastSID($log_user_id, $session_id);
 					
 			$return = array(
 				'result' => 'OK',
@@ -539,33 +590,67 @@ if($section == "UNAUTH"){
 			echo(json_encode($return));
 		}
 	}
-	if($method == "restore_password"){
+	if($method == "restorePassword"){
 		$timestamp = $_GET['timestamp'];
 		$login = $_GET['login'];
 		$email_ver_id = $_GET['email_ver_id'];
-		$new_password = $_REQUEST['new_password'];
+		$session_id = $_GET['session_id'];
+		$rand_session_id = $_GET['rand_session_id'];
+		$new_password = $_COOKIE['restore_password'];
 		
 		if(!isset($new_password)){
-			$link = $login_site . "/new_password.php?login={$login}&timestamp={$timestamp}&email_ver_id={$email_ver_id}";
-			header("Location: $link");
+			returnError("PASSWORD_IS_MISSING");
 		}
 		else{
-			$user_info = $login_db->get_user_info($login_db->getUIDByEMail($login));
-			$email_ver_id_true = hash("sha256", $login . '_' . $service_key . '_' . $timestamp . '_' . $user_info['SLID']);
+			$log_user_id = $login_db->getUIDByEMail($login);
+			$user_info = $login_db->get_user_info($log_user_id);
 			
-			if($email_ver_id_true == $email_ver_id && $timestamp + 900 > time()){
-				if($login_db->wasEmailRegistered($login)){
-					$login_db->changeUserPassword($user_info['user_id'], hash('sha256', $new_password));
-					header("Location: $login_site?state=CHANGED_SUCCESSFULLY");
+			$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
+			$true_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $timestamp . "_" . $user_info['SLID'] . "_" . $session_id);
+			$last_sid = $login_db->getLastSID($log_user_id);
+			
+			if($true_ver_id == $email_ver_id && $timestamp + 900 > time()){
+				if($session_id == $true_session_id){
+					if($last_sid == $session_id){
+						if($login_db->wasEmailRegistered($login)){
+							$login_db->changeUserPassword($user_info['user_id'], hash('sha256', $new_password));
+							
+							setcookie('restore_passwword', '', 0, '/');
+							$login_db->clearLastSID($log_user_id);
+							
+							setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
+							setcookie("email", $login, time() + 2678400, $domain_name);
+							setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
+							setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+							setcookie("session", $session_id, time() + 2678400, $domain_name);
+							setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
+							
+							$return = array(
+								'result' => 'OK',
+								'description' => 'Success'
+							);
+									
+							echo(json_encode($return));
+						}
+						else{
+							returnError("UNABLE_TO_CHANGE_PASSWORD1");
+						}
+					}
+					else{
+						returnError("UNABLE_TO_CHANGE_PASSWORD2");
+					}
+				}
+				else{
+					returnError("UNABLE_TO_CHANGE_PASSWORD3");
 				}
 			}
 			else{
-				header("Location: $login_site");
+				returnError("UNABLE_TO_CHANGE_PASSWORD4");
 			}
 		}
 	}
 	
-	if($method == "check_totp"){
+	if($method == "checkTOTP"){
 		$user_id = $_COOKIE['user_id'];
 		$SLID = $_COOKIE['SLID'];
 		$email = $_COOKIE['email'];
@@ -609,8 +694,6 @@ if($section == "UNAUTH"){
 				}
 			}
 		}
-	
-		header("Location: $login_site");
 	}
 	
 	if($method == "disable_totp"){

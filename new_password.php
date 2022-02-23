@@ -11,18 +11,20 @@
 
 <div class="login">
 	<h1>Введите Новый Пароль</h1>
-	<form action="api.php" id="restore_form">
+	<form action="javascript:void('')" id="restore_form">
 		<label for="password">
 			<i class="fas fa-lock"></i>
 		</label>
 		<input type="password" name="new_password" placeholder="Новый Пароль" id="new_password" required>
-		<input name="timestamp" value="<?php echo($_REQUEST['timestamp']) ?>" hidden>
-		<input name="method" value="restore_password" hidden>
-		<input name="section" value="UNAUTH" hidden>
-		<input name="login" value="<?php echo($_REQUEST['login']) ?>" hidden>
-		<input name="email_ver_id" value="<?php echo($_REQUEST['email_ver_id']) ?>" hidden>
 		<br>
-		<button class="button_login_new_long">Сохранить</button>
+		<button class="button_login_new_long" onclick="restore(new_password.value)">Сохранить</button>
 	</form>
 	<br>
 </div>
+
+<script>
+	function restore(new_password){
+		document.cookie = "restore_password=" + encodeURIComponent(new_password) + "; max-age=120";
+		location.href = "<?php echo($_GET['redirect']) ?>";
+	}
+</script>

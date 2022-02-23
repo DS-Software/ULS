@@ -349,6 +349,33 @@ class database{
 			$req = "UPDATE `projects` SET `last_used`='{$last_used}' WHERE `project_id`='$project_id'";
 			$login_db->query($req, MYSQLI_STORE_RESULT);
 		}
+		
+		public function getLastSID($user_id){
+			$login_db = $this->ldb;
+			$user_id = $login_db->real_escape_string($user_id);
+			$req = "SELECT `last_sid` FROM `users` WHERE `user_id`='{$user_id}'";
+			$statement = $login_db->prepare($req);
+			$statement->execute();
+			$statement->bind_result($last_sid);
+			$statement->fetch();
+			return $last_sid;
+		}
+		
+		public function setLastSID($user_id, $sid){
+			$login_db = $this->ldb;
+			$user_id = $login_db->real_escape_string($user_id);
+			$sid = $login_db->real_escape_string($sid);
+			$req = "UPDATE `users` SET `last_sid`='{$sid}' WHERE `user_id`='$user_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
+		
+		public function clearLastSID($user_id){
+			$login_db = $this->ldb;
+			$user_id = $login_db->real_escape_string($user_id);
+			$sid = $login_db->real_escape_string($sid);
+			$req = "UPDATE `users` SET `last_sid`=null WHERE `user_id`='$user_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
 }
 
 ?>

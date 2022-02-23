@@ -22,20 +22,35 @@ body {
 	width: 100%
 }
 
+
 .login {
-  	width: 400px;
-  	background-color: #ffffff;
-  	box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
-  	margin: 100px auto;
+	width: 400px;
+	background-color: #ffffff;
+	box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
+	margin: 100px auto;
 	border-radius: 10px;
 }
-.main_module {
-  	width: 25%;
-  	background-color: #ffffff;
-  	box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
-  	margin: 100px auto;
-	border-radius: 10px;
+
+@media (min-width: 600px){
+	.main_module {
+		width: 600px;
+		background-color: #ffffff;
+		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
+		margin: 100px auto;
+		border-radius: 10px;
+	}
 }
+
+@media (max-width: 599px){
+	.main_module {
+		width: 100%;
+		background-color: #ffffff;
+		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
+		margin: 100px auto;
+		border-radius: 10px;
+	}
+}
+
 .main_module h1 {
   	text-align: center;
   	color: #202124;
