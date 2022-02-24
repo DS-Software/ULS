@@ -87,7 +87,7 @@ if($link != ""){
 			if(response.result != "OK"){
 				alert("В процессе выполнения запроса произошла ошибка!");
 			}
-			//location.href = "<?php echo($login_site) ?>";
+			location.href = "<?php echo($login_site) ?>";
 		}
 	}
 </script>
