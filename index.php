@@ -192,28 +192,4 @@ if($maintenance_mode){
 	function easylogin(){
 		location.href = "easylogin.php";
 	}
-	
-	var error = "<?php echo($_GET['error']) ?>";
-	if(error == "INVALID_LINK"){
-		alert("Вы перешли по недействительной ссылке! Попробуйте ещё раз!");
-		location.href = "<?php echo($login_site) ?>";
-	}
-	if(error == "PASSWORD_CORRUPTED"){
-		alert("Ссылка была повреждена! Попробуйте ещё раз!");
-		location.href = "<?php echo($login_site) ?>";
-	}
-	if(error == "EMAIL_WAS_TAKEN"){
-		alert("Аккаунт уже был зарегистрирован на эту почту! Войдите, либо восстановите пароль!");
-		location.href = "<?php echo($login_site) ?>";
-	}
-	if(error == "EXPIRED_LINK"){
-		alert("Ссылка из письма устарела! Попробуйте ещё раз!");
-		location.href = "<?php echo($login_site) ?>";
-	}
-	
-	var state = "<?php echo($_GET['state']) ?>";
-	if(state == "CHANGED_SUCCESSFULLY"){
-		alert("Пароль был успешно изменён!");
-		location.href = "<?php echo($login_site) ?>";
-	}
 </script>
