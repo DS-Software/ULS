@@ -199,6 +199,183 @@ class database{
 			$req = "DELETE FROM `sessions` WHERE `session`='{$session_key}'";
 			$login_db->query($req, MYSQLI_STORE_RESULT);
 		}
+		
+		public function cleanUpProjects($delete = false, $timeout = 8035200){
+			if($delete){
+				$login_db = $this->ldb;
+				$time = time() - $timeout;
+				$req = "DELETE FROM `projects` WHERE `last_used`<$time AND `infinite`=0";
+				$login_db->query($req, MYSQLI_STORE_RESULT);
+			}
+		}
+		
+		public function deleteProject($project_id){
+			$login_db = $this->ldb;
+			$project_id = $login_db->real_escape_string($project_id);
+			$req = "DELETE FROM `projects` WHERE `project_id`='$project_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
+		
+		public function getUserProjects($owner_id){
+			$login_db = $this->ldb;
+			$owner_id = $login_db->real_escape_string($owner_id);
+			$req = "SELECT `project_id`, `project_name` FROM `projects` WHERE `owner_id`='{$owner_id}'";
+			$statement = $login_db->prepare($req);
+			$statement->execute();
+			$statement->bind_result($project_id, $project_name);
+			while($statement->fetch()) {
+				$projects[$project_id] = array(
+					"project_id" => $project_id,
+					"project_name" => $project_name
+				);
+			}
+			return $projects;
+		}
+		
+		public function getProjectInfo($project_id){
+			$login_db = $this->ldb;
+			$project_id = $login_db->real_escape_string($project_id);
+			$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `last_used`, `owner_id`, `infinite` FROM `projects` WHERE `project_id`='{$project_id}'";
+			$statement = $login_db->prepare($req);
+			$statement->execute();
+			$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $last_used, $owner_id, $infinite);
+			while($statement->fetch()) {
+				$project = array(
+					"project_id" => $project_id,
+					"project_name" => $project_name,
+					"redirect_uri" => $redirect_uri,
+					"secret_key" => $secret_key,
+					"public_key" => $public_key,
+					"last_used" => $last_used,
+					"owner_id" => $owner_id,
+					"infinite" => $infinite
+				);
+			}
+			return $project;
+		}
+		
+		public function createProject($owner_id, $project_name){
+			$login_db = $this->ldb;
+			$owner_id = $login_db->real_escape_string($owner_id);
+			$project_name = $login_db->real_escape_string($project_name);
+			$time = time();
+			$public_key = hash('sha256', $owner_id . "_" . $project_name . "_" . bin2hex(random_bytes(32)) . "_" . time());
+			$private_key = hash('sha512', $owner_id . "_" . $project_name . "_" . bin2hex(random_bytes(32)) . bin2hex(random_bytes(32)) . "_" . time());
+			$req = "INSERT INTO `projects`(`project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `last_used`, `infinite`) VALUES ('$project_name', '', '$private_key', '$public_key', $owner_id, $time, 0)";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+			return $login_db->insert_id;
+		}
+		
+		public function regenerateProjectPublic($project_id){
+			$login_db = $this->ldb;
+			$project_id = $login_db->real_escape_string($project_id);
+			$public_key = hash('sha256', $owner_id . "_" . $project_name . "_" . bin2hex(random_bytes(32)) . "_" . time());
+			$req = "UPDATE `projects` SET `public_key`='{$public_key}' WHERE `project_id`='$project_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
+		
+		public function regenerateProjectSecret($project_id){
+			$login_db = $this->ldb;
+			$project_id = $login_db->real_escape_string($project_id);
+			$secret_key = hash('sha512', $owner_id . "_" . $project_name . "_" . bin2hex(random_bytes(32)) . bin2hex(random_bytes(32)) . "_" . time());
+			$req = "UPDATE `projects` SET `secret_key`='{$secret_key}' WHERE `project_id`='$project_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
+		
+		public function changeRedirectURL($project_id, $redirect_url){
+			$login_db = $this->ldb;
+			$project_id = $login_db->real_escape_string($project_id);
+			$redirect_url = $login_db->real_escape_string($redirect_url);
+			$req = "UPDATE `projects` SET `redirect_uri`='{$redirect_url}' WHERE `project_id`='$project_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
+		
+		public function changeProjectName($project_id, $name){
+			$login_db = $this->ldb;
+			$project_id = $login_db->real_escape_string($project_id);
+			$name = $login_db->real_escape_string($name);
+			$req = "UPDATE `projects` SET `project_name`='{$name}' WHERE `project_id`='$project_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
+		
+		public function getProjectInfoByPublic($public_key){
+			$login_db = $this->ldb;
+			$public_key = $login_db->real_escape_string($public_key);
+			$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `last_used`, `owner_id`, `infinite` FROM `projects` WHERE `public_key`='{$public_key}'";
+			$statement = $login_db->prepare($req);
+			$statement->execute();
+			$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $last_used, $owner_id, $infinite);
+			while($statement->fetch()) {
+				$project = array(
+					"project_id" => $project_id,
+					"project_name" => $project_name,
+					"redirect_uri" => $redirect_uri,
+					"secret_key" => $secret_key,
+					"public_key" => $public_key,
+					"last_used" => $last_used,
+					"owner_id" => $owner_id,
+					"infinite" => $infinite
+				);
+			}
+			return $project;
+		}
+		
+		public function getProjectInfoBySecret($secret){
+			$login_db = $this->ldb;
+			$secret = $login_db->real_escape_string($secret);
+			$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `last_used`, `owner_id`, `infinite` FROM `projects` WHERE `secret_key`='{$secret}'";
+			$statement = $login_db->prepare($req);
+			$statement->execute();
+			$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $last_used, $owner_id, $infinite);
+			while($statement->fetch()) {
+				$project = array(
+					"project_id" => $project_id,
+					"project_name" => $project_name,
+					"redirect_uri" => $redirect_uri,
+					"secret_key" => $secret_key,
+					"public_key" => $public_key,
+					"last_used" => $last_used,
+					"owner_id" => $owner_id,
+					"infinite" => $infinite
+				);
+			}
+			return $project;
+		}
+		
+		public function updateProjectLastUsed($project_id){
+			$login_db = $this->ldb;
+			$project_id = $login_db->real_escape_string($project_id);
+			$last_used = time();
+			$req = "UPDATE `projects` SET `last_used`='{$last_used}' WHERE `project_id`='$project_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
+		
+		public function getLastSID($user_id){
+			$login_db = $this->ldb;
+			$user_id = $login_db->real_escape_string($user_id);
+			$req = "SELECT `last_sid` FROM `users` WHERE `user_id`='{$user_id}'";
+			$statement = $login_db->prepare($req);
+			$statement->execute();
+			$statement->bind_result($last_sid);
+			$statement->fetch();
+			return $last_sid;
+		}
+		
+		public function setLastSID($user_id, $sid){
+			$login_db = $this->ldb;
+			$user_id = $login_db->real_escape_string($user_id);
+			$sid = $login_db->real_escape_string($sid);
+			$req = "UPDATE `users` SET `last_sid`='{$sid}' WHERE `user_id`='$user_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
+		
+		public function clearLastSID($user_id){
+			$login_db = $this->ldb;
+			$user_id = $login_db->real_escape_string($user_id);
+			$sid = $login_db->real_escape_string($sid);
+			$req = "UPDATE `users` SET `last_sid`=null WHERE `user_id`='$user_id'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
+		}
 }
 
 ?>

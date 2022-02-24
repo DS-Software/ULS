@@ -8,24 +8,34 @@ DS Software ULS is a standalone login system, so you don't have to install anyth
 ### Configuration
 The only file you need to modify is config.php.
 * Configuration Steps:
-  * Edit $allowed_origins
-    * Allowed origins specify the hosts that are allowed to bypass CORS policy.
+  * Copy .configuration/example_config.php to your project root folder and rename it to config.php
+    * Without it your project will NOT work!
   * Edit $login_site
     * Login site stands for a URL of index page of ULS.
   * Change Secured Values
     * $service_key is a secure key that allows ULS to verify data from external sources.
-    * $encryption_key is a secure key that is used to encrypt user password while checking email during registration.
-    * $service_oauth is a secure key that is used to sign a User Verification Code.
-    * $service_verification is a secure key that is used to sign a User Verification Code.
+    * $encryption_key is a secure key that is used to encrypt user password in registration.
   * Insert Database Login Info
     * $database is used to connect to a MySQL database.
   * Insert Email Login Info
     * $email_settings are used to send service emails to users.
-  * Modify Projects
-    * $projects are used as a list of possible projects that allow ULS authentication.
+
+#### Configuration flags:
+* $maintenance_mode
+  * If `true`, API returns only error MAINTENANCE_MODE to all the requests.
+    * Used, if you want to stop users from using ULS while maintaining it.
+* $domain_name
+  * Used to create cookies with proper path.
+  * If you don't use root folder of your site, put the extention here:
+    * If you use something like `https://ds-software.xyz/login` - put `/login` here
+    * If you use something like `https://login.ds-software.xyz/` - leave `/`
+    * If you use something like `https://example.ds-software.xyz/login` - put `/login` here
+* $session_length
+  * Defines the length of a random_session_id. If too small, RSID will duplicate. If too big, might cause some performance issues.
+    * Optimal value - 32
     
 ### Database Configuration
-There is a Database Dump inside a .database folder. Use database_setup.sql as an Import File in PHPMyAdmin or just execute the SQL commands inside the file.
+There is a Database Dump inside a .configuration folder. Use database_setup.sql as an Import File in PHPMyAdmin or just execute the SQL commands inside the file.
 
 ## License
 This project is licensed under CC0 License.

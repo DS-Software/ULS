@@ -11,15 +11,13 @@
 
 <div class="login">
 	<h1>Введите OTP</h1>
-	<form action="api.php" id="totp_form">
+	<form action="javascript:void('')" id="totp_form">
 		<label for="password">
 			<i class="fas fa-lock"></i>
 		</label>
 		<input type="number" name="otp" placeholder="Одноразовый Код 2FA" id="otp" required>
-		<input name="method" value="check_totp" hidden>
-		<input name="section" value="UNAUTH" hidden>
 		<br>
-		<button class="button_login_new_totp" id="send" style="display: none;">Отправить</button>
+		<button class="button_login_new_totp" id="send" style="display: none;" onclick="check_totp_code(otp.value)">Отправить</button>
 		<button class="button_cancel_new_mrg" type="button" onclick="totp_logout()">Выйти</button><br>
 		<button class="button_cancel_new_mrg" type="button" onclick="disable_totp()">Отключить 2FA</button>
 	</form>
@@ -49,6 +47,15 @@ function totp_logout(){
 
 function disable_totp(){
 	location.href = "2fa_disable.php";
+}
+
+function check_totp_code(otp){
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', 'api.php?section=UNAUTH&method=checkTOTP&otp=' + otp, true);
+	xhr.send();
+	xhr.onload = function (e) {
+		location.href = "<?php echo($login_site); ?>";
+	}
 }
 
 </script>

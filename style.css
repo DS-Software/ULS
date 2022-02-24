@@ -22,20 +22,63 @@ body {
 	width: 100%
 }
 
-.login {
-  	width: 400px;
-  	background-color: #ffffff;
-  	box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
-  	margin: 100px auto;
-	border-radius: 10px;
+img{
+	max-width: 44.5vw;
+	max-height: 44.5vw;
 }
-.main_module {
-  	width: 25%;
-  	background-color: #ffffff;
-  	box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
-  	margin: 100px auto;
-	border-radius: 10px;
+
+
+@media (min-width: 400px){
+	.login {
+		width: 400px;
+		background-color: #ffffff;
+		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
+		margin: 100px auto;
+		border-radius: 10px;
+	}
 }
+@media (max-width: 399px){
+	.login {
+		width: 100%;
+		background-color: #ffffff;
+		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
+		margin: 100px auto;
+		border-radius: 10px;
+	}
+}
+@media (max-width: 238px){
+	.login form label{
+		display: none !important;
+	}
+	.button_login_new{
+		width: 80% !important;
+	}
+	.button_additional_new{
+		margin-left: 0 !important;
+		width: 80% !important;
+	}
+}
+
+@media (min-width: 600px){
+	.main_module {
+		width: 600px;
+		background-color: #ffffff;
+		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
+		margin: 100px auto;
+		border-radius: 10px;
+	}
+}
+
+@media (max-width: 599px){
+	.main_module {
+		width: 100%;
+		background-color: #ffffff;
+		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
+		margin: 100px auto;
+		border-radius: 10px;
+	}
+}
+
 .main_module h1 {
   	text-align: center;
   	color: #202124;
@@ -82,7 +125,7 @@ body {
   	color: #ffffff;
 }
 .login form input[type="password"], .login form input[type="text"], .login form input[type="number"] {
-  	width: 310px;
+  	width: 77.5%;
   	height: 50px;
   	border: 1px solid #dee0e4;
   	margin-bottom: 20px;

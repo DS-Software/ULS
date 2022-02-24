@@ -7,16 +7,9 @@ require_once "libs/Base32.php";
 require_once "libs/Hotp.php";
 require_once "libs/Totp.php";
 require_once "libs/browser_libs.php";
+require_once "apps/integration_config.php";
 
 use lfkeitel\phptotp\{Base32,Totp};
-
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    if(in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)){
-		header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-		header('Access-Control-Allow-Credentials: true');
-		header('Access-Control-Max-Age: 86400');
-	}
-}
 
 function returnError($message){
 	$error = array(
@@ -224,10 +217,9 @@ if($section == "UNAUTH"){
 			}
 			else{
 				//UNKNOWN IP
-				
 					$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $session_id . '_' . $user_info['SLID']);
 				
-					$auth_link = $login_site . "/api.php?section=UNAUTH&method=emailIPValidation&rand_session_id=$rand_session_id&session_id=$session_id&timestamp=$timestamp&login=$login&password_hash=$password_token&email_ver_id=$email_ver_id";
+					$auth_link = $login_site . "/auth_manager.php?method=emailIPValidation&rand_session_id=$rand_session_id&session_id=$session_id&timestamp=$timestamp&login=$login&password_hash=$password_token&email_ver_id=$email_ver_id";
 					
 					require_once 'libs/apmailer.php';
 		
@@ -268,6 +260,8 @@ if($section == "UNAUTH"){
 					$auth_email_HTML = strtr($NewIPEmail, $replaceArray);
 					
 					$email->message_send($messageNewIPSubject, $messageFrom, $messageTo, $auth_email_HTML);
+					
+					$login_db->setLastSID($log_user_id, $session_id);
 					
 					$return = array(
 						'result' => 'OK',
@@ -352,22 +346,28 @@ if($section == "UNAUTH"){
 		// ---
 		
 		if($verification['password'] && $verification['timestamp'] && $verification['session_ver'] && $verification['email_ver_id']){
-			setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
-			setcookie("email", $login, time() + 2678400, $domain_name);
-			setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
-			setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
-			setcookie("session", $session_id, time() + 2678400, $domain_name);
-			setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
-			
-			$login_db->set_current_user_ip($log_user_id, $_SERVER['REMOTE_ADDR']);
-			
-			$return = array(
-				'result' => 'OK',
-				'description' => 'Success'
-			);
-					
-			echo(json_encode($return));
-			header("Location: $login_site");
+			$last_sid = $login_db->getLastSID($log_user_id);
+			if($last_sid == $session_id){
+				setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
+				setcookie("email", $login, time() + 2678400, $domain_name);
+				setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
+				setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+				setcookie("session", $session_id, time() + 2678400, $domain_name);
+				setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
+				
+				$login_db->set_current_user_ip($log_user_id, $_SERVER['REMOTE_ADDR']);
+				$login_db->clearLastSID($log_user_id);
+				
+				$return = array(
+					'result' => 'OK',
+					'description' => 'Success'
+				);
+						
+				echo(json_encode($return));
+			}
+			else{
+				returnError('UNAUTHORIZED_REQUEST');
+			}
 		}
 	}
 	
@@ -380,10 +380,15 @@ if($section == "UNAUTH"){
 		
 		if(!$login_db->wasEmailRegistered($login)){
 			$timestamp = time();
+			$rsid = bin2hex(random_bytes($session_length / 2));
+			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
 			$encrypted_password_hash = safe_encrypt($password_hash, $encryption_key);
-			$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $password_hash . '_' . $timestamp);
+			setcookie("register_password", $encrypted_password_hash, $timestamp + 900, $domain_name);
+			setcookie("register_verify", hash("sha256", $encrypted_password_hash . "_" . $service_key  . "_" . $session_id), $timestamp + 900, $domain_name);
+			
+			$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $password_hash . '_' . $timestamp . "_" . $session_id);
 				
-			$auth_link = $login_site . "/api.php?section=UNAUTH&method=register_new_user" .  '&ts=' . "$timestamp&login=$login&password_hash=$encrypted_password_hash&email_ver_id=$email_ver_id";			
+			$auth_link = $login_site . "/auth_manager.php?method=registerNewUser&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id&session_id=$session_id&rand_session_id=$rsid";
 			
 			require_once 'libs/apmailer.php';
 		
@@ -442,38 +447,71 @@ if($section == "UNAUTH"){
 		}
 	}
 	
-	if($method == "register_new_user"){
-		$timestamp = $_GET['ts'];
+	if($method == "registerNewUser"){
+		$timestamp = $_GET['timestamp'];
 		$login = $_GET['login'];
-		$password_hash = $_GET['password_hash'];
 		$email_ver_id = $_GET['email_ver_id'];
+		$session_id = $_GET['session_id'];
+		$rand_session_id = $_GET['rand_session_id'];
+		$password_hash = $_COOKIE['register_password'];
+		$register_verify = $_COOKIE['register_verify'];
 		
 		if($timestamp + 900 >= time()){
 			if(!$login_db->wasEmailRegistered($login)){
-				$real_password_hash = safe_decrypt($password_hash, $encryption_key);			
-				if($real_password_hash !== False){
-					$true_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $real_password_hash . '_' . $timestamp);
-					if($true_ver_id == $email_ver_id){
-						$user_id = $login_db->create_new_user($login, $real_password_hash);
-						$login_db->set_current_user_ip($user_id, $_SERVER['REMOTE_ADDR']);
-						$login_db->regenerateSLID($user_id);
-						$login_db->regenerateAPIKey($user_id);
-						header("Location: $login_site");
+				$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
+				if($true_session_id == $session_id){
+					$true_register_verify = hash("sha256", $password_hash . "_" . $service_key  . "_" . $session_id);
+					if($true_register_verify == $register_verify){
+						$real_password_hash = safe_decrypt($password_hash, $encryption_key);			
+						if($real_password_hash !== False){
+							$true_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $real_password_hash . '_' . $timestamp . "_" . $session_id);
+							if($true_ver_id == $email_ver_id){
+								$user_id = $login_db->create_new_user($login, $real_password_hash);
+								$login_db->set_current_user_ip($user_id, $_SERVER['REMOTE_ADDR']);
+								$login_db->regenerateSLID($user_id);
+								$login_db->regenerateAPIKey($user_id);
+								$user_info = $login_db->get_user_info($user_id);
+								
+								setcookie('register_password', '', 0, '/');
+								setcookie('register_verify', '', 0, '/');
+								
+								setcookie("user_id", $user_id, time() + 2678400, $domain_name);
+								setcookie("email", $login, time() + 2678400, $domain_name);
+								setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
+								setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+								setcookie("session", $session_id, time() + 2678400, $domain_name);
+								setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
+								
+								$login_db->set_current_user_ip($log_user_id, $_SERVER['REMOTE_ADDR']);
+								
+								$return = array(
+									'result' => 'OK',
+									'description' => 'Success'
+								);
+								echo(json_encode($return));
+							}
+							else{
+								returnError("UNABLE_TO_CREATE_ACCOUNT");
+							}
+						}
+						else{
+							returnError("UNABLE_TO_CREATE_ACCOUNT");
+						}
 					}
 					else{
-						header("Location: $login_site?error=INVALID_LINK");
+						returnError("UNABLE_TO_CREATE_ACCOUNT");
 					}
 				}
 				else{
-					header("Location: $login_site?error=PASSWORD_CORRUPTED");
+					returnError("UNABLE_TO_CREATE_ACCOUNT");
 				}
 			}
 			else{
-				header("Location: $login_site?error=EMAIL_WAS_TAKEN");
+				returnError("UNABLE_TO_CREATE_ACCOUNT");
 			}
 		}
 		else{
-			header("Location: $login_site?error=EXPIRED_LINK");
+			returnError("UNABLE_TO_CREATE_ACCOUNT");
 		}
 	}
 	
@@ -484,11 +522,15 @@ if($section == "UNAUTH"){
 		}
 		
 		if($login_db->wasEmailRegistered($login)){
-			$user_info = $login_db->get_user_info($login_db->getUIDByEMail($login));
 			$timestamp = time();
-			$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $timestamp . "_" . $user_info['SLID']);
+			$rsid = bin2hex(random_bytes($session_length / 2));
+			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
+			
+			$log_user_id = $login_db->getUIDByEMail($login);
+			$user_info = $login_db->get_user_info($log_user_id);
+			$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $timestamp . "_" . $user_info['SLID'] . "_" . $session_id);
 				
-			$auth_link = $login_site . "/api.php?section=UNAUTH&method=restore_password&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id";
+			$auth_link = $login_site . "/auth_manager.php?method=restorePassword&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id&rand_session_id=$rsid&session_id=$session_id";
 					
 			require_once 'libs/apmailer.php';
 		
@@ -529,6 +571,8 @@ if($section == "UNAUTH"){
 			$auth_email_HTML = strtr($restorePasswordEmail, $replaceArray);
 					
 			$email->message_send($messageRestoreSubject, $messageFrom, $messageTo, $auth_email_HTML);
+			
+			$login_db->setLastSID($log_user_id, $session_id);
 					
 			$return = array(
 				'result' => 'OK',
@@ -546,33 +590,67 @@ if($section == "UNAUTH"){
 			echo(json_encode($return));
 		}
 	}
-	if($method == "restore_password"){
+	if($method == "restorePassword"){
 		$timestamp = $_GET['timestamp'];
 		$login = $_GET['login'];
 		$email_ver_id = $_GET['email_ver_id'];
-		$new_password = $_REQUEST['new_password'];
+		$session_id = $_GET['session_id'];
+		$rand_session_id = $_GET['rand_session_id'];
+		$new_password = $_COOKIE['restore_password'];
 		
 		if(!isset($new_password)){
-			$link = $login_site . "/new_password.php?login={$login}&timestamp={$timestamp}&email_ver_id={$email_ver_id}";
-			header("Location: $link");
+			returnError("PASSWORD_IS_MISSING");
 		}
 		else{
-			$user_info = $login_db->get_user_info($login_db->getUIDByEMail($login));
-			$email_ver_id_true = hash("sha256", $login . '_' . $service_key . '_' . $timestamp . '_' . $user_info['SLID']);
+			$log_user_id = $login_db->getUIDByEMail($login);
+			$user_info = $login_db->get_user_info($log_user_id);
 			
-			if($email_ver_id_true == $email_ver_id && $timestamp + 900 > time()){
-				if($login_db->wasEmailRegistered($login)){
-					$login_db->changeUserPassword($user_info['user_id'], hash('sha256', $new_password));
-					header("Location: $login_site?state=CHANGED_SUCCESSFULLY");
+			$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
+			$true_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $timestamp . "_" . $user_info['SLID'] . "_" . $session_id);
+			$last_sid = $login_db->getLastSID($log_user_id);
+			
+			if($true_ver_id == $email_ver_id && $timestamp + 900 > time()){
+				if($session_id == $true_session_id){
+					if($last_sid == $session_id){
+						if($login_db->wasEmailRegistered($login)){
+							$login_db->changeUserPassword($user_info['user_id'], hash('sha256', $new_password));
+							
+							setcookie('restore_passwword', '', 0, '/');
+							$login_db->clearLastSID($log_user_id);
+							
+							setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
+							setcookie("email", $login, time() + 2678400, $domain_name);
+							setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
+							setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+							setcookie("session", $session_id, time() + 2678400, $domain_name);
+							setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
+							
+							$return = array(
+								'result' => 'OK',
+								'description' => 'Success'
+							);
+									
+							echo(json_encode($return));
+						}
+						else{
+							returnError("UNABLE_TO_CHANGE_PASSWORD1");
+						}
+					}
+					else{
+						returnError("UNABLE_TO_CHANGE_PASSWORD2");
+					}
+				}
+				else{
+					returnError("UNABLE_TO_CHANGE_PASSWORD3");
 				}
 			}
 			else{
-				header("Location: $login_site");
+				returnError("UNABLE_TO_CHANGE_PASSWORD4");
 			}
 		}
 	}
 	
-	if($method == "check_totp"){
+	if($method == "checkTOTP"){
 		$user_id = $_COOKIE['user_id'];
 		$SLID = $_COOKIE['SLID'];
 		$email = $_COOKIE['email'];
@@ -616,8 +694,6 @@ if($section == "UNAUTH"){
 				}
 			}
 		}
-	
-		header("Location: $login_site");
 	}
 	
 	if($method == "disable_totp"){
@@ -777,6 +853,36 @@ if($section == "UNAUTH"){
 			returnError("WRONG_SESSION");
 		}
 	}
+	
+	if($method == "checkIDToken"){
+		$project_secret = $_GET['secret'];
+		$project = $login_db->getProjectInfoBySecret($project_secret);
+		
+		if($project['project_id'] != ""){
+			$id_token = $_GET['id_token'];
+			$user_id = $_GET['user_id'];
+			
+			$test_uinfo = $login_db->get_user_info($user_id);
+			if($test_uinfo['user_email'] != ""){
+				$true_token = hash('sha512', $test_uinfo['user_id'] . "_" . $test_uinfo['user_email'] . "_" . $test_uinfo['password_hash'] . "_" . $test_uinfo['api_key_seed'] . "_" . $test_uinfo['SLID'] . "_" . $test_uinfo['2fa_secret'] . "_" . $project['secret_key']);
+				
+				if($true_token == $id_token){
+					$return = array(
+						'result' => "OK",
+						'description' => "VALID",
+						'uls_id' => $test_uinfo['user_id']
+					);
+					echo(json_encode($return));
+				}
+				else{
+					returnError("INVALID_TOKEN");
+				}
+			}
+			else{
+				returnError("INVALID_USER");
+			}
+		}
+	}
 }
 else{
 	$access_token = $_REQUEST['access_token'];
@@ -797,126 +903,46 @@ else{
 	if($verified){
 		if($section == "projects"){
 			if($method == "login"){
-				$project = $_GET['project'];
+				$project_public = $_GET['public'];
+				$project = $login_db->getProjectInfoByPublic($project_public);
 				
-				$true_user_id = $uinfo['user_id'];
-				$true_user_ip = $_SERVER['REMOTE_ADDR'];
-				$true_user_email = $uinfo['user_email'];
+				if($project['project_id'] == ""){
+					returnError("UNKNOWN_PROJECT");
+				}
+				
+				$login_db->updateProjectLastUsed($project['project_id']);
+				
 				$timestamp = time();
+				$session = hash('sha256', $uinfo['user_id'] . "_" . $project['secret_key'] . "_" . bin2hex(random_bytes(32)) . "_" . $timestamp);
 				
-				if($projects[$project]['url'] != ""){
-					$project_info = $projects[$project];
-					
-					$project_api = $project_info['api'];
-					$project_url = $project_info['url'];
-					$project_service_key = $project_info['key'];
-					
-					$ver_code = hash("sha512", "{$true_user_id}_{$true_user_ip}_{$true_user_email}_{$timestamp}_{$project_service_key}");
-					
-					$request_params = array(
-						'section' => "UNAUTH",
-						'method' => "loginViaULS",
-						'uls_id' => $true_user_id,
-						'user_ip' => $true_user_ip,
-						'user_email' => $true_user_email,
-						'timestamp' => $timestamp,
-						'verification_code' => $ver_code
-					);
-
-					$get_params = http_build_query($request_params);
-
-					$final_url = $project_api . "?" . $get_params;
-					
-					$return = array(
-						'result' => "OK",
-						'url' => $final_url
-					);
-					
-					echo(json_encode($return));
+				$id_token = hash('sha512', $uinfo['user_id'] . "_" . $uinfo['user_email'] . "_" . $uinfo['password_hash'] . "_" . $uinfo['api_key_seed'] . "_" . $uinfo['SLID'] . "_" . $uinfo['2fa_secret'] . "_" . $project['secret_key']);
+				
+				$ver_code = hash('sha512', $uinfo['user_id'] . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $session . "_" . $timestamp . "_" . $id_token . "_" . $project['secret_key']);
+				
+				if(strpos($project['redirect_uri'], "?") !== false){
+					$params = "&";
 				}
 				else{
-					returnError("WRONG_OR_UNCONFIGURED_PROJECT");
-				}
-			}
-			
-			if($method == "getUserValidationCode"){
-				$user_id = $_COOKIE['user_id'];
-				$SLID = $_COOKIE['SLID'];
-				$email = $_COOKIE['email'];
-				$session = $_COOKIE['session'];
-				$user_ip = $_COOKIE['user_ip'];
-				$user_key = $_COOKIE['user_verkey'];
-				$totp_timestamp = $_COOKIE['totp_timestamp'];
-				$totp_verification = $_COOKIE['totp_verification'];
-				$true_timestamp = time();
-				
-				$verified = false;
-		
-				$ver_user_info = $login_db->get_user_info($user_id);
-				if($ver_user_info['user_id'] == $user_id && $ver_user_info['user_id'] != null){
-					if($ver_user_info['SLID'] == $SLID){
-						if($user_ip == $_SERVER['REMOTE_ADDR']){
-							$true_hash = hash("sha512", "{$session}_{$email}_{$user_id}_{$SLID}_{$_SERVER['REMOTE_ADDR']}_{$service_key}");
-							
-							if($true_hash == $user_key){
-								$verified = true;
-							}
-						}
-					}
+					$params = "?";
 				}
 				
-				if($ver_user_info['2fa_active'] == 1){
-					
-					if($totp_timestamp + 2678400 < time()){
-						setcookie('totp_timestamp', '', 0, $domain_name);
-						setcookie('totp_verification', '', 0, $domain_name);
-						$totp_timestamp = null;
-						$totp_verification = null;
-					}
-					
-					$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}");
-					
-					if($_REQUEST['totp_logout'] == "true"){
-						setcookie('user_verkey', '', 0, $domain_name);
-						setcookie('user_ip', '', 0, $domain_name);
-						setcookie('session', '', 0, $domain_name);
-						setcookie('email', '', 0, $domain_name);
-						setcookie('SLID', '', 0, $domain_name);
-						setcookie('user_id', '', 0, $domain_name);
-						
-						die();
-					}
-					
-					if($true_totp_ver != $totp_verification && $verified){
-						$verified = false;
-						$return = array(
-							'result' => "OK",
-							'code' => null,
-							'created' => null,
-							'verification' => null
-						);
-						
-						echo(json_encode($return, 1));
-						die();
-					}
-				}
+				$request_params = array(
+					'uls_id' => $uinfo['user_id'],
+					'session' => $session,
+					'timestamp' => $timestamp,
+					'user_token' => $id_token,
+					'sign' => $ver_code
+				);
+
+				$params .= http_build_query($request_params);
 				
-				if($verified){
-					$code = hash("sha512", "{$user_id}_{$SLID}_{$email}_{$session}_{$user_ip}_{$user_key}_{$totp_timestamp}_{$totp_verification}_{$true_timestamp}_{$service_oauth}");
-					
-					$verification = hash("sha512", "{$user_id}_{$code}_{$service_verification}");
-					
-					$return = array(
-						'result' => "OK",
-						'code' => $code,
-						'created' => $true_timestamp,
-						'verification' => $verification
-					);
-					echo(json_encode($return));
-				}
-				else{
-					returnError("UNABLE_TO_VERIFY_USER");
-				}
+				$redirect_url = $project['redirect_uri'] . $params;
+				
+				$return = array(
+					'result' => "OK",
+					'redirect' => $redirect_url
+				);
+				echo(json_encode($return));
 			}
 		}
 		if($section == "users"){
@@ -960,9 +986,6 @@ else{
 					if(filter_var($new_email, FILTER_VALIDATE_EMAIL)){
 						if(!$login_db->wasEmailRegistered($new_email)){
 							$login_db->changeUserEmail($user_id, $new_email);
-						}
-						else{
-							returnError("GIVEN_EMAIL_WAS_REGISTERED");
 						}
 					}
 					else{
@@ -1140,6 +1163,114 @@ else{
 				else{
 					returnError("WRONG_SESSION");
 				}
+			}
+		}
+		
+		if($section == "integration"){
+			if($method == "getUserProjects"){
+				$projects = $login_db->getUserProjects($user_id);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				
+				$return = array(
+					'result' => "OK",
+					'projects' => $projects
+				);
+				echo(json_encode($return));
+			}
+			if($method == "createProject"){
+				if(strlen($_GET['name']) < 3 OR strlen($_GET['name']) > 32){
+					returnError("TOO_LONG_OR_TOO_SHORT");
+				}
+				else{
+					$login_db->createProject($user_id, htmlentities($_GET['name']));
+					
+					$return = array(
+						'result' => "OK"
+					);
+					echo(json_encode($return));
+				}
+			}
+			if($method == "getProjectInfo"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$return = array(
+					'result' => "OK",
+					'project_id' => $project['project_id'],
+					'project_name' => $project['project_name'],
+					'redirect_uri' => $project['redirect_uri'],
+					'secret_key' => $project['secret_key'],
+					'public_key' => $project['public_key']
+				);
+				echo(json_encode($return));
+			}
+			
+			if($method == "issueNewPublic"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$login_db->regenerateProjectPublic($project['project_id']);
+				$return = array(
+					'result' => "OK"
+				);
+				echo(json_encode($return));
+			}
+			
+			if($method == "issueNewSecret"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$login_db->regenerateProjectSecret($project['project_id']);
+				$return = array(
+					'result' => "OK"
+				);
+				echo(json_encode($return));
+			}
+			
+			if($method == "changeRedirect"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$login_db->changeRedirectURL($project['project_id'], $_GET['redirect_url']);
+				$return = array(
+					'result' => "OK"
+				);
+				echo(json_encode($return));
+			}
+			
+			if($method == "changeName"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				if(strlen($_GET['name']) < 3 OR strlen($_GET['name']) > 32){
+					returnError("TOO_LONG_OR_TOO_SHORT");
+				}
+				else{
+					$login_db->changeProjectName($project['project_id'], htmlentities($_GET['name']));
+					
+					$return = array(
+						'result' => "OK"
+					);
+					echo(json_encode($return));
+				}
+			}
+			if($method == "delete"){
+				$project = $login_db->getProjectInfo($_GET['project']);
+				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
+				if($project['owner_id'] != $user_id){
+					returnError("UNAUTHORIZED");
+				}
+				$login_db->deleteProject($project['project_id']);
 			}
 		}
 	}
