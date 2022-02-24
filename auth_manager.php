@@ -20,7 +20,7 @@
 	token_xhr.onload = function (e) {
 		let access_token = JSON.parse(token_xhr.responseText);
 		if(access_token.token != "" && access_token.result != "FAULT"){
-			//location.href = "<?php echo($login_site) ?>";
+			location.href = "<?php echo($login_site) ?>";
 		}
 		else{
 			execute_task();
