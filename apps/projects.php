@@ -176,8 +176,8 @@
 		var ensurance = confirm("Вы уверены, что хотите переиздать приватный ключ проекта?");
 		if(ensurance){
 			var xhr = new XMLHttpRequest();
-			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 			xhr.open('GET', login_url + '/api.php?section=integration&method=issueNewSecret&project=' + window.project, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 			xhr.send();
 			xhr.onload = function (e) {
 				location.reload();
