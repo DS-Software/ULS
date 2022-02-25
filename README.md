@@ -32,7 +32,7 @@ The only file you need to modify is config.php.
     * If you use something like `https://example.ds-software.xyz/login` - put `/login` here
 * $session_length
   * Defines the length of a random_session_id. If too small, RSID will duplicate. If too big, might cause some performance issues.
-    * Optimal value - 32
+    * Optimal value - `32`
     
 ### Database Configuration
 There is a Database Dump inside a .configuration folder. Use database_setup.sql as an Import File in PHPMyAdmin or just execute the SQL commands inside the file.
