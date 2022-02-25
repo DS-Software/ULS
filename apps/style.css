@@ -1,10 +1,22 @@
-.main{
-	width: 50%;
-	height: 70%;
-  	background-color: #ffffff;
-  	box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
-  	margin: 100px auto;
-	border-radius: 10px;
+@media (min-width: 900px){
+	.main{
+		width: 900px;
+		height: 70%;
+		background-color: #ffffff;
+		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
+		margin: 100px auto;
+		border-radius: 10px;
+	}
+}
+@media (max-width: 899px){
+	.main{
+		width: 100%;
+		height: 70%;
+		background-color: #ffffff;
+		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
+		margin: 100px auto;
+		border-radius: 10px;
+	}
 }
 
 .main h1 {
@@ -72,27 +84,23 @@
 	overflow-y: scroll;
 }
 
-/* Let's get this party started */
 .scrollable::-webkit-scrollbar {
-    width: 9px;
+    width: 6px;
 }
  
-/* Track */
 .scrollable::-webkit-scrollbar-track {
-    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3); 
-    -webkit-border-radius: 10px;
-    border-radius: 10px;
+    background: rgba(0,0,0,0.1);
 }
  
-/* Handle */
 .scrollable::-webkit-scrollbar-thumb {
-    -webkit-border-radius: 10px;
-    border-radius: 10px;
-    background: rgba(10,10,10,0.4);  
-    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5); 
+	border-radius: 10px;
+    background: rgba(0,0,0,0.2);
 }
-.scrollable::-webkit-scrollbar-thumb:window-inactive {
-	background: rgba(10,10,10,0.4); 
+.scrollable::-webkit-scrollbar-thumb:hover {
+	background: rgba(0,0,0,0.4); 
+}
+.scrollable::-webkit-scrollbar-thumb:active {
+	background: rgba(0,0,0,0.5);
 }
 
 .container{

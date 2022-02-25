@@ -66,7 +66,8 @@ else{
 
 function accept(){
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', 'api.php?section=easylogin&method=claim&session_id=' + "<?php echo($_GET['session_id']) ?>&session_ver=<?php echo($_GET['session_ver']) ?>&ip=<?php echo($ip) ?>&access_token=" + window.token, true);
+	xhr.open('GET', 'api.php?section=easylogin&method=claim&session_id=' + "<?php echo($_GET['session_id']) ?>&session_ver=<?php echo($_GET['session_ver']) ?>&ip=<?php echo($ip) ?>", true);
+	xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 	xhr.send();
 	xhr.onload = function (e) {
 		let result = JSON.parse(xhr.responseText);

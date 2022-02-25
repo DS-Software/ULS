@@ -26,19 +26,19 @@
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
 <title>Регистрация</title>
 
-<div class="login">
+<div class="login register">
 	<h1>Регистрация</h1>
 	<form action="javascript:void('interception auto-post')" id="register_form">
 		<label for="username">
 			<i class="fas fa-user"></i>
 		</label>
-		<input type="text" name="username" placeholder="Почта" id="username" required>
+		<input type="email" name="email" placeholder="Почта" id="email" required>
 		<br>
 		<label for="password">
 			<i class="fas fa-lock"></i>
 		</label>
-		<input type="password" name="password" placeholder="Пароль" id="password" required>
-		<button onclick="register(username.value, password.value)" class="button_login_new_long">Зарегистрироваться</button>
+		<input type="password" name="new_password" placeholder="Новый Пароль" id="new_password" autocomplete="new-password" required>
+		<button onclick="register(email.value, new_password.value)" class="button_login_new_long">Зарегистрироваться</button>
 		<button onclick="back()" class="button_additional_long">Вернуться</button>
 	</form>
 </div>

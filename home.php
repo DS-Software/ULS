@@ -42,7 +42,8 @@
 	
 	function getUserEmail(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=users&method=getCurrentEmail&access_token=' + window.token, true);
+		xhr.open('GET', 'api.php?section=users&method=getCurrentEmail', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
@@ -50,12 +51,15 @@
 				let el = document.getElementById('email_span');
 				
 				el.innerHTML = result.email;
+				window.email = result.email;
 			}
 		}
 	}
 	
 	function logout(){
-		xhr.open('GET', 'api.php?section=users&method=logout&access_token=' + window.token, true);
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=users&method=logout', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			location.reload();
@@ -65,7 +69,8 @@
 	function regenerate_api(){
 		var confirmed = confirm("Этим действием вы перевыпустите ваш API ключ! Это обнулит ваш предыдущий API ключ!");
 		if(confirmed){
-			xhr.open('GET', 'api.php?section=users&method=regenerate_api_key&access_token=' + window.token, true);
+			xhr.open('GET', 'api.php?section=users&method=regenerate_api_key', true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 			xhr.send();
 			xhr.onload = function (e) {
 				location.reload();
@@ -76,7 +81,8 @@
 	function regenerate_slid(){
 		var confirmed = confirm("Этим действием вы перевыпустите ID вашей сессии! Это приведёт к принудительному закрытию всех сеансов!");
 		if(confirmed){
-			xhr.open('GET', 'api.php?section=users&method=regenerate_slid&access_token=' + window.token, true);
+			xhr.open('GET', 'api.php?section=users&method=regenerate_slid', true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 			xhr.send();
 			xhr.onload = function (e) {
 				location.reload();
@@ -103,8 +109,9 @@
 		el.style.display = (el.style.display == 'none') ? '' : 'none';
 	}
 	
-	var input = document.getElementById('email_change');
+	var input = document.getElementById('new_un');
 	var input2 = document.getElementById('password_change');
+	var input3 = document.getElementById('password');
 	
 	function changePassword(){
 		let el = document.getElementById('password_changer');
@@ -116,13 +123,28 @@
 	}
 	
 	function submitPasswordChange(){
-		var password_new = document.getElementById('password_change').value;
+		var password_new = document.getElementById('new_password').value;
+		var pwd_old = document.getElementById('password').value;
 		var passwordChangeEnsurance = confirm("Вы уверены что хотите сменить пароль?");
 		if(passwordChangeEnsurance){
+			document.cookie = "new_password_current=" + encodeURIComponent(pwd_old) + "; max-age=120";
+			document.cookie = "new_password_new=" + encodeURIComponent(password_new) + "; max-age=120";
 			var xhr = new XMLHttpRequest();
-			xhr.open('GET', 'api.php?section=users&method=changeUserPassword&access_token=' + window.token + '&password=' + password_new, true);
+			xhr.open('GET', 'api.php?section=users&method=changeUserPassword', true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 			xhr.send();
-			return true;
+			xhr.onload = function (e) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					location.reload();
+				}
+				else{
+					if(result.reason == "WRONG_PASSWORD"){
+						alert("Вы ввели неверный пароль!");
+					}
+					return false;
+				}
+			}
 		}
 		else{
 			return false;
@@ -138,20 +160,25 @@
 		}
 	}
 	function submitEmailChange(){
-		var email_new = document.getElementById('email_change').value;
+		var email_new = document.getElementById('new_un').value;
 		var emailChangeEnsurance = confirm("Вы уверены что хотите сменить почту на " + email_new + "?");
 		if(emailChangeEnsurance){
 			var xhr = new XMLHttpRequest();
-			xhr.open('GET', 'api.php?section=users&method=changeUserEmail&access_token=' + window.token + '&email=' + email_new, true);
+			xhr.open('GET', 'api.php?section=users&method=changeUserEmail&email=' + email_new, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 			xhr.send();
 			xhr.onload = function (e) {
 				if (xhr.readyState == 4 && xhr.status == 200) {
 					if(xhr.responseText != ''){
-						if(xhr.responseText == '{"result":"FAULT","reason":"GIVEN_EMAIL_IS_INVALID"}'){
+						let result = JSON.parse(xhr.responseText);
+						if(result.reason == 'GIVEN_EMAIL_IS_INVALID'){
 							alert("Вы ввели недействительный E-Mail!");
 						}
-						if(xhr.responseText == '{"result":"FAULT","reason":"YOU_ARE_CURRENTLY_USING_THIS_EMAIL"}'){
+						if(result.reason == 'YOU_ARE_CURRENTLY_USING_THIS_EMAIL'){
 							alert("Введённый E-Mail является вашей текущей почтой!");
+						}
+						if(result.result == "OK"){
+							alert("Вам было отправлено письмо для подтверждения нового адреса E-Mail.");
 						}
 					}
 				}
@@ -173,7 +200,7 @@
 		<div style="margin-left: 2%;">
 			<div><b>Текущая Почта:</b> <span id="email_span"></span></div>
 			<br>
-			<input class="input_new" name="email" id="email_change" placeholder="Введите Новую Почту">
+			<input class="input_new" name="new_un" autocomplete="off" id="new_un" placeholder="Введите Новую Почту" value="">
 		</div>
 		<br>
 	</div>
@@ -181,7 +208,8 @@
 	<div style="display: none;" id="password_changer" class="text_container">
 		<br>
 		<div style="margin-left: 2%;">
-			<input class="input_new" name="password" id="password_change" placeholder="Введите Новый Пароль">
+			<input type="password" class="input_new" name="password" id="password" autocomplete="current-password" placeholder="Введите Текущий Пароль"><br><br>
+			<input type="password" class="input_new" autocomplete="new-password" name="new_password" id="new_password" placeholder="Введите Новый Пароль" value="">
 		</div>
 		<br>
 	</div>
@@ -203,11 +231,11 @@
 	<br>
 </div>
 <script>
-	var input = document.getElementById('email_change');
-	var input2 = document.getElementById('password_change');
+	var input = document.getElementById('new_un');
+	var input2 = document.getElementById('new_password');
 
 	input.oninput = function() {
-		if(input.value == "" & input2.value == ""){
+		if((input.value == "" & input2.value == "") || input.value == window.email){
 			document.getElementById('save').style.display = 'none';
 		}
 		else{
@@ -216,7 +244,7 @@
 	};
 
 	input2.oninput = function() {
-		if(input2.value == "" & input.value == ""){
+		if(input2.value == "" & (input.value == "" || input.value == window.email)){
 			document.getElementById('save').style.display = 'none';
 		}
 		else{
@@ -225,10 +253,10 @@
 	};
 	
 	function save_changes(){
-		var email = document.getElementById('email_change');
-		var password = document.getElementById('password_change');
+		var email = document.getElementById('new_un');
+		var password = document.getElementById('new_password');
 		
-		if(email.value != ""){
+		if(email.value != "" && email.value != window.email){
 			var rl_needed_email = submitEmailChange();
 		}
 		

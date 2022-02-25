@@ -48,7 +48,8 @@
 	function create(){
 		let name = document.getElementById('project_name').value;
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', login_url + '/api.php?section=integration&method=createProject&name=' + encodeURI(name) + "&access_token=" + window.token, true);
+		xhr.open('GET', login_url + '/api.php?section=integration&method=createProject&name=' + encodeURI(name), true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			let ret = JSON.parse(xhr.responseText);

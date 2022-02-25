@@ -65,7 +65,8 @@
 	
 	function loadUserProjects(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', login_url + '/api.php?section=integration&method=getUserProjects&access_token=' + window.token, true);
+		xhr.open('GET', login_url + '/api.php?section=integration&method=getUserProjects', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			let projects = JSON.parse(xhr.responseText);

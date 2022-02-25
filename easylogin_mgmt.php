@@ -42,7 +42,8 @@
 	
 	function getEasyLoginInfo(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=easylogin&method=getEasyLoginInfo&access_token=' + window.token, true);
+		xhr.open('GET', 'api.php?section=easylogin&method=getEasyLoginInfo', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
@@ -71,7 +72,8 @@
 	
 	function enable_el(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=easylogin&method=enable&access_token=' + window.token, true);
+		xhr.open('GET', 'api.php?section=easylogin&method=enable', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
@@ -87,7 +89,8 @@
 	
 	function disable_el(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=easylogin&method=disable&access_token=' + window.token, true);
+		xhr.open('GET', 'api.php?section=easylogin&method=disable', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {

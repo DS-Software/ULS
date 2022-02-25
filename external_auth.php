@@ -48,7 +48,8 @@
 	function authenticate(){
 		let project_public = "<?php echo($_GET['public']); ?>";
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=projects&method=login&public=' + project_public + "&access_token=" + window.token, true);
+		xhr.open('GET', 'api.php?section=projects&method=login&public=' + project_public, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			let result = JSON.parse(xhr.responseText);

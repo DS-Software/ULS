@@ -19,7 +19,7 @@
 	token_xhr.send();
 	token_xhr.onload = function (e) {
 		let access_token = JSON.parse(token_xhr.responseText);
-		if(access_token.token != "" && access_token.result != "FAULT"){
+		if((access_token.token != "" && access_token.result != "FAULT") && "<?php echo($_GET['method']) ?>" != "changeEMail"){
 			location.href = "<?php echo($login_site) ?>";
 		}
 		else{
@@ -67,12 +67,23 @@ if($method == "restorePassword"){
 	location.href = "new_password.php?redirect=<?php echo(urlencode($redirect)); ?>";
 </script>
 		<?php
-		$link = "aa";
+		$link = "";
 	}
 	else{
 		$link = "api.php?section=UNAUTH&method=restorePassword&rand_session_id=$rand_session_id&session_id=$session_id&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id";
 	}
 	
+}
+
+if($method == "changeEMail"){
+	$timestamp = htmlspecialchars($_GET['timestamp']);
+	$user_id = htmlspecialchars($_GET['user_id']);
+	$email_ver_id = htmlspecialchars($_GET['email_ver_id']);
+	$rand_session_id = htmlspecialchars($_GET['rand_session_id']);
+	$session_id = htmlspecialchars($_GET['session_id']);
+	$new_email = htmlspecialchars($_GET['new_email']);
+
+	$link = "api.php?section=UNAUTH&method=changeUserEMail&rand_session_id=$rand_session_id&session_id=$session_id&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id&user_id=$user_id&new_mail=$new_email";
 }
 
 if($link != ""){

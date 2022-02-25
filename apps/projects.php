@@ -62,7 +62,8 @@
 	function loadProjectInfo(){
 		window.project = "<?php echo($_GET['project_id']) ?>";
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', login_url + '/api.php?section=integration&method=getProjectInfo&access_token=' + window.token + "&project=" + window.project, true);
+		xhr.open('GET', login_url + '/api.php?section=integration&method=getProjectInfo&project=' + window.project, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			let project = JSON.parse(xhr.responseText);
@@ -162,7 +163,8 @@
 		var ensurance = confirm("Вы уверены, что хотите переиздать публичный ключ проекта?");
 		if(ensurance){
 			var xhr = new XMLHttpRequest();
-			xhr.open('GET', login_url + '/api.php?section=integration&method=issueNewPublic&access_token=' + window.token + "&project=" + window.project, true);
+			xhr.open('GET', login_url + '/api.php?section=integration&method=issueNewPublic&project=' + window.project, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 			xhr.send();
 			xhr.onload = function (e) {
 				location.reload();
@@ -174,7 +176,8 @@
 		var ensurance = confirm("Вы уверены, что хотите переиздать приватный ключ проекта?");
 		if(ensurance){
 			var xhr = new XMLHttpRequest();
-			xhr.open('GET', login_url + '/api.php?section=integration&method=issueNewSecret&access_token=' + window.token + "&project=" + window.project, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+			xhr.open('GET', login_url + '/api.php?section=integration&method=issueNewSecret&project=' + window.project, true);
 			xhr.send();
 			xhr.onload = function (e) {
 				location.reload();
@@ -218,14 +221,16 @@
 	
 	function changeProjectRedirectURL(new_url){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', login_url + '/api.php?section=integration&method=changeRedirect&access_token=' + window.token + "&project=" + window.project + "&redirect_url=" + encodeURIComponent(new_url), true);
+		xhr.open('GET', login_url + '/api.php?section=integration&method=changeRedirect&project=' + window.project + "&redirect_url=" + encodeURIComponent(new_url), true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		return true;
 	}
 	
 	function changeProjectName(new_name){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', login_url + '/api.php?section=integration&method=changeName&access_token=' + window.token + "&project=" + window.project + "&name=" + encodeURIComponent(new_name), true);
+		xhr.open('GET', login_url + '/api.php?section=integration&method=changeName&project=' + window.project + "&name=" + encodeURIComponent(new_name), true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		return true;
 	}
@@ -234,7 +239,8 @@
 		var ensurance = confirm("Вы уверены, что хотите УДАЛИТЬ этот проект? Это действие нельзя отменить!!!");
 		if(ensurance){
 			var xhr = new XMLHttpRequest();
-			xhr.open('GET', login_url + '/api.php?section=integration&method=delete&access_token=' + window.token + "&project=" + window.project, true);
+			xhr.open('GET', login_url + '/api.php?section=integration&method=delete&project=' + window.project, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 			xhr.send();
 			xhr.onload = function (e) {
 				back();

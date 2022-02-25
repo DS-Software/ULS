@@ -42,7 +42,8 @@
 	
 	function get2FAInfo(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=totp&method=get2FAInfo&access_token=' + window.token, true);
+		xhr.open('GET', 'api.php?section=totp&method=get2FAInfo', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
@@ -71,7 +72,8 @@
 	
 	function enable_totp(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=totp&method=prepare_enable&access_token=' + window.token, true);
+		xhr.open('GET', 'api.php?section=totp&method=prepare_enable', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
@@ -99,7 +101,8 @@
 		let otp = document.getElementById('otp');
 		
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=totp&method=enable&access_token=' + window.token + "&otp=" + otp.value, true);
+		xhr.open('GET', 'api.php?section=totp&method=enable&otp=' + otp.value, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
@@ -129,7 +132,8 @@
 		let otp = document.getElementById('otp_dis');
 		
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=totp&method=disable&access_token=' + window.token + "&otp=" + otp.value, true);
+		xhr.open('GET', 'api.php?section=totp&method=disable&otp=' + otp.value, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {

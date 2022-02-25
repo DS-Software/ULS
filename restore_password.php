@@ -32,9 +32,9 @@
 		<label for="username">
 			<i class="fas fa-user"></i>
 		</label>
-		<input type="text" name="username" placeholder="Почта" id="username" required>
+		<input type="email" name="email" placeholder="Почта" id="email" required>
 		<br>
-		<button onclick="restore(username.value)" class="button_login_new_long">Восстановить</button>
+		<button onclick="restore(email.value)" class="button_login_new_long">Восстановить</button>
 		<button onclick="back()" class="button_additional_long">Вернуться</button>
 	</form>
 </div>

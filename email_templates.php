@@ -3,7 +3,7 @@
 $messageNewIPSubject = "Вход в DS Software ULS со стороннего IP Адреса";
 $messageRegisterSubject = "Регистрация в DS Software ULS";
 $messageRestoreSubject = "Восстановление Пароля в DS Software ULS";
-$messageDisableTOTPSubject = "Отключение Двухфакторной Аутентификации";
+$messageChangeEMailSubject = "Подтверждение Изменения Основной Почты";
 
 $registerEmail = <<<EOT
 <div class="email" style="background-color: #F5F5F5;color: #000000;font-family: 'Noto Sans', sans-serif;">
@@ -38,6 +38,7 @@ $NewIPEmail = <<<EOT
 	<br>
 </div>
 EOT;
+
 $restorePasswordEmail = <<<EOT
 <div class="email" style="background-color: #F5F5F5;color: #000000;font-family: 'Noto Sans', sans-serif;">
 	<div class="header" align="center">
@@ -55,16 +56,16 @@ $restorePasswordEmail = <<<EOT
 </div>
 EOT;
 
-$disableTOTPEmail = <<<EOT
+$changeEMail = <<<EOT
 <div class="email" style="background-color: #F5F5F5;color: #000000;font-family: 'Noto Sans', sans-serif;">
 	<div class="header" align="center">
 		<br>
-		<h1>{$messageDisableTOTPSubject}</h1>
+		<h1>{$messageChangeEMailSubject}</h1>
 	</div>
 	<div class="email_body" style="background-color: #ffffff; width: 50%; border-radius: 50px;margin-left: auto;margin-right: auto;text-align: center;border: 2px solid #D5D5D5;">
 		<h3>
 			<br>
-			Вы запросили отключение 2FA на <a href='$login_site'>{$login_site}</a>.<br><br>Если это были вы, то пройдите по ссылке ниже, иначе - проигнорируйте это письмо.<br><br>Ссылка для отключения 2FA:<br><span><a href=\$link>{$login_site}</a></span><br>Эта ссылка будет действительна в течении 5 минут после её запроса.<br><br>
+			Вы запросили изменение почты на сайте <a href='$login_site'>{$login_site}</a> на почту \$new_mail.<br><br>Если это были вы, то пройдите по ссылке ниже, иначе - проигнорируйте это письмо.<br><br>Ссылка для смены почты:<br><span><a href=\$link>{$login_site}</a></span><br>Эта ссылка будет действительна в течении 5 минут после её запроса.<br><br>
 		</h3>
 	</div>
 	<br>

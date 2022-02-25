@@ -124,7 +124,7 @@ img{
   	background-color: #3274d6;
   	color: #ffffff;
 }
-.login form input[type="password"], .login form input[type="text"], .login form input[type="number"] {
+.login form input[type="email"], .login form input[type="password"], .login form input[type="text"], .login form input[type="number"] {
   	width: 77.5%;
   	height: 50px;
   	border: 1px solid #dee0e4;

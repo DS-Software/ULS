@@ -21,6 +21,50 @@ function returnError($message){
 	die();
 }
 
+function getAPIToken(){
+	if(isset($_GET['access_token'])){
+		if($_GET['legacy'] == 1){
+			$token = $_GET['access_token'];
+			return $token;
+		}
+		else{
+			$return = array(
+				'result' => 'FAULT',
+				'reason' => 'LEGACY_MODE_NOT_SUPORTED',
+				'description' => 'Please, send access token in Authentication header. If you want to continue using Legacy Mode, add &legacy=1.',
+				'disclaimer' => "Legacy mode will be removed eventually, as it's deprecated. Please, move your projects to header authentication as soon as possible!"
+			);
+				
+			echo(json_encode($return, 1));
+			die();
+		}
+	}
+	else{
+		$headers = "";
+		if (isset($_SERVER['Authorization'])) {
+			$headers = trim($_SERVER["Authorization"]);
+		} else if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+			$headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
+		} elseif (function_exists('apache_request_headers')) {
+			$requestHeaders = apache_request_headers();
+			$requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
+			if (isset($requestHeaders['Authorization'])) {
+				$headers = trim($requestHeaders['Authorization']);
+			}
+		}
+		
+		$token_raw = explode(" ", $headers);
+		if($token_raw[0] == "Bearer"){
+			$token = $token_raw[1];
+		}
+		else{
+			$token = null;
+		}
+		
+		return $token;
+	}
+}
+
 function convBase($num, $base_a, $base_b)
 {
     return gmp_strval (gmp_init($num, $base_a), $base_b );
@@ -615,7 +659,7 @@ if($section == "UNAUTH"){
 						if($login_db->wasEmailRegistered($login)){
 							$login_db->changeUserPassword($user_info['user_id'], hash('sha256', $new_password));
 							
-							setcookie('restore_passwword', '', 0, '/');
+							setcookie('restore_password', '', 0, '/');
 							$login_db->clearLastSID($log_user_id);
 							
 							setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
@@ -633,20 +677,66 @@ if($section == "UNAUTH"){
 							echo(json_encode($return));
 						}
 						else{
-							returnError("UNABLE_TO_CHANGE_PASSWORD1");
+							returnError("UNABLE_TO_CHANGE_PASSWORD");
 						}
 					}
 					else{
-						returnError("UNABLE_TO_CHANGE_PASSWORD2");
+						returnError("UNABLE_TO_CHANGE_PASSWORD");
 					}
 				}
 				else{
-					returnError("UNABLE_TO_CHANGE_PASSWORD3");
+					returnError("UNABLE_TO_CHANGE_PASSWORD");
 				}
 			}
 			else{
-				returnError("UNABLE_TO_CHANGE_PASSWORD4");
+				returnError("UNABLE_TO_CHANGE_PASSWORD");
 			}
+		}
+	}
+	
+	if($method == "changeUserEMail"){
+		$timestamp = $_GET['timestamp'];
+		$user_id = $_GET['user_id'];
+		$email_ver_id = $_GET['email_ver_id'];
+		$session_id = $_GET['session_id'];
+		$rand_session_id = $_GET['rand_session_id'];
+		$new_mail = $_GET['new_mail'];
+		
+		$user_info = $login_db->get_user_info($user_id);
+
+		$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
+		$true_ver_id = hash("sha256", $user_id . '_' . $service_key . '_' . $timestamp . "_" . $user_info['SLID'] . "_" . $session_id . "_"  . $new_mail);
+		$last_sid = $login_db->getLastSID($user_id);
+		
+		if($true_ver_id == $email_ver_id && $timestamp + 900 > time()){
+			if($session_id == $true_session_id){
+				if($last_sid == $session_id){
+					if(!$login_db->wasEmailRegistered($login)){
+						$login_db->changeUserEmail($user_id, $new_mail);
+							
+						$login_db->clearLastSID($user_id);
+						
+						$return = array(
+							'result' => 'OK',
+							'description' => 'Success'
+						);
+									
+						echo(json_encode($return));
+					}
+					else{
+						returnError("UNABLE_TO_CHANGE_EMAIL");
+					}
+				}
+				else{
+					returnError("UNABLE_TO_CHANGE_EMAIL");
+				}
+			}
+			else{
+				returnError("UNABLE_TO_CHANGE_EMAIL");
+			}
+		}
+		else{
+			returnError("UNABLE_TO_CHANGE_EMAIL");
 		}
 	}
 	
@@ -855,7 +945,7 @@ if($section == "UNAUTH"){
 	}
 	
 	if($method == "checkIDToken"){
-		$project_secret = $_GET['secret'];
+		$project_secret = getAPIToken();
 		$project = $login_db->getProjectInfoBySecret($project_secret);
 		
 		if($project['project_id'] != ""){
@@ -882,10 +972,13 @@ if($section == "UNAUTH"){
 				returnError("INVALID_USER");
 			}
 		}
+		else{
+			returnError("WRONG_SECRET_KEY");
+		}
 	}
 }
 else{
-	$access_token = $_REQUEST['access_token'];
+	$access_token = getAPIToken();
 	$ate = explode(":", $access_token);
 	$user_id = $ate[0];
 	$uinfo = $login_db->get_user_info($user_id);
@@ -976,16 +1069,90 @@ else{
 			}
 			
 			if($method == "changeUserPassword"){
-				$password_hash = hash('sha256', $_GET['password']);
-				$login_db->changeUserPassword($user_id, $password_hash);
+				$old_password = $_COOKIE['new_password_current'];
+				$new_password = $_COOKIE['new_password_new'];
+				$password_hash = hash('sha256', $new_password);
+				$password_hash_old = hash('sha256', $old_password);
+				
+				if($uinfo['password_hash'] == $password_hash_old && $old_password != ""){
+					$login_db->changeUserPassword($user_id, $password_hash);
+					
+					setcookie('new_password_current', '', 0, $domain_name);
+					setcookie('new_password_new', '', 0, $domain_name);
+					
+					$return = array(
+						'result' => "OK"
+					);
+					echo(json_encode($return));
+				}
+				else{
+					returnError("WRONG_PASSWORD");
+				}
 			}
 			
 			if($method == "changeUserEmail"){
+				$login = $uinfo['user_email'];
 				$new_email = $_GET['email'];
 				if($new_email != $uinfo['user_email']){
 					if(filter_var($new_email, FILTER_VALIDATE_EMAIL)){
 						if(!$login_db->wasEmailRegistered($new_email)){
-							$login_db->changeUserEmail($user_id, $new_email);
+							$timestamp = time();
+							$rsid = bin2hex(random_bytes($session_length / 2));
+							$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
+							
+							$email_ver_id = hash("sha256", $user_id . '_' . $service_key . '_' . $timestamp . "_" . $uinfo['SLID'] . "_" . $session_id . "_"  . $new_email);
+									
+							$auth_link = $login_site . "/auth_manager.php?method=changeEMail&timestamp=$timestamp&user_id=$user_id&email_ver_id=$email_ver_id&rand_session_id=$rsid&session_id=$session_id&new_email=$new_email";
+										
+							require_once 'libs/apmailer.php';
+							
+							class email{
+								public function __construct($email_settings){
+									$config = [
+										'defaultFrom' => $email_settings['messageFrom'],
+										'onError'     => function($error, $message, $transport) { echo $error; },
+										'afterSend'   => function($text, $message, $layer) { $nothing = 0; },
+										'transports'  => [        
+											['smtp', 'host' => $email_settings['smtp'], 'ssl' => true, 'port' => $email_settings['port'], 'login' => $email_settings['login'], 'password' => $email_settings['password']]
+										],
+									];
+									Mailer()->init($config);
+								}
+													
+								public function message_send($messageSubject, $messageFrom,$messageTo, $message_HTML){
+									$message = Mailer()->newHtmlMessage();
+
+									$message->setSubject($messageSubject);
+									$message->setSenderEmail($messageFrom);
+									$message->addRecipient($messageTo);
+									$message->addContent($message_HTML);
+												
+									Mailer()->sendMessage($message);
+								}
+							}
+										
+							$email = new email($email_settings);
+							$messageFrom = $email_settings['messageFrom'];
+							$messageTo = $login;
+										
+							$replaceArray = array(
+								'$messageTo' => $messageTo,
+								'$link' => $auth_link,
+								'$new_mail' => $new_email
+							);
+							
+							$auth_email_HTML = strtr($changeEMail, $replaceArray);
+										
+							$email->message_send($messageChangeEMailSubject, $messageFrom, $messageTo, $auth_email_HTML);
+								
+							$login_db->setLastSID($user_id, $session_id);
+										
+							$return = array(
+								'result' => 'OK',
+								'description' => 'emailVerificationNeeded'
+							);
+										
+							echo(json_encode($return));
 						}
 					}
 					else{
