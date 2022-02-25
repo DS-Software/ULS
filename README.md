@@ -26,7 +26,7 @@ The only file you need to modify is config.php.
     * Used, if you want to stop users from using ULS while maintaining it.
 * $domain_name
   * Used to create cookies with proper path.
-  * If you don't use root folder of your site, put the extention here:
+  * If you don't use root folder of your site, put the extension here:
     * If you use something like `https://ds-software.xyz/login` - put `/login` here
     * If you use something like `https://login.ds-software.xyz/` - leave `/`
     * If you use something like `https://example.ds-software.xyz/login` - put `/login` here
