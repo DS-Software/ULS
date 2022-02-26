@@ -32,9 +32,9 @@
 		<label for="username">
 			<i class="fas fa-user"></i>
 		</label>
-		<input type="text" name="username" placeholder="Почта" id="username" required>
+		<input type="email" name="email" placeholder="Почта" id="email" required>
 		<br>
-		<button onclick="restore(username.value)" class="button_login_new_long">Восстановить</button>
+		<button onclick="restore(email.value)" class="button_login_new_long">Восстановить</button>
 		<button onclick="back()" class="button_additional_long">Вернуться</button>
 	</form>
 </div>
@@ -58,7 +58,7 @@
 			let reg_result = JSON.parse(xhr.responseText);
 			if(reg_result.description == "emailVerificationNeeded"){
 				alert("Вам было отправлено письмо для восстановления пароля!");
-				location.href = "<?php echo($login_site) ?>";
+				location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 			}
 			if(reg_result.reason == "INVALID_EMAIL"){
 				alert("Введённый E-Mail недействителен!");
@@ -67,6 +67,6 @@
 	}
 	
 	function back(){
-		location.href = "<?php echo($login_site); ?>";
+		location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
 	}
 </script>

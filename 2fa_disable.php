@@ -48,12 +48,12 @@ function disable(key){
 		else{
 			alert("Произошла ошибка при попытке отключения 2FA.");
 		}
-		location.href = "<?php echo($login_site); ?>";
+		location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
 	}
 }
 
 function back(){
-	location.href = "<?php echo($login_site) ?>";
+	location.href = "<?php echo(htmlspecialchars(($login_site)); ?>";
 }
 
 </script>

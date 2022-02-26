@@ -33,7 +33,7 @@
 	
 	function bootstrap(){
 		if(window.token == ""){
-			location.href = "<?php echo($login_site) ?>";
+			location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 		}
 		else{
 			get2FAInfo();
@@ -42,7 +42,8 @@
 	
 	function get2FAInfo(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=totp&method=get2FAInfo&access_token=' + window.token, true);
+		xhr.open('GET', 'api.php?section=totp&method=get2FAInfo', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
@@ -71,7 +72,8 @@
 	
 	function enable_totp(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=totp&method=prepare_enable&access_token=' + window.token, true);
+		xhr.open('GET', 'api.php?section=totp&method=prepare_enable', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
@@ -99,14 +101,15 @@
 		let otp = document.getElementById('otp');
 		
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=totp&method=enable&access_token=' + window.token + "&otp=" + otp.value, true);
+		xhr.open('GET', 'api.php?section=totp&method=enable&otp=' + otp.value, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
 				let result = JSON.parse(xhr.responseText);
 				if(result.result == "OK"){
 					let el2 = document.getElementById('enable_totp');
-					el2.innerHTML = "<font size=\"15\">Вы успешно включили 2FA!<br><b>Пожалуйста, сохраните или запишите ключ отключения 2FA:</b></font><h2>" + result.disableCode + "</h2><font size=\"15\">Этот ключ позволит вам отключить 2FA при утере устройства-генератора кодов.<br>Если у вас уже был код отключения 2FA, он недействителен. Используйте вместо него ЭТОТ код.</font><br><b>Аккаунт: <?php echo($_COOKIE['email']) ?></b><br><br><button onclick=\"hideEnableForm()\" class=\"button_feature_new_mrg\">Закрыть</button>";
+					el2.innerHTML = "<font size=\"15\">Вы успешно включили 2FA!<br><b>Пожалуйста, сохраните или запишите ключ отключения 2FA:</b></font><h2>" + result.disableCode + "</h2><font size=\"15\">Этот ключ позволит вам отключить 2FA при утере устройства-генератора кодов.<br>Если у вас уже был код отключения 2FA, он недействителен. Используйте вместо него ЭТОТ код.</font><br><b>Аккаунт: <?php echo(htmlspecialchars($_COOKIE['email'])) ?></b><br><br><button onclick=\"hideEnableForm()\" class=\"button_feature_new_mrg\">Закрыть</button>";
 				}
 				else{
 					if(result.result == "FAULT" && result.reason == "WRONG_TOTP"){
@@ -129,7 +132,8 @@
 		let otp = document.getElementById('otp_dis');
 		
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=totp&method=disable&access_token=' + window.token + "&otp=" + otp.value, true);
+		xhr.open('GET', 'api.php?section=totp&method=disable&otp=' + otp.value, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {

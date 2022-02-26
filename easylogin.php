@@ -54,7 +54,7 @@
 			}
 			else{
 				alert("Ошибка при получении сессии EasyLogin. Войдите обычным путём.");
-				location.href = "<?php echo($login_site) ?>";
+				location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 			}
 		}
 	}
@@ -70,7 +70,7 @@
 		xhr.open('GET', 'api.php?section=UNAUTH&method=el_removeSession&session_id=' + window.el_session + "&session_ver=" + window.session_verifier, true);
 		xhr.send();
 		xhr.onload = function (e) {
-			location.href = "<?php echo($login_site); ?>";
+			location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
 		}
 	}
 	
@@ -87,7 +87,7 @@
 			let handler = JSON.parse(xhr.responseText);
 			let handled = false;
 			if(handler.result == "OK"){
-				location.href = "<?php echo($login_site) ?>";
+				location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 				clearInterval(window.interval);
 				handled = true;
 			}

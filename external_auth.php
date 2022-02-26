@@ -38,7 +38,7 @@
 	
 	function bootstrap(){
 		if(window.token == ""){
-			location.href = "<?php echo($login_site) ?>";
+			location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 		}
 		else{
 			authenticate();
@@ -46,9 +46,10 @@
 	}
 	
 	function authenticate(){
-		let project_public = "<?php echo($_GET['public']); ?>";
+		let project_public = "<?php echo(htmlspecialchars($_GET['public'])); ?>";
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=projects&method=login&public=' + project_public + "&access_token=" + window.token, true);
+		xhr.open('GET', 'api.php?section=projects&method=login&public=' + project_public, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			let result = JSON.parse(xhr.responseText);

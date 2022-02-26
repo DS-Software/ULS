@@ -12,7 +12,7 @@
 <script>
 
 	function back(){
-		location.href = "<?php echo($login_site); ?>";
+		location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
 	}
 
 	var xhr = new XMLHttpRequest();
@@ -66,7 +66,8 @@ else{
 
 function accept(){
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', 'api.php?section=easylogin&method=claim&session_id=' + "<?php echo($_GET['session_id']) ?>&session_ver=<?php echo($_GET['session_ver']) ?>&ip=<?php echo($ip) ?>&access_token=" + window.token, true);
+	xhr.open('GET', 'api.php?section=easylogin&method=claim&session_id=' + "<?php echo(htmlspecialchars($_GET['session_id'])) ?>&session_ver=<?php echo(htmlspecialchars($_GET['session_ver'])) ?>&ip=<?php echo(htmlspecialchars($ip)) ?>", true);
+	xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 	xhr.send();
 	xhr.onload = function (e) {
 		let result = JSON.parse(xhr.responseText);
