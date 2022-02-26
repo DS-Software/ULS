@@ -16,7 +16,7 @@
 <title>Аутентификация</title>
 
 <script>
-	window.login_url = "<?php echo($login_site) ?>";
+	window.login_url = "<?php echo(htmlspecialchars($login_site)) ?>";
 
 	var token_xhr = new XMLHttpRequest();
 	var xhr = new XMLHttpRequest();
@@ -66,7 +66,7 @@
 	}
 	
 	function back(){
-		location.href = "<?php echo($int_url) ?>";
+		location.href = "<?php echo(htmlspecialchars($int_url)) ?>";
 	}
 </script>
 

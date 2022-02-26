@@ -19,8 +19,8 @@
 	token_xhr.send();
 	token_xhr.onload = function (e) {
 		let access_token = JSON.parse(token_xhr.responseText);
-		if((access_token.token != "" && access_token.result != "FAULT") && "<?php echo($_GET['method']) ?>" != "changeEMail"){
-			location.href = "<?php echo($login_site) ?>";
+		if((access_token.token != "" && access_token.result != "FAULT") && "<?php echo(htmlspecialchars($_GET['method'])) ?>" != "changeEMail"){
+			location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 		}
 		else{
 			execute_task();
@@ -91,14 +91,14 @@ if($link != ""){
 <script>
 	function execute_task(){
 		var command_xhr = new XMLHttpRequest();
-		command_xhr.open('GET', "<?php echo($link) ?>", true);
+		command_xhr.open('GET', "<?php echo(htmlspecialchars($link)) ?>", true);
 		command_xhr.send();
 		command_xhr.onload = function (e) {
 			let response = JSON.parse(command_xhr.responseText);
 			if(response.result != "OK"){
 				alert("В процессе выполнения запроса произошла ошибка!");
 			}
-			location.href = "<?php echo($login_site) ?>";
+			location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 		}
 	}
 </script>
@@ -108,7 +108,7 @@ else{
 	?>
 <script>
 	function execute_task(){
-		location.href = "<?php echo($login_site) ?>";
+		location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 	}
 </script>
 	<?php

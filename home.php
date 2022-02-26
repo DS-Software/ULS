@@ -33,7 +33,7 @@
 	
 	function bootstrap(){
 		if(window.token == ""){
-			location.href = "<?php echo($login_site) ?>";
+			location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 		}
 		else{
 			getUserEmail();

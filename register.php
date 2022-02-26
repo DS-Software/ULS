@@ -141,7 +141,7 @@
 			let reg_result = JSON.parse(xhr.responseText);
 			if(reg_result.description == "emailVerificationNeeded"){
 				alert("Вам было отправлено письмо для продолжения регистрации!");
-				location.href = "<?php echo($login_site) ?>";
+				location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 			}
 			if(reg_result.reason == "INVALID_EMAIL"){
 				alert("Введённый E-Mail недействителен!");
@@ -150,6 +150,6 @@
 	}
 	
 	function back(){
-		location.href = "<?php echo($login_site); ?>";
+		location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
 	}
 </script>

@@ -13,7 +13,7 @@
 
 <script>
 
-	window.login_url = "<?php echo($login_site) ?>";
+	window.login_url = "<?php echo(htmlspecialchars($login_site)) ?>";
 
 	var token_xhr = new XMLHttpRequest();
 	var xhr = new XMLHttpRequest();
@@ -41,9 +41,9 @@
 			location.href = login_url;
 		}
 		else{
-			if("<?php echo($_GET['error']); ?>" == "creation_closed"){
+			if("<?php echo(htmlspecialchars($_GET['error'])); ?>" == "creation_closed"){
 				alert("Вы не можете создать проект! Попробуйте позже!");
-				location.replace("<?php echo($int_url); ?>");
+				location.replace("<?php echo(htmlspecialchars($int_url)); ?>");
 			}
 			loadProjectInfo();
 		}
@@ -60,7 +60,7 @@
 	}
 	
 	function loadProjectInfo(){
-		window.project = "<?php echo($_GET['project_id']) ?>";
+		window.project = "<?php echo(htmlspecialchars($_GET['project_id'])) ?>";
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', login_url + '/api.php?section=integration&method=getProjectInfo&project=' + window.project, true);
 		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
@@ -73,7 +73,7 @@
 			let secret = document.getElementById("secret_key");
 			
 			if(project.result == "FAULT"){
-				location.href = "<?php echo($int_url) ?>?error=unauthorized";
+				location.href = "<?php echo(htmlspecialchars($int_url)) ?>?error=unauthorized";
 			}
 			
 			name_container.innerHTML = escapeHtml(project.project_name) + "&nbsp;&nbsp;<span class=\"bh\"><button onclick=\"deleteProject()\" class=\"button-7-new\">Удалить проект</button></span>";
@@ -87,7 +87,7 @@
 	}
 	
 	function back(){
-		location.href = "<?php echo($int_url) ?>";
+		location.href = "<?php echo(htmlspecialchars($int_url)) ?>";
 	}
 	
 	function showSecret(){

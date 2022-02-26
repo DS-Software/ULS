@@ -41,7 +41,7 @@ function totp_logout(){
 	xhr.open('GET', 'api.php?section=UNAUTH&method=getAccessToken&totp_logout=true', true);
 	xhr.send();
 	xhr.onload = function (e) {
-		location.href = "<?php echo($login_site); ?>";
+		location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
 	}
 }
 
@@ -54,7 +54,7 @@ function check_totp_code(otp){
 	xhr.open('GET', 'api.php?section=UNAUTH&method=checkTOTP&otp=' + otp, true);
 	xhr.send();
 	xhr.onload = function (e) {
-		location.href = "<?php echo($login_site); ?>";
+		location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
 	}
 }
 

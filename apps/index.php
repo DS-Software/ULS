@@ -13,7 +13,7 @@
 
 <script>
 
-	window.login_url = "<?php echo($login_site) ?>";
+	window.login_url = "<?php echo(htmlspecialchars($login_site)) ?>";
 
 	var token_xhr = new XMLHttpRequest();
 	var xhr = new XMLHttpRequest();
@@ -41,13 +41,13 @@
 			location.href = login_url;
 		}
 		else{
-			if("<?php echo($_GET['error']); ?>" == "creation_closed"){
+			if("<?php echo(htmlspecialchars($_GET['error'])); ?>" == "creation_closed"){
 				alert("Вы не можете создать проект! Попробуйте позже!");
 				location.replace("<?php echo($int_url); ?>");
 			}
-			if("<?php echo($_GET['error']); ?>" == "unauthorized"){
+			if("<?php echo(htmlspecialchars($_GET['error'])); ?>" == "unauthorized"){
 				alert("Вы не можете управлять этим проектом!");
-				location.replace("<?php echo($int_url); ?>");
+				location.replace("<?php echo(htmlspecialchars($int_url)); ?>");
 			}
 			loadUserProjects();
 		}

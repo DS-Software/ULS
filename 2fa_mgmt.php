@@ -33,7 +33,7 @@
 	
 	function bootstrap(){
 		if(window.token == ""){
-			location.href = "<?php echo($login_site) ?>";
+			location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 		}
 		else{
 			get2FAInfo();
@@ -109,7 +109,7 @@
 				let result = JSON.parse(xhr.responseText);
 				if(result.result == "OK"){
 					let el2 = document.getElementById('enable_totp');
-					el2.innerHTML = "<font size=\"15\">Вы успешно включили 2FA!<br><b>Пожалуйста, сохраните или запишите ключ отключения 2FA:</b></font><h2>" + result.disableCode + "</h2><font size=\"15\">Этот ключ позволит вам отключить 2FA при утере устройства-генератора кодов.<br>Если у вас уже был код отключения 2FA, он недействителен. Используйте вместо него ЭТОТ код.</font><br><b>Аккаунт: <?php echo($_COOKIE['email']) ?></b><br><br><button onclick=\"hideEnableForm()\" class=\"button_feature_new_mrg\">Закрыть</button>";
+					el2.innerHTML = "<font size=\"15\">Вы успешно включили 2FA!<br><b>Пожалуйста, сохраните или запишите ключ отключения 2FA:</b></font><h2>" + result.disableCode + "</h2><font size=\"15\">Этот ключ позволит вам отключить 2FA при утере устройства-генератора кодов.<br>Если у вас уже был код отключения 2FA, он недействителен. Используйте вместо него ЭТОТ код.</font><br><b>Аккаунт: <?php echo(htmlspecialchars($_COOKIE['email'])) ?></b><br><br><button onclick=\"hideEnableForm()\" class=\"button_feature_new_mrg\">Закрыть</button>";
 				}
 				else{
 					if(result.result == "FAULT" && result.reason == "WRONG_TOTP"){
