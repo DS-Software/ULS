@@ -22,47 +22,28 @@ function returnError($message){
 }
 
 function getAPIToken(){
-	if(isset($_GET['access_token'])){
-		if($_GET['legacy'] == 1){
-			$token = $_GET['access_token'];
-			return $token;
+	$headers = "";
+	if (isset($_SERVER['Authorization'])) {
+		$headers = trim($_SERVER["Authorization"]);
+	} else if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+		$headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
+	} elseif (function_exists('apache_request_headers')) {
+		$requestHeaders = apache_request_headers();
+		$requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
+		if (isset($requestHeaders['Authorization'])) {
+			$headers = trim($requestHeaders['Authorization']);
 		}
-		else{
-			$return = array(
-				'result' => 'FAULT',
-				'reason' => 'LEGACY_MODE_NOT_SUPORTED',
-				'description' => 'Please, send access token in Authentication header. If you want to continue using Legacy Mode, add &legacy=1.',
-				'disclaimer' => "Legacy mode will be removed eventually, as it's deprecated. Please, move your projects to header authentication as soon as possible!"
-			);
-				
-			echo(json_encode($return, 1));
-			die();
-		}
+	}
+		
+	$token_raw = explode(" ", $headers);
+	if($token_raw[0] == "Bearer"){
+		$token = $token_raw[1];
 	}
 	else{
-		$headers = "";
-		if (isset($_SERVER['Authorization'])) {
-			$headers = trim($_SERVER["Authorization"]);
-		} else if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-			$headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
-		} elseif (function_exists('apache_request_headers')) {
-			$requestHeaders = apache_request_headers();
-			$requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
-			if (isset($requestHeaders['Authorization'])) {
-				$headers = trim($requestHeaders['Authorization']);
-			}
-		}
-		
-		$token_raw = explode(" ", $headers);
-		if($token_raw[0] == "Bearer"){
-			$token = $token_raw[1];
-		}
-		else{
-			$token = null;
-		}
-		
-		return $token;
+		$token = null;
 	}
+		
+	return $token;
 }
 
 function convBase($num, $base_a, $base_b)
@@ -126,14 +107,19 @@ if($section == "UNAUTH"){
 			$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}");
 			
 			if($_REQUEST['totp_logout'] == "true"){
-				setcookie('user_verkey', '', 0, $domain_name);
-				setcookie('user_ip', '', 0, $domain_name);
-				setcookie('session', '', 0, $domain_name);
-				setcookie('email', '', 0, $domain_name);
-				setcookie('SLID', '', 0, $domain_name);
-				setcookie('user_id', '', 0, $domain_name);
-				
-				die();
+				if($true_totp_ver != $totp_verification){
+					setcookie('user_verkey', '', 0, $domain_name);
+					setcookie('user_ip', '', 0, $domain_name);
+					setcookie('session', '', 0, $domain_name);
+					setcookie('email', '', 0, $domain_name);
+					setcookie('SLID', '', 0, $domain_name);
+					setcookie('user_id', '', 0, $domain_name);
+					
+					die();
+				}
+				else{
+					returnError("YOU_HAVE_ALREADY_LOGGED_IN");
+				}
 			}
 			
 			if($true_totp_ver != $totp_verification && $verified){
@@ -1010,7 +996,7 @@ else{
 				
 				$id_token = hash('sha512', $uinfo['user_id'] . "_" . $uinfo['user_email'] . "_" . $uinfo['password_hash'] . "_" . $uinfo['api_key_seed'] . "_" . $uinfo['SLID'] . "_" . $uinfo['2fa_secret'] . "_" . $project['secret_key']);
 				
-				$ver_code = hash('sha512', $uinfo['user_id'] . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $session . "_" . $timestamp . "_" . $id_token . "_" . $project['secret_key']);
+				$ver_code = hash('sha512', $uinfo['user_id'] . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $session . "_" . $timestamp . "_" . $uinfo['user_email'] . "_" . $id_token . "_" . $project['secret_key']);
 				
 				if(strpos($project['redirect_uri'], "?") !== false){
 					$params = "&";
@@ -1023,6 +1009,7 @@ else{
 					'uls_id' => $uinfo['user_id'],
 					'session' => $session,
 					'timestamp' => $timestamp,
+					'user_email' => $uinfo['user_email'],
 					'user_token' => $id_token,
 					'sign' => $ver_code
 				);
@@ -1034,6 +1021,30 @@ else{
 				$return = array(
 					'result' => "OK",
 					'redirect' => $redirect_url
+				);
+				echo(json_encode($return));
+			}
+			
+			if($method == "getProjectInfo"){
+				$project_public = $_GET['public'];
+				$onFault = $_GET['onFault'];
+				$sign = $_GET['sign'];
+				$project = $login_db->getLoginProjectInfo($project_public);
+				
+				$fault_redirect = "MALFORMED";
+				
+				if(!$project["exists"]){
+					returnError("UNKNOWN_PROJECT");
+				}
+				if(hash("sha256", $onFault . $project["secret_key"]) == $sign){
+					$fault_redirect = $onFault;
+				}
+				$return = array(
+					'result' => "OK",
+					'project_id' => $project['project_id'],
+					'project_name' => $project['project_name'],
+					'verified' => $project['infinite'],
+					'fault_redirect' => $fault_redirect
 				);
 				echo(json_encode($return));
 			}

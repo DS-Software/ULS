@@ -86,11 +86,17 @@ img{
   	padding: 20px 0 20px 0;
   	border-bottom: 1px solid #dee0e4;
 }
+
 .main_module h2 {
   	text-align: center;
 	color: #202124;
   	font-size: 20px;
   	padding: 10px 0 10px 0;
+	margin-left: auto;
+}
+
+.center{
+	margin-right: auto;
 	margin-left: auto;
 }
 
@@ -613,4 +619,18 @@ img{
 	position: absolute;
 	margin-left: 3%;
 	padding: 15px 15px 15px 15px;
+}
+
+.verify_mark{
+	padding-left: 10px;
+	padding-right: 10px;
+	border-radius: 2em;
+	border: 1px solid #2da44e;
+	font-size: 14px;
+	line-height: 22px;
+	font-weight: 500;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	color: #1a7f37;
+	background-color: rgba(45, 164, 78, 0.09);
 }

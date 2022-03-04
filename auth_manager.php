@@ -89,9 +89,19 @@ if($method == "changeEMail"){
 if($link != ""){
 	?>
 <script>
+	
+	function escapeHtml(text) {
+	  var map = {
+		'&amp;': '&'
+	  };
+	  
+	  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+	}
+
 	function execute_task(){
 		var command_xhr = new XMLHttpRequest();
-		command_xhr.open('GET', "<?php echo(htmlspecialchars($link)) ?>", true);
+		let link = "<?php echo(htmlspecialchars($link)) ?>";
+		command_xhr.open('GET', link.replace(/&amp;/g, "&"), true);
 		command_xhr.send();
 		command_xhr.onload = function (e) {
 			let response = JSON.parse(command_xhr.responseText);

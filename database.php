@@ -320,6 +320,26 @@ class database{
 			return $project;
 		}
 		
+		public function getLoginProjectInfo($public_key){
+			$login_db = $this->ldb;
+			$public_key = $login_db->real_escape_string($public_key);
+			$req = "SELECT `project_id`, `project_name`, `secret_key`, `infinite` FROM `projects` WHERE `public_key`='{$public_key}'";
+			$statement = $login_db->prepare($req);
+			$statement->execute();
+			$statement->bind_result($project_id, $project_name, $secret_key, $infinite);
+			$project["exists"] = false;
+			while($statement->fetch()) {
+				$project = array(
+					"project_id" => $project_id,
+					"project_name" => $project_name,
+					"secret_key" => $secret_key,
+					"infinite" => $infinite,
+					"exists" => true
+				);
+			}
+			return $project;
+		}
+		
 		public function getProjectInfoBySecret($secret){
 			$login_db = $this->ldb;
 			$secret = $login_db->real_escape_string($secret);
