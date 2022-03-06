@@ -7,6 +7,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
+
+<link href="libs/alertify.min.css" rel="stylesheet">
+<script src="libs/alertify.min.js"></script>
+
 <title>Отключение 2FA</title>
 
 <div class="login">
@@ -43,17 +47,20 @@ function disable(key){
 	xhr.onload = function (e) {
 		let json = JSON.parse(xhr.responseText);
 		if(json.result == "OK"){
-			alert("Вы успешно отключили Двухфакторную Аутентификацию.");
+			alertify.notify("Вы успешно отключили Двухфакторную Аутентификацию!", 'success', 2, function(){location.href="<?php echo(htmlspecialchars($login_site)); ?>"});
 		}
 		else{
-			alert("Произошла ошибка при попытке отключения 2FA.");
+			if(json.reason == "WRONG_DISABLE_KEY"){
+				alertify.notify("Введённый код отключения Двухфакторной Аутентификации недействителен!", 'error', 5);
+				return;
+			}
+			alertify.notify("Произошла ошибка при попытке отключения 2FA.", 'error', 5);
 		}
-		location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
 	}
 }
 
 function back(){
-	location.href = "<?php echo(htmlspecialchars(($login_site)); ?>";
+	location.href = "<?php echo(htmlspecialchars(($login_site))); ?>";
 }
 
 </script>

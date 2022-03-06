@@ -14,14 +14,19 @@ class database{
 		public function get_user_info($user_id){
 			$login_db = $this->ldb;
 			$user_id = $login_db->real_escape_string($user_id);
-			$req = "SELECT `user_id`, `user_email`, `password_hash`, `user_ip`, `api_key_seed`, `SLID`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `easylogin` FROM `users` WHERE `user_id`='$user_id'";
+			$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `password_hash`, `user_ip`, `api_key_seed`, `SLID`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `easylogin` FROM `users` WHERE `user_id`='$user_id'";
 			$statement = $login_db->prepare($req);
 			$statement->execute();
-			$statement->bind_result($user_id, $user_email, $password_hash, $user_ip, $api_key_seed, $SLID, $totp_active, $totp_secret, $totp_disable_code, $easylogin);
+			$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $password_hash, $user_ip, $api_key_seed, $SLID, $totp_active, $totp_secret, $totp_disable_code, $easylogin);
 			while($statement->fetch()) {
 				$user_object = array(
 					'user_id' => $user_id,
+					'user_nick' => $user_nick,
 					'user_email' => $user_email,
+					'user_name' => $user_name,
+					'user_surname' => $user_surname,
+					'birthday' => $birthday,
+					'verified' => $verified,
 					'password_hash' => $password_hash,
 					'user_ip' => $user_ip,
 					'api_key_seed' => $api_key_seed,
@@ -34,6 +39,31 @@ class database{
 			}
 			
 			return $user_object;
+		}
+		
+		public function isNickUsed($nick){
+			$login_db = $this->ldb;
+			$nick = $login_db->real_escape_string($nick);
+			$req = "SELECT `user_id` FROM `users` WHERE `user_nick`='$nick'";
+			$statement = $login_db->prepare($req);
+			$statement->execute();
+			$statement->bind_result($user_id);
+			if($statement->fetch()) {
+				return true;
+			}
+			return false;
+		}
+		
+		public function saveUserInfo($user_id, $user_nick, $user_name, $user_surname, $birthday){
+			$login_db = $this->ldb;
+			$user_id = $login_db->real_escape_string($user_id);
+			$user_nick = $login_db->real_escape_string($user_nick);
+			$user_name = $login_db->real_escape_string($user_name);
+			$user_surname = $login_db->real_escape_string($user_surname);
+			$birthday = $login_db->real_escape_string($birthday);
+			
+			$req = "UPDATE `users` SET `user_nick`='{$user_nick}', `user_name`='{$user_name}', `user_surname`='{$user_surname}', `birthday`='{$birthday}' WHERE `user_id`='{$user_id}'";
+			$login_db->query($req, MYSQLI_STORE_RESULT);
 		}
 		
 		public function getUIDByEMail($email){

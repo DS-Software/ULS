@@ -7,6 +7,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
+
+<link href="libs/alertify.min.css" rel="stylesheet">
+<script src="libs/alertify.min.js"></script>
+
 <title>Проверка 2FA</title>
 
 <div class="login">
@@ -54,7 +58,18 @@ function check_totp_code(otp){
 	xhr.open('GET', 'api.php?section=UNAUTH&method=checkTOTP&otp=' + otp, true);
 	xhr.send();
 	xhr.onload = function (e) {
-		location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
+		let json = JSON.parse(xhr.responseText);
+		if(json.result == "FAULT"){
+			if(json.reason == "WRONG_2FA_CODE"){
+				alertify.notify("Вы ввели неверный код двухфакторной аутентификации!", 'error', 5);
+			}
+			else{
+				alertify.notify("Произошла непредвиденная ошибка!", 'error', 5);
+			}
+		}
+		else{
+			alertify.notify("Вы успешно прошли проверку!", 'success', 2, function(){location.href="<?php echo(htmlspecialchars($login_site)); ?>"});
+		}
 	}
 }
 

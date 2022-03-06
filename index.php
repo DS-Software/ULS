@@ -3,6 +3,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
+
+<link href="libs/alertify.min.css" rel="stylesheet">
+<script src="libs/alertify.min.js"></script>
+
 <title>Главная</title>
 
 <?php
@@ -12,7 +16,8 @@ if($maintenance_mode){
 	?>
 	<div class="main_module">
 		<h1>Сервис недоступен!</h1>
-		<h2>В текущий момент сервис DS Software<br>ULS недоступен. Подробнее:<br><a href="https://status.ds-software.xyz">Status Page</a></h2>
+		<h2>В текущий момент сервис<br> недоступен. Подробнее:</h2>
+		<h2 onclick="location.href = '<?php echo($status_page) ?>'" style="text-decoration: underline; cursor: pointer;">Status Page</h2>
 		<h2>Извините за причинённые неудобства!</h2>
 		<br>
 	</div>
@@ -27,13 +32,18 @@ if($maintenance_mode){
 	xhr.send();
 	xhr.onload = function (e) {
 		let access_token = JSON.parse(xhr.responseText);
-		if(access_token.description == "2faVerificationRequired"){
-			location.href = "2fa_check.php";
-		}
-		else{
-			if(access_token.token != "" && access_token.result != "FAULT"){
-				location.href = "home.php";
-			}
+		switch (access_token.description) {
+			case "2faVerificationRequired":
+				location.href = "2fa_check.php";
+				break;
+			case "unfinishedReg":
+				location.href = "finish_register.php";
+				break;
+			default:
+				if(access_token.token != "" && access_token.result != "FAULT"){
+					location.href = "home.php";
+				}
+				break;
 		}
 	}
 </script>
@@ -160,13 +170,13 @@ if($maintenance_mode){
 				let auth_result = JSON.parse(xhr2.responseText);		
 				if(auth_result.result == 'FAULT'){
 					if(auth_result.reason == 'WRONG_SESSION'){
-						alert('Неверная сессия, обновите страницу!');
+						alertify.notify('Неверная сессия, обновите страницу!', 'error', 5);
 					}
 					if(auth_result.reason == 'THIS_SESSION_IS_EXPIRED'){
-						alert('Устаревшая сессия, обновите страницу!');
+						alertify.notify('Устаревшая сессия, обновите страницу!', 'error', 5);
 					}
 					if(auth_result.reason == 'WRONG_CREDENTIALS'){
-						alert("Неверный логин и/или пароль!");
+						alertify.notify("Неверный логин и/или пароль!", 'error', 5);
 					}
 				}
 				else{
@@ -174,8 +184,7 @@ if($maintenance_mode){
 						location.href = "home.php";
 					}
 					if(auth_result.description == "emailVerificationNeeded"){
-						alert("Вам было отправлено письмо для подтверждения нового IP адреса!");
-						location.href = "home.php";
+						alertify.notify("Вам было отправлено письмо для подтверждения нового IP Адреса.", 'message', 2, function(){location.reload()});
 					}
 				}
 			}

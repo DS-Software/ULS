@@ -8,13 +8,18 @@
 	xhr.send();
 	xhr.onload = function (e) {
 		let access_token = JSON.parse(xhr.responseText);
-		if(access_token.description == "2faVerificationRequired"){
-			location.href = "2fa_check.php";
-		}
-		else{
-			if(access_token.token != "" && access_token.result != "FAULT"){
-				location.href = "home.php";
-			}
+		switch (access_token.description) {
+			case "2faVerificationRequired":
+				location.href = "2fa_check.php";
+				break;
+			case "unfinishedReg":
+				location.href = "finish_register.php";
+				break;
+			default:
+				if(access_token.token != "" && access_token.result != "FAULT"){
+					location.href = "home.php";
+				}
+				break;
 		}
 	}
 </script>
@@ -24,6 +29,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
+
+<link href="libs/alertify.min.css" rel="stylesheet">
+<script src="libs/alertify.min.js"></script>
+
 <title>Восстановление Пароля</title>
 
 <div class="login" style="text-align: center;">
@@ -57,11 +66,10 @@
 		xhr.onload = function (e) {
 			let reg_result = JSON.parse(xhr.responseText);
 			if(reg_result.description == "emailVerificationNeeded"){
-				alert("Вам было отправлено письмо для восстановления пароля!");
-				location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
+				alertify.notify("Вам было отправлено письмо для восстановления пароля!", 'message', 2, function(){location.href = "<?php echo(htmlspecialchars($login_site)) ?>"});
 			}
 			if(reg_result.reason == "INVALID_EMAIL"){
-				alert("Введённый E-Mail недействителен!");
+				alertify.notify("Введённый E-Mail недействителен!", 'error', 5);
 			}
 		}
 	}
