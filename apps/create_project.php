@@ -14,8 +14,8 @@
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
 <link rel="shortcut icon" href="../favicon.gif" type="image/gif">
 
-<link href="libs/alertify.min.css" rel="stylesheet">
-<script src="libs/alertify.min.js"></script>
+<link href="../libs/alertify.min.css" rel="stylesheet">
+<script src="../libs/alertify.min.js"></script>
 
 <title>Аутентификация</title>
 

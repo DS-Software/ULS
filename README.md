@@ -46,6 +46,7 @@ There is a list of all libraries that are used in ULS.
 * Browser Libs (https://www.php.net/manual/en/function.get-browser.php#101125)
 * PHPQRCode (https://phpqrcode.sourceforge.net/index.php)
 * PHP TOTP (https://github.com/lfkeitel/php-totp/)
+* Html5-QRCode (https://github.com/mebjas/html5-qrcode)
 
 ## Contributing & Issues
 When contributing changes to the project, please provide as much detail on the changes. Malicious or meaningless contributions won't be accepted.

@@ -131,6 +131,10 @@
 		location.href = "easylogin_mgmt.php";
 	}
 	
+	function login_with_easylogin(){
+		location.href = "reader.php";
+	}
+	
 	function showAPIKey(){
 		let el = document.getElementById('api');
 		el.innerHTML = window.token;
@@ -262,6 +266,7 @@
 	<button onclick="regenerate_slid()" class="button_feature_new">Переиздать SLID</button>
 	<button onclick="totp_management()" class="button_feature_new">Управление 2FA</button>
 	<button onclick="easylogin_mgmt()" class="button_feature_new">Управление EasyLogin</button>
+	<button onclick="login_with_easylogin()" class="button_feature_new">Беспарольный Вход</button>
 	<br>
 	
 	<button class="button_submit" onclick="save_changes()" style="display: none;" id="save">Сохранить</button>

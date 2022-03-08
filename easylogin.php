@@ -36,8 +36,8 @@
 <title>Беспарольный Вход</title>
 
 <div class="main_module">
-	<h1>Вход в DS Software ULS</h1>
-	<div style="width: 80%; margin: auto;"><h2>Считайте QR код на устройстве, где вход в DS Software ULS уже был произведён:</h2></div>
+	<h1>Вход в <?php echo(htmlspecialchars($email_info['$project_name'])) ?></h1>
+	<div style="width: 80%; margin: auto;"><h2>Считайте QR код на устройстве, где вход в <?php echo(htmlspecialchars($email_info['$project_name'])) ?> уже был произведён:</h2></div>
 	<div id="QR_Container" style="width: 90%; margin: auto; text-align: center;"><img id="session_container"></div>
 	<button onclick="back()" class="button_feature_new_mrg">Вернуться</button>
 	<br>

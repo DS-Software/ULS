@@ -10,8 +10,8 @@
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
 <link rel="shortcut icon" href="../favicon.gif" type="image/gif">
 
-<link href="libs/alertify.min.css" rel="stylesheet">
-<script src="libs/alertify.min.js"></script>
+<link href="../libs/alertify.min.css" rel="stylesheet">
+<script src="../libs/alertify.min.js"></script>
 
 <title>Аутентификация</title>
 
@@ -45,12 +45,11 @@
 		}
 		else{
 			if("<?php echo(htmlspecialchars($_GET['error'])); ?>" == "creation_closed"){
-				alertify.notify("Вы не можете создать проект! Попробуйте позже!", 'error', 5);
-				location.replace("<?php echo(htmlspecialchars($int_url)); ?>");
+				alertify.notify("Вы не можете создать проект! Попробуйте позже!", 'error', 2, function(){location.replace("<?php echo(htmlspecialchars($int_url)); ?>")});
+				
 			}
 			if("<?php echo(htmlspecialchars($_GET['error'])); ?>" == "unauthorized"){
-				alertify.notify("Вы не можете управлять этим проектом!", 'error', 5);
-				location.replace("<?php echo(htmlspecialchars($int_url)); ?>");
+				alertify.notify("Вы не можете управлять этим проектом!", 'error', 2, function(){location.replace("<?php echo(htmlspecialchars($int_url)); ?>")});
 			}
 			loadUserProjects();
 		}
