@@ -16,7 +16,7 @@
 				location.href = "finish_register.php";
 				break;
 			default:
-				if(access_token.token != "" && acceess_token.token != undefined && access_token.result != "FAULT"){
+				if(access_token.token != "" && access_token.token != undefined && access_token.result != "FAULT"){
 					location.href = "home.php";
 				}
 				break;
