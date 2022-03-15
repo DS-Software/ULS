@@ -81,7 +81,7 @@
 				}
 			},
 			function(){
-				console.log("[DEBUG] Cancelled Logout")
+				console.log("[DEBUG] Cancelled Logout");
 			}
 		);
 	}
@@ -97,7 +97,7 @@
 				}
 			},
 			function(){
-				alertify.error('Вы отменили действие!');
+				console.log("[DEBUG] Cancelled action");
 			}
 		);
 	}
@@ -113,7 +113,7 @@
 				}
 			},
 			function(){
-				alertify.error('Вы отменили действие!');
+				console.log("[DEBUG] Cancelled action");
 			}
 		);
 	}
@@ -183,7 +183,7 @@
 				}
 			},
 			function(){
-				alertify.error('Вы отменили действие!');
+				console.log("[DEBUG] Cancelled action");
 			}
 		);
 	}
@@ -228,7 +228,7 @@
 				}
 			},
 			function(){
-				alertify.error('Вы отменили действие!');
+				console.log("[DEBUG] Cancelled action");
 			}
 		);
 	}	

@@ -170,7 +170,7 @@
 				}
 			},
 			function(){
-				alertify.error('Вы отменили действие!');
+				console.log("[DEBUG] Cancelled action");
 			}
 		);
 	}
@@ -187,7 +187,7 @@
 				}
 			},
 			function(){
-				alertify.error('Вы отменили действие!');
+				console.log("[DEBUG] Cancelled action");
 			}
 		);
 	}
@@ -254,7 +254,7 @@
 				}
 			},
 			function(){
-				alertify.error('Вы отменили действие!');
+				console.log("[DEBUG] Cancelled action");
 			}
 		);
 	}
