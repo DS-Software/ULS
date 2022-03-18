@@ -1,7 +1,7 @@
 <?php
 	require 'config.php';
 	
-	$scopes= getScopes($_GET['scopes']);
+	$scopes = getScopes($_GET['scopes']);
 ?>
 
 
@@ -21,29 +21,14 @@
 		<h2 class="center" style="width: 90%; margin-top: 0; padding-top: 0;">запрашивает доступ к вашему аккаунту.</h2>
 		
 		<div class="center" style="width: 70%; text-align: left;">
-			<?php if($scopes['email']){ ?>
-			<b>Доступ к общей информации</b><br>
-			•&nbsp;Приложение узнает Вашу основную почту.
-			<br><br>
-			<?php }
-			
-			if($scopes['personal']){ ?>
-			<b>Доступ к личной информации</b><br>
-			•&nbsp;Приложение получит доступ к Вашей личной информации.
-			<br><br>
-			<?php } 
-			
-			if($scopes['auth']){ ?>
-			<b>Проверка Данных</b><br>
-			•&nbsp;Приложение узнает ваш ключ авторизации.
-			<br><br>
-			<?php }
-			
-			if($scopes['profile_management']){ ?>
-			<b>Управление Аккаунтом</b><br>
-			•&nbsp;Приложение сможет управлять вашим аккаунтом!
-			<br><br>
-			<?php } ?>
+			<?php
+				foreach($scopes AS $key => $value){
+					$s_name = $scope_desc[$key]['name'];
+					$s_desc = $scope_desc[$key]['description'];
+					
+					echo("<b>" . htmlspecialchars($s_name) . "</b><br>" . htmlspecialchars($s_desc) . "<br><br>");
+				}
+			?>
 		</div>
 		
 		<button class="button_submit" onclick="authenticate()">Продолжить</button>

@@ -1,12 +1,28 @@
 <?php
 
+	$scope_desc = array(
+		'auth' => array(
+			"name" => "Проверка Данных",
+			"description" => "• Приложение узнает ваш ключ авторизации."
+		),
+		'email' => array(
+			"name" => "Доступ к общей информации",
+			"description" => "• Приложение узнает Вашу основную почту."
+		),
+		'personal' => array(
+			"name" => "Доступ к личной информации",
+			"description" => "• Приложение получит доступ к Вашей личной информации."
+		),
+		'profile_management' => array(
+			"name" => "Управление Аккаунтом",
+			"description" => "• Приложение сможет управлять вашим аккаунтом!"
+		),
+	);
+
 	function getScopes($scope_text, $infinite=1){
-		$scopes = array( 
-			"auth" => true,
-			"email" => false,
-			"personal" => false,
-			"profile_management" => false
-		);
+		global $scope_desc;
+		$scopes = array_fill_keys(array_keys($scope_desc), false);
+		$scopes['auth'] = true;
 		
 		$expl_scopes = explode(",", $scope_text);
 			
