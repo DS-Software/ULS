@@ -135,6 +135,7 @@
 		<button class="button_submit" onclick="save_changes()" style="display: none;" id="save">Сохранить</button>
 	</div>
 	<button class="button_cancel_new" onclick="back()">Вернуться</button>
+	<br>
 </div>
 <script>
 	var input = document.getElementById('project_name_edit');

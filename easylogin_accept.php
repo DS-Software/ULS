@@ -57,17 +57,16 @@ else{
 
 ?>
 
-<div class="login">
+<div class="login" align="center">
 	<h1>Беспарольный Вход</h1>
-	<form id="el_form" action="javascript:void('')">
-		<h2 style="width: 90%">Вы уверены, что хотите подтвердить это устройство?</h2>
-		<?php 
-		echo("<h2>$browser<br>Версия: $version<br>ОС: $platform<br>IP: $ip</h2>");
-		?>
+	<h2 style="width: 90%">Вы уверены, что хотите подтвердить это устройство?</h2>
+	<?php 
+	echo("<h2>$browser<br>Версия: $version<br>ОС: $platform<br>IP: $ip</h2>");
+	?>
 		
-		<button class="button_login_new_totp" onclick="accept()">Подтвердить</button>
-		<button class="button_cancel_new_mrg" onclick="cancel()">Отклонить</button>
-	</form>
+	<button class="button_login_new_totp" onclick="accept()">Подтвердить</button>
+	<button class="button_cancel_new_mrg" onclick="cancel()">Отклонить</button>
+	<br>
 </div>
 
 <script>

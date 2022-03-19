@@ -234,7 +234,7 @@
 	}	
 </script>
 
-<div class="main_module" style="margin-top: 3%;">
+<div class="main_module">
 	<h1>Управление Аккаунтом</h1>
 	<h2 id="name_container" onclick="changePersonalInfo()" style="cursor: pointer;"></h2>
 	<button onclick="changeEmail()" class="button_feature_new">Сменить Почту</button>
