@@ -23,10 +23,12 @@
 		<div class="center" style="width: 70%; text-align: left;">
 			<?php
 				foreach($scopes AS $key => $value){
-					$s_name = $scope_desc[$key]['name'];
-					$s_desc = $scope_desc[$key]['description'];
-					
-					echo("<b>" . htmlspecialchars($s_name) . "</b><br>" . htmlspecialchars($s_desc) . "<br><br>");
+					if($value){
+						$s_name = $scope_desc[$key]['name'];
+						$s_desc = $scope_desc[$key]['description'];
+						
+						echo("<b>" . htmlspecialchars($s_name) . "</b><br>" . htmlspecialchars($s_desc) . "<br><br>");
+					}
 				}
 			?>
 		</div>
