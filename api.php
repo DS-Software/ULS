@@ -1347,7 +1347,7 @@ else{
 				if($project['owner_id'] != $user_id){
 					returnError("UNAUTHORIZED");
 				}
-				$login_db->regenerateProjectPublic($project['project_id']);
+				$login_db->regenerateProjectPublic($project['project_id'], $project['owner_id'], $project['project_name']);
 				$return = array(
 					'result' => "OK"
 				);
@@ -1360,7 +1360,7 @@ else{
 				if($project['owner_id'] != $user_id){
 					returnError("UNAUTHORIZED");
 				}
-				$login_db->regenerateProjectSecret($project['project_id']);
+				$login_db->regenerateProjectSecret($project['project_id'], $project['owner_id'], $project['project_name']);
 				$return = array(
 					'result' => "OK"
 				);
