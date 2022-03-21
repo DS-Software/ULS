@@ -49,6 +49,8 @@
 	
 	$maintenance_mode = false;
 
+	$spam_provider = "https://spam.ds-software.xyz/api/?email=";
+
 	$login_site = "https://example.com/login";
 	$status_page = "https://status.example.com/";
 	

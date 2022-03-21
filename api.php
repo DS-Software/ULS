@@ -41,6 +41,25 @@ function hasFinishedRegister($user_info){
 	return false;
 }
 
+function checkDisposableEmail($email){
+	global $spam_provider;
+	
+	$link = $spam_provider . urlencode($email);
+	$curl = curl_init($link);
+	curl_setopt($curl, CURLOPT_URL, $link);
+	curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+	$resp = curl_exec($curl);
+	curl_close($curl);
+		
+	$response = json_decode($resp, true);
+	
+	if($response['disposable']){
+		return true;
+	}
+	return false;
+}
+
 function getAPIToken(){
 	$headers = "";
 	if (isset($_SERVER['Authorization'])) {
@@ -211,11 +230,15 @@ if($section == "UNAUTH"){
 	}
 	
 	if($method == 'verifyAuthChallenge'){
+		$login = $_GET['login'];
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
 		$user_ip = $_SERVER['REMOTE_ADDR'];
 		$rand_session_id = $_GET['rand_session_id'];
 		$session_id = $_GET['session_id'];
 		$timestamp = $_GET['timestamp'];
-		$login = $_GET['login'];
 		$password_token = $_GET['password_hash'];
 		
 		$verification = array(
@@ -324,11 +347,15 @@ if($section == "UNAUTH"){
 	}
 	
 	if($method == 'emailIPValidation'){
+		$login = $_GET['login'];
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
 		$user_ip = $_SERVER['REMOTE_ADDR'];
 		$rand_session_id = $_GET['rand_session_id'];
 		$session_id = $_GET['session_id'];
 		$timestamp = $_GET['timestamp'];
-		$login = $_GET['login'];
 		$password_token = $_GET['password_hash'];
 		$email_ver_id = $_GET['email_ver_id'];
 		
@@ -417,6 +444,11 @@ if($section == "UNAUTH"){
 	
 	if($method == 'send_register_message'){
 		$login = $_REQUEST['login'];
+		
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
 		if(!filter_var($login, FILTER_VALIDATE_EMAIL)){
 			returnError("INVALID_EMAIL");
 		}
@@ -465,8 +497,12 @@ if($section == "UNAUTH"){
 	}
 	
 	if($method == "registerNewUser"){
-		$timestamp = $_GET['timestamp'];
 		$login = $_GET['login'];
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
+		$timestamp = $_GET['timestamp'];
 		$email_ver_id = $_GET['email_ver_id'];
 		$session_id = $_GET['session_id'];
 		$rand_session_id = $_GET['rand_session_id'];
@@ -581,8 +617,12 @@ if($section == "UNAUTH"){
 		}
 	}
 	if($method == "restorePassword"){
-		$timestamp = $_GET['timestamp'];
 		$login = $_GET['login'];
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
+		$timestamp = $_GET['timestamp'];
 		$email_ver_id = $_GET['email_ver_id'];
 		$session_id = $_GET['session_id'];
 		$rand_session_id = $_GET['rand_session_id'];
@@ -641,12 +681,16 @@ if($section == "UNAUTH"){
 	}
 	
 	if($method == "changeUserEMail"){
+		$new_mail = $_GET['new_mail'];
+		if(checkDisposableEmail($new_mail)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
 		$timestamp = $_GET['timestamp'];
 		$user_id = $_GET['user_id'];
 		$email_ver_id = $_GET['email_ver_id'];
 		$session_id = $_GET['session_id'];
 		$rand_session_id = $_GET['rand_session_id'];
-		$new_mail = $_GET['new_mail'];
 		
 		$user_info = $login_db->get_user_info($user_id);
 
@@ -1087,6 +1131,10 @@ else{
 			if($method == "changeUserEmail"){
 				$login = $uinfo['user_email'];
 				$new_email = $_GET['email'];
+				
+				if(checkDisposableEmail($new_email)){
+					returnError("DISPOSABLE_EMAIL");
+				}
 				if($new_email != $uinfo['user_email']){
 					if(filter_var($new_email, FILTER_VALIDATE_EMAIL)){
 						if(!$login_db->wasEmailRegistered($new_email)){

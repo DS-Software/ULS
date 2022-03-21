@@ -154,6 +154,9 @@
 			if(reg_result.reason == "INVALID_EMAIL"){
 				alertify.notify("Введённый E-Mail недействителен!", 'error', 5);
 			}
+			if(reg_result.reason == 'DISPOSABLE_EMAIL'){
+				alertify.notify("Данная почта не может быть использована для регистрации!", 'error', 5);
+			}
 		}
 	}
 	

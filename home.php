@@ -220,6 +220,9 @@
 							if(result.reason == 'YOU_ARE_CURRENTLY_USING_THIS_EMAIL'){
 								alertify.notify("Введённый E-Mail является вашей текущей почтой!", 'error', 5);
 							}
+							if(result.reason == 'DISPOSABLE_EMAIL'){
+								alertify.notify("Данная почта не может быть использована!", 'error', 5);
+							}
 							if(result.result == "OK"){
 								alertify.notify("Вам было отправлено письмо для подтверждения нового адреса E-Mail.", 'message', 5);
 							}

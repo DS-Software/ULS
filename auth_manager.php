@@ -109,7 +109,9 @@ if($link != ""){
 		command_xhr.onload = function (e) {
 			let response = JSON.parse(command_xhr.responseText);
 			if(response.result != "OK"){
-				alertify.notify("В процессе выполнения запроса произошла ошибка!", 'error', 2, function(){location.href="<?php echo(htmlspecialchars($login_site)); ?>"});
+				alertify.confirm("Ошибка", "Произошла ошибка в процессе выполнения запроса!<br>Код ошибки: " + response.reason,
+					function(){location.href="<?php echo(htmlspecialchars($login_site)); ?>"}, function(){location.href="<?php echo(htmlspecialchars($login_site)); ?>"}
+				);
 			}
 			else{
 				location.href = "<?php echo(htmlspecialchars($login_site)) ?>";

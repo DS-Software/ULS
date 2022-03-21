@@ -17,9 +17,8 @@ $registerEmail = <<<EOT
 	<br>
     <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse;">
         <tr>
-                <td align="center"><a href="\$main_link"><img src="\$login_site/img/logo.png" width="263" height="62" ></a></td>
+                <td align="center"><a href="\$main_link" style="font-family: Whitney,Helvetica Neue,Helvetica,Arial,Lucida Grande,sans-serif; text-decoration: none; color: #4f545c; font-weight: 700; font-size: 30px;">DS Software ULS</a></td>
            </tr>
-		   <br>
            <tr>
             <td style="text-align:center; background-color: #ffffff; vertical-align:top;direction:ltr;font-size:0px;padding:40px 50px">
              <h3 style="font-family: Whitney,Helvetica Neue,Helvetica,Arial,Lucida Grande,sans-serif; font-weight: 500; font-size: 20px; color: #4f545c; letter-spacing: 0.27px;">Здравствуйте!</h3>
@@ -55,7 +54,7 @@ $NewIPEmail = <<<EOT
 	<br>
     <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse;">
         <tr>
-                <td align="center"><a href="\$main_link"><img src="\$login_site/img/logo.png" width="263" height="62" ></a></td>
+                <td align="center"><a href="\$main_link" style="font-family: Whitney,Helvetica Neue,Helvetica,Arial,Lucida Grande,sans-serif; text-decoration: none; color: #4f545c; font-weight: 700; font-size: 30px;">DS Software ULS</a></td>
            </tr>
 		   <br>
            <tr>
@@ -94,7 +93,7 @@ $restorePasswordEmail = <<<EOT
 	<br>
     <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse;">
         <tr>
-                <td align="center"><a href="\$main_link"><img src="\$login_site/img/logo.png" width="263" height="62" ></a></td>
+                <td align="center"><a href="\$main_link" style="font-family: Whitney,Helvetica Neue,Helvetica,Arial,Lucida Grande,sans-serif; text-decoration: none; color: #4f545c; font-weight: 700; font-size: 30px;">DS Software ULS</a></td>
            </tr>
 		   <br>
            <tr>
@@ -133,7 +132,7 @@ $changeEMail = <<<EOT
 	<br>
     <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="border-collapse: collapse;">
         <tr>
-                <td align="center"><a href="\$main_link"><img src="\$login_site/img/logo.png" width="263" height="62" ></a></td>
+                <td align="center"><a href="\$main_link" style="font-family: Whitney,Helvetica Neue,Helvetica,Arial,Lucida Grande,sans-serif; text-decoration: none; color: #4f545c; font-weight: 700; font-size: 30px;">DS Software ULS</a></td>
            </tr>
 		   <br>
            <tr>
