@@ -23,8 +23,6 @@
 	<form id="el_form" action="javascript:void('')">
 		<h2 class="center" style="width: 90%; margin-bottom: 0; padding-bottom: 0;" id="project_name"></h2>
 		<h2 class="center" style="width: 90%; margin-top: 0; padding-top: 0;">запрашивает доступ к вашему аккаунту.</h2>
-		<h2 class="center" style="cursor: pointer; width: 90%; margin-top: 0; padding-top: 0; margin-bottom: 0; padding-bottom: 0; color: #888;" onclick="logout()">Вы входите с аккаунта</h2>
-		<h2 class="center" style="cursor: pointer; width: 90%; margin-top: 0; padding-top: 0; color: #888;" id="name_container" onclick="logout()"></h2>
 		
 		<div class="center" style="width: 70%; text-align: left;">
 			<?php
@@ -118,24 +116,7 @@
 		}
 		else{
 			document.getElementById("main_module").style.display = "";
-			loadUserInfo();
 			getProjectInfo();
-		}
-	}
-	
-	function loadUserInfo(){
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=users&method=getCurrentEmail', true);
-		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-		xhr.send();
-		xhr.onload = function (e) {
-			let result = JSON.parse(xhr.responseText);
-			
-			let verification_mark = "";			
-			if(result.verified == 1){
-				verification_mark = "&nbsp;<span class=\"verify_mark\">Verified</span>";
-			}
-			name_container.innerHTML = result.user_name + " " + result.user_surname + verification_mark;
 		}
 	}
 	
