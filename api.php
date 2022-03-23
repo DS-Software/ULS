@@ -2,6 +2,7 @@
 require_once 'config.php';
 require_once 'database.php';
 require_once 'email_templates.php';
+require_once 'email_handler.php';
 require_once 'encryption.php';
 require_once "libs/Base32.php";
 require_once "libs/Hotp.php";
@@ -21,48 +22,67 @@ function returnError($message){
 	die();
 }
 
-function getAPIToken(){
-	if(isset($_GET['access_token'])){
-		if($_GET['legacy'] == 1){
-			$token = $_GET['access_token'];
-			return $token;
-		}
-		else{
-			$return = array(
-				'result' => 'FAULT',
-				'reason' => 'LEGACY_MODE_NOT_SUPORTED',
-				'description' => 'Please, send access token in Authentication header. If you want to continue using Legacy Mode, add &legacy=1.',
-				'disclaimer' => "Legacy mode will be removed eventually, as it's deprecated. Please, move your projects to header authentication as soon as possible!"
-			);
-				
-			echo(json_encode($return, 1));
-			die();
-		}
-	}
-	else{
-		$headers = "";
-		if (isset($_SERVER['Authorization'])) {
-			$headers = trim($_SERVER["Authorization"]);
-		} else if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-			$headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
-		} elseif (function_exists('apache_request_headers')) {
-			$requestHeaders = apache_request_headers();
-			$requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
-			if (isset($requestHeaders['Authorization'])) {
-				$headers = trim($requestHeaders['Authorization']);
+function hasFinishedRegister($user_info){
+	global $login_db;
+	$user_nick = $user_info['user_nick'];
+	$user_name = $user_info['user_name'];
+	$user_surname = $user_info['user_surname'];
+	$birthday = $user_info['birthday'];
+	
+	if($user_nick != '' && strlen($user_nick) >= 3 && 16 >= strlen($user_nick)){
+		if($user_name != '' && strlen($user_name) >= 2 && 32 >= strlen($user_name)){
+			if($user_surname != '' && strlen($user_surname) >= 2 && 32 >= strlen($user_surname)){
+				if($birthday != 0){
+					return true;
+				}
 			}
 		}
-		
-		$token_raw = explode(" ", $headers);
-		if($token_raw[0] == "Bearer"){
-			$token = $token_raw[1];
-		}
-		else{
-			$token = null;
-		}
-		
-		return $token;
 	}
+	return false;
+}
+
+function checkDisposableEmail($email){
+	global $spam_provider;
+	
+	$link = $spam_provider . urlencode($email);
+	$curl = curl_init($link);
+	curl_setopt($curl, CURLOPT_URL, $link);
+	curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+	$resp = curl_exec($curl);
+	curl_close($curl);
+		
+	$response = json_decode($resp, true);
+	
+	if($response['disposable']){
+		return true;
+	}
+	return false;
+}
+
+function getAPIToken(){
+	$headers = "";
+	if (isset($_SERVER['Authorization'])) {
+		$headers = trim($_SERVER["Authorization"]);
+	} else if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+		$headers = trim($_SERVER["HTTP_AUTHORIZATION"]);
+	} elseif (function_exists('apache_request_headers')) {
+		$requestHeaders = apache_request_headers();
+		$requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
+		if (isset($requestHeaders['Authorization'])) {
+			$headers = trim($requestHeaders['Authorization']);
+		}
+	}
+		
+	$token_raw = explode(" ", $headers);
+	if($token_raw[0] == "Bearer"){
+		$token = $token_raw[1];
+	}
+	else{
+		$token = null;
+	}
+		
+	return $token;
 }
 
 function convBase($num, $base_a, $base_b)
@@ -126,14 +146,19 @@ if($section == "UNAUTH"){
 			$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}");
 			
 			if($_REQUEST['totp_logout'] == "true"){
-				setcookie('user_verkey', '', 0, $domain_name);
-				setcookie('user_ip', '', 0, $domain_name);
-				setcookie('session', '', 0, $domain_name);
-				setcookie('email', '', 0, $domain_name);
-				setcookie('SLID', '', 0, $domain_name);
-				setcookie('user_id', '', 0, $domain_name);
-				
-				die();
+				if($true_totp_ver != $totp_verification){
+					setcookie('user_verkey', '', 0, $domain_name);
+					setcookie('user_ip', '', 0, $domain_name);
+					setcookie('session', '', 0, $domain_name);
+					setcookie('email', '', 0, $domain_name);
+					setcookie('SLID', '', 0, $domain_name);
+					setcookie('user_id', '', 0, $domain_name);
+					
+					die();
+				}
+				else{
+					returnError("YOU_HAVE_ALREADY_LOGGED_IN");
+				}
 			}
 			
 			if($true_totp_ver != $totp_verification && $verified){
@@ -150,11 +175,32 @@ if($section == "UNAUTH"){
 		}
 		
 		if($verified){
-			$token_main_part = hash('sha512', $service_key . $user_id . $ver_user_info['api_key_seed']);
-			$token = $user_id . ":" . $token_main_part;
+			$scopes = getScopes('all', 1);
+			$at_seed = bin2hex(random_bytes(32));
+				
+			$access_token = array(
+				'uls_id' => $ver_user_info['user_id'],
+				'seed' => $at_seed,
+				'scopes' => $scopes,
+				'sign' => hash('sha512', $ver_user_info['user_id'] . "_" . $at_seed . "_" . json_encode($scopes) . "_" . $ver_user_info['api_key_seed'] . "_" . $service_key)
+			);
+			
+			$access_token = base64_encode(json_encode($access_token));
+			
+			if(!hasFinishedRegister($ver_user_info)){
+				$return = array(
+					'result' => 'OK',
+					'description' => 'unfinishedReg',
+					'token' => $access_token
+				);
+				
+				echo(json_encode($return, 1));
+				die();
+			}
+			
 			$return = array(
 				'result' => 'OK',
-				'token' => $token
+				'token' => $access_token
 			);
 			
 			echo(json_encode($return, 1));
@@ -184,11 +230,15 @@ if($section == "UNAUTH"){
 	}
 	
 	if($method == 'verifyAuthChallenge'){
+		$login = $_GET['login'];
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
 		$user_ip = $_SERVER['REMOTE_ADDR'];
 		$rand_session_id = $_GET['rand_session_id'];
 		$session_id = $_GET['session_id'];
 		$timestamp = $_GET['timestamp'];
-		$login = $_GET['login'];
 		$password_token = $_GET['password_hash'];
 		
 		$verification = array(
@@ -265,45 +315,18 @@ if($section == "UNAUTH"){
 				
 					$auth_link = $login_site . "/auth_manager.php?method=emailIPValidation&rand_session_id=$rand_session_id&session_id=$session_id&timestamp=$timestamp&login=$login&password_hash=$password_token&email_ver_id=$email_ver_id";
 					
-					require_once 'libs/apmailer.php';
-		
-					class email{
-						public function __construct($email_settings){
-						$config = [
-							'defaultFrom' => $email_settings['messageFrom'],
-							'onError'     => function($error, $message, $transport) { echo $error; },
-							'afterSend'   => function($text, $message, $layer) { $nothing = 0; },
-							'transports'  => [        
-								['smtp', 'host' => $email_settings['smtp'], 'ssl' => true, 'port' => $email_settings['port'], 'login' => $email_settings['login'], 'password' => $email_settings['password']]
-							],
-						];
-						Mailer()->init($config);
-						}
-								
-						public function message_send($messageSubject, $messageFrom, $messageTo, $message_HTML){
-							$message = Mailer()->newHtmlMessage();
-
-							$message->setSubject($messageSubject);
-							$message->setSenderEmail($messageFrom);
-							$message->addRecipient($messageTo);
-							$message->addContent($message_HTML);
-							
-							Mailer()->sendMessage($message);
-						}
-					}
-					
-					$email = new email($email_settings);
-					$messageFrom = $email_settings['messageFrom'];
-					$messageTo = $login;
-					
 					$replaceArray = array(
-						'$messageTo' => $messageTo,
+						'$username' => $user_info['user_nick'] == "" ? "Неизвестный Пользователь" : $user_info['user_nick'],
 						'$link' => $auth_link,
-						'$ip' => $user_ip
+						'$ip' => $_SERVER['REMOTE_ADDR']
 					);
-					$auth_email_HTML = strtr($NewIPEmail, $replaceArray);
 					
-					$email->message_send($messageNewIPSubject, $messageFrom, $messageTo, $auth_email_HTML);
+					$replaceArray = array_merge($replaceArray, $email_info);
+
+					$email_html = strtr($NewIPEmail, $replaceArray);
+					$subject = strtr($messageNewIPSubject, $replaceArray);
+					
+					send_email($email_settings, $login, $email_html, $subject);
 					
 					$login_db->setLastSID($log_user_id, $session_id);
 					
@@ -324,11 +347,15 @@ if($section == "UNAUTH"){
 	}
 	
 	if($method == 'emailIPValidation'){
+		$login = $_GET['login'];
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
 		$user_ip = $_SERVER['REMOTE_ADDR'];
 		$rand_session_id = $_GET['rand_session_id'];
 		$session_id = $_GET['session_id'];
 		$timestamp = $_GET['timestamp'];
-		$login = $_GET['login'];
 		$password_token = $_GET['password_hash'];
 		$email_ver_id = $_GET['email_ver_id'];
 		
@@ -417,6 +444,11 @@ if($section == "UNAUTH"){
 	
 	if($method == 'send_register_message'){
 		$login = $_REQUEST['login'];
+		
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
 		if(!filter_var($login, FILTER_VALIDATE_EMAIL)){
 			returnError("INVALID_EMAIL");
 		}
@@ -434,45 +466,18 @@ if($section == "UNAUTH"){
 				
 			$auth_link = $login_site . "/auth_manager.php?method=registerNewUser&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id&session_id=$session_id&rand_session_id=$rsid";
 			
-			require_once 'libs/apmailer.php';
-		
-			class email{
-				public function __construct($email_settings){
-					$config = [
-						'defaultFrom' => $email_settings['messageFrom'],
-						'onError'     => function($error, $message, $transport) { echo $error; },
-						'afterSend'   => function($text, $message, $layer) { $nothing = 0; },
-						'transports'  => [        
-							['smtp', 'host' => $email_settings['smtp'], 'ssl' => true, 'port' => $email_settings['port'], 'login' => $email_settings['login'], 'password' => $email_settings['password']]
-						],
-					];
-					Mailer()->init($config);
-				}
-								
-				public function message_send($messageSubject, $messageFrom, $messageTo, $message_HTML){
-					$message = Mailer()->newHtmlMessage();
-
-					$message->setSubject($messageSubject);
-					$message->setSenderEmail($messageFrom);
-					$message->addRecipient($messageTo);
-					$message->addContent($message_HTML);
-							
-					Mailer()->sendMessage($message);
-				}
-			}
-					
-			$email = new email($email_settings);
-			$messageFrom = $email_settings['messageFrom'];
-			$messageTo = $login;
-					
 			$replaceArray = array(
-				'$messageTo' => $messageTo,
+				'$username' => $user_info['user_nick'] == "" ? "Неизвестный Пользователь" : $user_info['user_nick'],
 				'$link' => $auth_link,
-				'$ip' => $user_ip
+				'$ip' => $_SERVER['REMOTE_ADDR']
 			);
-			$auth_email_HTML = strtr($registerEmail, $replaceArray);
 					
-			$email->message_send($messageRegisterSubject, $messageFrom, $messageTo, $auth_email_HTML);
+			$replaceArray = array_merge($replaceArray, $email_info);
+
+			$email_html = strtr($registerEmail, $replaceArray);
+			$subject = strtr($messageRegisterSubject, $replaceArray);
+					
+			send_email($email_settings, $login, $email_html, $subject);
 					
 			$return = array(
 				'result' => 'OK',
@@ -492,8 +497,12 @@ if($section == "UNAUTH"){
 	}
 	
 	if($method == "registerNewUser"){
-		$timestamp = $_GET['timestamp'];
 		$login = $_GET['login'];
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
+		$timestamp = $_GET['timestamp'];
 		$email_ver_id = $_GET['email_ver_id'];
 		$session_id = $_GET['session_id'];
 		$rand_session_id = $_GET['rand_session_id'];
@@ -576,45 +585,18 @@ if($section == "UNAUTH"){
 				
 			$auth_link = $login_site . "/auth_manager.php?method=restorePassword&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id&rand_session_id=$rsid&session_id=$session_id";
 					
-			require_once 'libs/apmailer.php';
-		
-			class email{
-				public function __construct($email_settings){
-					$config = [
-						'defaultFrom' => $email_settings['messageFrom'],
-						'onError'     => function($error, $message, $transport) { echo $error; },
-						'afterSend'   => function($text, $message, $layer) { $nothing = 0; },
-						'transports'  => [        
-							['smtp', 'host' => $email_settings['smtp'], 'ssl' => true, 'port' => $email_settings['port'], 'login' => $email_settings['login'], 'password' => $email_settings['password']]
-						],
-					];
-					Mailer()->init($config);
-				}
-								
-				public function message_send($messageSubject, $messageFrom, $messageTo, $message_HTML){
-					$message = Mailer()->newHtmlMessage();
-
-					$message->setSubject($messageSubject);
-					$message->setSenderEmail($messageFrom);
-					$message->addRecipient($messageTo);
-					$message->addContent($message_HTML);
-							
-					Mailer()->sendMessage($message);
-				}
-			}
-					
-			$email = new email($email_settings);
-			$messageFrom = $email_settings['messageFrom'];
-			$messageTo = $login;
-					
 			$replaceArray = array(
-				'$messageTo' => $messageTo,
+				'$username' => $user_info['user_nick'] == "" ? "Неизвестный Пользователь" : $user_info['user_nick'],
 				'$link' => $auth_link,
-				'$ip' => $user_ip
+				'$ip' => $_SERVER['REMOTE_ADDR']
 			);
-			$auth_email_HTML = strtr($restorePasswordEmail, $replaceArray);
 					
-			$email->message_send($messageRestoreSubject, $messageFrom, $messageTo, $auth_email_HTML);
+			$replaceArray = array_merge($replaceArray, $email_info);
+
+			$email_html = strtr($restorePasswordEmail, $replaceArray);
+			$subject = strtr($messageRestoreSubject, $replaceArray);
+					
+			send_email($email_settings, $login, $email_html, $subject);
 			
 			$login_db->setLastSID($log_user_id, $session_id);
 					
@@ -635,8 +617,12 @@ if($section == "UNAUTH"){
 		}
 	}
 	if($method == "restorePassword"){
-		$timestamp = $_GET['timestamp'];
 		$login = $_GET['login'];
+		if(checkDisposableEmail($login)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
+		$timestamp = $_GET['timestamp'];
 		$email_ver_id = $_GET['email_ver_id'];
 		$session_id = $_GET['session_id'];
 		$rand_session_id = $_GET['rand_session_id'];
@@ -695,12 +681,16 @@ if($section == "UNAUTH"){
 	}
 	
 	if($method == "changeUserEMail"){
+		$new_mail = $_GET['new_mail'];
+		if(checkDisposableEmail($new_mail)){
+			returnError("DISPOSABLE_EMAIL");
+		}
+		
 		$timestamp = $_GET['timestamp'];
 		$user_id = $_GET['user_id'];
 		$email_ver_id = $_GET['email_ver_id'];
 		$session_id = $_GET['session_id'];
 		$rand_session_id = $_GET['rand_session_id'];
-		$new_mail = $_GET['new_mail'];
 		
 		$user_info = $login_db->get_user_info($user_id);
 
@@ -781,9 +771,22 @@ if($section == "UNAUTH"){
 					
 					setcookie("totp_timestamp", $totp_timestamp, time() + 2678400, $domain_name);
 					setcookie("totp_verification", $true_totp_ver, time() + 2678400, $domain_name);
+					
+					$return = array(
+						'result' => 'OK',
+						'description' => 'Success'
+					);
+					
+					echo(json_encode($return));
+					die();
+				}
+				else{
+					returnError("WRONG_2FA_CODE");
 				}
 			}
 		}
+		
+		returnError("WRONG_CREDENTIALS");
 	}
 	
 	if($method == "disable_totp"){
@@ -943,61 +946,40 @@ if($section == "UNAUTH"){
 			returnError("WRONG_SESSION");
 		}
 	}
-	
-	if($method == "checkIDToken"){
-		$project_secret = getAPIToken();
-		$project = $login_db->getProjectInfoBySecret($project_secret);
-		
-		if($project['project_id'] != ""){
-			$id_token = $_GET['id_token'];
-			$user_id = $_GET['user_id'];
-			
-			$test_uinfo = $login_db->get_user_info($user_id);
-			if($test_uinfo['user_email'] != ""){
-				$true_token = hash('sha512', $test_uinfo['user_id'] . "_" . $test_uinfo['user_email'] . "_" . $test_uinfo['password_hash'] . "_" . $test_uinfo['api_key_seed'] . "_" . $test_uinfo['SLID'] . "_" . $test_uinfo['2fa_secret'] . "_" . $project['secret_key']);
-				
-				if($true_token == $id_token){
-					$return = array(
-						'result' => "OK",
-						'description' => "VALID",
-						'uls_id' => $test_uinfo['user_id']
-					);
-					echo(json_encode($return));
-				}
-				else{
-					returnError("INVALID_TOKEN");
-				}
-			}
-			else{
-				returnError("INVALID_USER");
-			}
-		}
-		else{
-			returnError("WRONG_SECRET_KEY");
-		}
-	}
 }
 else{
 	$access_token = getAPIToken();
-	$ate = explode(":", $access_token);
-	$user_id = $ate[0];
+	$token_decoded = json_decode(base64_decode($access_token), true);
+	$user_id = $token_decoded['uls_id'];
+	$token_seed = $token_decoded['seed'];
+	$token_scopes = $token_decoded['scopes'];
+	$token_sign = $token_decoded['sign'];
+	
 	$uinfo = $login_db->get_user_info($user_id);
+	
 	if($uinfo['user_id'] == null || $uinfo['user_id'] != $user_id){
 		returnError("ACCESS_TOKEN_IS_NOT_VALID");
 	}
-	$token_main_part = hash('sha512', $service_key . $user_id . $uinfo['api_key_seed']);
-	if($token_main_part == $ate[1]){
+	$test_sign = hash('sha512', $user_id . "_" . $token_seed . "_" . json_encode($token_scopes) . "_" . $uinfo['api_key_seed'] . "_" . $service_key);
+	
+	if($test_sign == $token_sign){
 		$verified = true;
 	}
 	else{
 		returnError("ACCESS_TOKEN_IS_NOT_VALID");
 	}
 	
+	if(!hasFinishedRegister($uinfo) && $section != "register"){
+		returnError("UNFINISHED_REG");
+	}
+	
 	if($verified){
-		if($section == "projects"){
+		if($section == "projects" && $token_scopes['profile_management']){
 			if($method == "login"){
 				$project_public = $_GET['public'];
 				$project = $login_db->getProjectInfoByPublic($project_public);
+				
+				$scopes = getScopes($_GET['scopes']);
 				
 				if($project['project_id'] == ""){
 					returnError("UNKNOWN_PROJECT");
@@ -1008,9 +990,34 @@ else{
 				$timestamp = time();
 				$session = hash('sha256', $uinfo['user_id'] . "_" . $project['secret_key'] . "_" . bin2hex(random_bytes(32)) . "_" . $timestamp);
 				
-				$id_token = hash('sha512', $uinfo['user_id'] . "_" . $uinfo['user_email'] . "_" . $uinfo['password_hash'] . "_" . $uinfo['api_key_seed'] . "_" . $uinfo['SLID'] . "_" . $uinfo['2fa_secret'] . "_" . $project['secret_key']);
+				$at_seed = bin2hex(random_bytes(32));
 				
-				$ver_code = hash('sha512', $uinfo['user_id'] . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $session . "_" . $timestamp . "_" . $id_token . "_" . $project['secret_key']);
+				$access_token = array(
+					'uls_id' => $uinfo['user_id'],
+					'seed' => $at_seed,
+					'scopes' => $scopes,
+					'sign' => hash('sha512', $uinfo['user_id'] . "_" . $at_seed . "_" . json_encode($scopes) . "_" . $uinfo['api_key_seed'] . "_" . $service_key)
+				);
+				
+				$access_token = base64_encode(json_encode($access_token));
+				
+				$user_info = array(
+					'user_nick' => $uinfo['user_nick'],
+					'verified' => $uinfo['verified'],
+					'user_ip' => $_SERVER['REMOTE_ADDR']
+				);
+			
+				if($scopes["personal"]){
+					$user_info['user_name'] = $uinfo['user_name'];
+					$user_info['user_surname'] = $uinfo['user_surname'];
+					$user_info['birthday'] = $uinfo['birthday'];
+				}
+				
+				if($scopes["email"]){
+					$user_info['user_email'] = $uinfo['user_email'];
+				}
+				
+				$user_info = base64_encode(json_encode($user_info));
 				
 				if(strpos($project['redirect_uri'], "?") !== false){
 					$params = "&";
@@ -1019,12 +1026,15 @@ else{
 					$params = "?";
 				}
 				
+				$sign = hash('sha512', $uinfo['user_id'] . "_" . $timestamp . "_" . $session . "_" . $access_token . "_" . $user_info . "_" . $project['secret_key']);
+				
 				$request_params = array(
 					'uls_id' => $uinfo['user_id'],
-					'session' => $session,
 					'timestamp' => $timestamp,
-					'user_token' => $id_token,
-					'sign' => $ver_code
+					'session' => $session,
+					'token' => $access_token,
+					'user_info' => $user_info,
+					'sign' => $sign
 				);
 
 				$params .= http_build_query($request_params);
@@ -1037,15 +1047,43 @@ else{
 				);
 				echo(json_encode($return));
 			}
-		}
-		if($section == "users"){
-			if($method == "getCurrentEmail"){
-				$email = $uinfo['user_email'];
+			
+			if($method == "getProjectInfo"){
+				$project_public = $_GET['public'];
+				$onFault = $_GET['onFault'];
+				$sign = $_GET['sign'];
+				$project = $login_db->getLoginProjectInfo($project_public);
 				
+				$fault_redirect = "MALFORMED";
+				
+				if(!$project["exists"]){
+					returnError("UNKNOWN_PROJECT");
+				}
+				if(hash("sha256", $onFault . $project["secret_key"]) == $sign){
+					$fault_redirect = $onFault;
+				}
 				$return = array(
 					'result' => "OK",
-					'email' => $email
+					'project_id' => $project['project_id'],
+					'project_name' => $project['project_name'],
+					'verified' => $project['infinite'],
+					'fault_redirect' => $fault_redirect
 				);
+				echo(json_encode($return));
+			}
+		}
+		if($section == "users" && $token_scopes['profile_management']){
+			if($method == "getCurrentEmail"){				
+				$return = array(
+					'result' => "OK",
+					'email' => $uinfo['user_email'],
+					'user_nick' => $uinfo['user_nick'],
+					'user_name' => $uinfo['user_name'],
+					'user_surname' => $uinfo['user_surname'],
+					'user_bday' => $uinfo['birthday'],
+					'verified' => $uinfo['verified']
+				);
+				
 				echo(json_encode($return));
 			}
 			
@@ -1093,6 +1131,10 @@ else{
 			if($method == "changeUserEmail"){
 				$login = $uinfo['user_email'];
 				$new_email = $_GET['email'];
+				
+				if(checkDisposableEmail($new_email)){
+					returnError("DISPOSABLE_EMAIL");
+				}
 				if($new_email != $uinfo['user_email']){
 					if(filter_var($new_email, FILTER_VALIDATE_EMAIL)){
 						if(!$login_db->wasEmailRegistered($new_email)){
@@ -1104,46 +1146,19 @@ else{
 									
 							$auth_link = $login_site . "/auth_manager.php?method=changeEMail&timestamp=$timestamp&user_id=$user_id&email_ver_id=$email_ver_id&rand_session_id=$rsid&session_id=$session_id&new_email=$new_email";
 										
-							require_once 'libs/apmailer.php';
-							
-							class email{
-								public function __construct($email_settings){
-									$config = [
-										'defaultFrom' => $email_settings['messageFrom'],
-										'onError'     => function($error, $message, $transport) { echo $error; },
-										'afterSend'   => function($text, $message, $layer) { $nothing = 0; },
-										'transports'  => [        
-											['smtp', 'host' => $email_settings['smtp'], 'ssl' => true, 'port' => $email_settings['port'], 'login' => $email_settings['login'], 'password' => $email_settings['password']]
-										],
-									];
-									Mailer()->init($config);
-								}
-													
-								public function message_send($messageSubject, $messageFrom,$messageTo, $message_HTML){
-									$message = Mailer()->newHtmlMessage();
-
-									$message->setSubject($messageSubject);
-									$message->setSenderEmail($messageFrom);
-									$message->addRecipient($messageTo);
-									$message->addContent($message_HTML);
-												
-									Mailer()->sendMessage($message);
-								}
-							}
-										
-							$email = new email($email_settings);
-							$messageFrom = $email_settings['messageFrom'];
-							$messageTo = $login;
-										
 							$replaceArray = array(
-								'$messageTo' => $messageTo,
+								'$username' => $user_info['user_nick'] == "" ? "Неизвестный Пользователь" : $user_info['user_nick'],
 								'$link' => $auth_link,
-								'$new_mail' => $new_email
+								'$ip' => $_SERVER['REMOTE_ADDR'],
+								'$new_email' => $new_email
 							);
 							
-							$auth_email_HTML = strtr($changeEMail, $replaceArray);
-										
-							$email->message_send($messageChangeEMailSubject, $messageFrom, $messageTo, $auth_email_HTML);
+							$replaceArray = array_merge($replaceArray, $email_info);
+
+							$email_html = strtr($changeEMail, $replaceArray);
+							$subject = strtr($messageChangeEMailSubject, $replaceArray);
+							
+							send_email($email_settings, $login, $email_html, $subject);
 								
 							$login_db->setLastSID($user_id, $session_id);
 										
@@ -1165,7 +1180,7 @@ else{
 			}
 		}
 		
-		if($section == "totp"){
+		if($section == "totp" && $token_scopes['profile_management']){
 			if($method == "get2FAInfo"){
 				$return = array(
 					'result' => "OK",
@@ -1262,7 +1277,7 @@ else{
 			}
 		}
 		
-		if($section == "easylogin"){
+		if($section == "easylogin" && $token_scopes['profile_management']){
 			if($method == "getEasyLoginInfo"){
 				$return = array(
 					'result' => "OK",
@@ -1333,7 +1348,7 @@ else{
 			}
 		}
 		
-		if($section == "integration"){
+		if($section == "integration" && $token_scopes['profile_management']){
 			if($method == "getUserProjects"){
 				$projects = $login_db->getUserProjects($user_id);
 				$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
@@ -1380,7 +1395,7 @@ else{
 				if($project['owner_id'] != $user_id){
 					returnError("UNAUTHORIZED");
 				}
-				$login_db->regenerateProjectPublic($project['project_id']);
+				$login_db->regenerateProjectPublic($project['project_id'], $project['owner_id'], $project['project_name']);
 				$return = array(
 					'result' => "OK"
 				);
@@ -1393,7 +1408,7 @@ else{
 				if($project['owner_id'] != $user_id){
 					returnError("UNAUTHORIZED");
 				}
-				$login_db->regenerateProjectSecret($project['project_id']);
+				$login_db->regenerateProjectSecret($project['project_id'], $project['owner_id'], $project['project_name']);
 				$return = array(
 					'result' => "OK"
 				);
@@ -1438,6 +1453,65 @@ else{
 					returnError("UNAUTHORIZED");
 				}
 				$login_db->deleteProject($project['project_id']);
+			}
+		}
+		
+		if($section == "register" && $token_scopes['profile_management']){
+			if($method == "saveInfo"){
+				$user_nick = $_GET['user_nick'];
+				$user_name = $_GET['user_name'];
+				$user_surname = $_GET['user_surname'];
+				$birthday = $_GET['birthday'];
+				
+				if((preg_match("/[^a-zA-Z0-9\-_]+/", $user_nick) || mb_strlen($user_nick) > 16 || mb_strlen($user_nick) < 3 || $login_db->isNickUsed($user_nick)) && $user_nick != $uinfo['user_nick']){
+					returnError("MALFORMED_NICK");
+				}
+				
+				if(!preg_match("/^[a-zA-Zа-яёА-ЯЁ]+$/u", $user_name) || mb_strlen($user_name) < 2 || mb_strlen($user_name) > 32){
+					returnError("MALFORMED_NAME");
+				}
+				
+				if(!preg_match("/^[a-zA-Zа-яёА-ЯЁ]+$/u", $user_surname) || mb_strlen($user_surname) < 2 || mb_strlen($user_surname) > 32){
+					returnError("MALFORMED_SURNAME");
+				}
+				
+				if($birthday == 0){
+					returnError("MALFORMED_BIRTHDAY");
+				}
+				
+				$login_db->saveUserInfo($user_id, $user_nick, $user_name, $user_surname, $birthday);
+				$return = array(
+					'result' => "OK"
+				);
+				echo(json_encode($return));
+			}
+		}
+		
+		if($section == "authentication"){
+			if($method == "getUserInfo"){
+				$user_info = array(
+					'user_nick' => $uinfo['user_nick'],
+					'verified' => $uinfo['verified'],
+					'user_ip' => $_SERVER['REMOTE_ADDR']
+				);
+				
+				if($token_scopes["personal"]){
+					$user_info['user_name'] = $uinfo['user_name'];
+					$user_info['user_surname'] = $uinfo['user_surname'];
+					$user_info['birthday'] = $uinfo['birthday'];
+				}
+					
+				if($token_scopes["email"]){
+					$user_info['user_email'] = $uinfo['user_email'];
+				}
+					
+				$user_info = base64_encode(json_encode($user_info));
+				$return = array(
+					'result' => "OK",
+					'description' => "VALID",
+					'user_info' => $user_info
+				);
+				echo(json_encode($return));
 			}
 		}
 	}

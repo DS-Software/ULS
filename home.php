@@ -7,6 +7,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
+
+<link href="libs/alertify.min.css" rel="stylesheet">
+<script src="libs/alertify.min.js"></script>
+
 <title>Аккаунт</title>
 
 <script>
@@ -16,23 +20,22 @@
 	token_xhr.send();
 	token_xhr.onload = function (e) {
 		let access_token = JSON.parse(token_xhr.responseText);
-		if(access_token.description == "2faVerificationRequired"){
-			location.href = "2fa_check.php";
-		}
-		else{
-			if(access_token.token != "" && access_token.result != "FAULT"){
+		switch (access_token.description) {
+			case "2faVerificationRequired":
+				location.href = "2fa_check.php";
+				break;
+			case "unfinishedReg":
+				location.href = "finish_register.php";
+				break;
+			default:
 				window.token = access_token.token;
 				bootstrap();
-			}
-			else{
-				window.token = "";
-				bootstrap();
-			}
+				break;
 		}
 	}
 	
 	function bootstrap(){
-		if(window.token == ""){
+		if(window.token == "" || window.token == undefined){
 			location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 		}
 		else{
@@ -50,44 +53,69 @@
 				let result = JSON.parse(xhr.responseText);
 				let el = document.getElementById('email_span');
 				
+				let verification_mark = "&nbsp;<span class=\"verify_mark\">Verified</span>";
+				if(result.verified != 1){
+					verification_mark = "";
+				}
+				name_container.innerHTML = result.user_name + " " + result.user_surname + verification_mark;
+				
 				el.innerHTML = result.email;
 				window.email = result.email;
 			}
 		}
 	}
 	
+	function changePersonalInfo(){
+		location.href = "finish_register.php";
+	}
+	
 	function logout(){
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=users&method=logout', true);
-		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-		xhr.send();
-		xhr.onload = function (e) {
-			location.reload();
-		}
+		alertify.confirm("Выход", "Вы уверены, что хотите выйти?",
+			function(){
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', 'api.php?section=users&method=logout', true);
+				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+				xhr.send();
+				xhr.onload = function (e) {
+					location.reload();
+				}
+			},
+			function(){
+				console.log("[DEBUG] Cancelled Logout");
+			}
+		);
 	}
 	
 	function regenerate_api(){
-		var confirmed = confirm("Этим действием вы перевыпустите ваш API ключ! Это обнулит ваш предыдущий API ключ!");
-		if(confirmed){
-			xhr.open('GET', 'api.php?section=users&method=regenerate_api_key', true);
-			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-			xhr.send();
-			xhr.onload = function (e) {
-				location.reload();
+		alertify.confirm("Перевыпуск API Ключа", "Этим действием вы перевыпустите ваш API ключ! Это обнулит ваш предыдущий API ключ!",
+			function(){
+				xhr.open('GET', 'api.php?section=users&method=regenerate_api_key', true);
+				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+				xhr.send();
+				xhr.onload = function (e) {
+					location.reload();
+				}
+			},
+			function(){
+				console.log("[DEBUG] Cancelled action");
 			}
-		}
+		);
 	}
 	
 	function regenerate_slid(){
-		var confirmed = confirm("Этим действием вы перевыпустите ID вашей сессии! Это приведёт к принудительному закрытию всех сеансов!");
-		if(confirmed){
-			xhr.open('GET', 'api.php?section=users&method=regenerate_slid', true);
-			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-			xhr.send();
-			xhr.onload = function (e) {
-				location.reload();
+		alertify.confirm("Перевыпуск ID Сессии", "Этим действием вы перевыпустите ID вашей сессии! Это приведёт к принудительному закрытию всех сеансов!",
+			function(){
+				xhr.open('GET', 'api.php?section=users&method=regenerate_slid', true);
+				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+				xhr.send();
+				xhr.onload = function (e) {
+					location.reload();
+				}
+			},
+			function(){
+				console.log("[DEBUG] Cancelled action");
 			}
-		}
+		);
 	}
 	
 	function show_api_management(){
@@ -103,6 +131,10 @@
 		location.href = "easylogin_mgmt.php";
 	}
 	
+	function login_with_easylogin(){
+		location.href = "reader.php";
+	}
+	
 	function showAPIKey(){
 		let el = document.getElementById('api');
 		el.innerHTML = window.token;
@@ -110,13 +142,17 @@
 	}
 	
 	var input = document.getElementById('new_un');
-	var input2 = document.getElementById('password_change');
-	var input3 = document.getElementById('password');
+	var input2 = document.getElementById('new_password');
 	
 	function changePassword(){
 		let el = document.getElementById('password_changer');
 		el.style.display = (el.style.display == 'none') ? '' : 'none';
 		input2.value = "";
+		
+		let el2 = document.getElementById('email_changer');
+		el2.style.display = 'none';
+		input.value = "";
+		
 		if(input.value == ""){
 			document.getElementById('save').style.display = 'none';
 		}
@@ -125,75 +161,85 @@
 	function submitPasswordChange(){
 		var password_new = document.getElementById('new_password').value;
 		var pwd_old = document.getElementById('password').value;
-		var passwordChangeEnsurance = confirm("Вы уверены что хотите сменить пароль?");
-		if(passwordChangeEnsurance){
-			document.cookie = "new_password_current=" + encodeURIComponent(pwd_old) + "; max-age=120";
-			document.cookie = "new_password_new=" + encodeURIComponent(password_new) + "; max-age=120";
-			var xhr = new XMLHttpRequest();
-			xhr.open('GET', 'api.php?section=users&method=changeUserPassword', true);
-			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-			xhr.send();
-			xhr.onload = function (e) {
-				let result = JSON.parse(xhr.responseText);
-				if(result.result == "OK"){
-					location.reload();
-				}
-				else{
-					if(result.reason == "WRONG_PASSWORD"){
-						alert("Вы ввели неверный пароль!");
+		
+		alertify.confirm("Смена пароля", "Вы уверены что хотите сменить пароль?",
+			function(){
+				document.cookie = "new_password_current=" + encodeURIComponent(pwd_old) + "; max-age=120";
+				document.cookie = "new_password_new=" + encodeURIComponent(password_new) + "; max-age=120";
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', 'api.php?section=users&method=changeUserPassword', true);
+				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+				xhr.send();
+				xhr.onload = function (e) {
+					let result = JSON.parse(xhr.responseText);
+					if(result.result == "OK"){
+						location.reload();
 					}
-					return false;
+					else{
+						if(result.reason == "WRONG_PASSWORD"){
+							alertify.notify("Вы ввели неверный пароль!", 'error', 5);
+						}
+					}
 				}
+			},
+			function(){
+				console.log("[DEBUG] Cancelled action");
 			}
-		}
-		else{
-			return false;
-		}
+		);
 	}
 	
 	function changeEmail(){
 		let el = document.getElementById('email_changer');
 		el.style.display = (el.style.display == 'none') ? '' : 'none';
 		input.value = "";
+		
+		let el2 = document.getElementById('password_changer');
+		el2.style.display = 'none';
+		input2.value = "";
+		
 		if(input2.value == ""){
 			document.getElementById('save').style.display = 'none';
 		}
 	}
 	function submitEmailChange(){
 		var email_new = document.getElementById('new_un').value;
-		var emailChangeEnsurance = confirm("Вы уверены что хотите сменить почту на " + email_new + "?");
-		if(emailChangeEnsurance){
-			var xhr = new XMLHttpRequest();
-			xhr.open('GET', 'api.php?section=users&method=changeUserEmail&email=' + email_new, true);
-			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-			xhr.send();
-			xhr.onload = function (e) {
-				if (xhr.readyState == 4 && xhr.status == 200) {
-					if(xhr.responseText != ''){
-						let result = JSON.parse(xhr.responseText);
-						if(result.reason == 'GIVEN_EMAIL_IS_INVALID'){
-							alert("Вы ввели недействительный E-Mail!");
-						}
-						if(result.reason == 'YOU_ARE_CURRENTLY_USING_THIS_EMAIL'){
-							alert("Введённый E-Mail является вашей текущей почтой!");
-						}
-						if(result.result == "OK"){
-							alert("Вам было отправлено письмо для подтверждения нового адреса E-Mail.");
+		
+		alertify.confirm("Смена почты", "Вы уверены что хотите сменить почту на " + email_new + "?",
+			function(){
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', 'api.php?section=users&method=changeUserEmail&email=' + email_new, true);
+				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+				xhr.send();
+				xhr.onload = function (e) {
+					if (xhr.readyState == 4 && xhr.status == 200) {
+						if(xhr.responseText != ''){
+							let result = JSON.parse(xhr.responseText);
+							if(result.reason == 'GIVEN_EMAIL_IS_INVALID'){
+								alertify.notify("Вы ввели недействительный E-Mail!", 'error', 5);
+							}
+							if(result.reason == 'YOU_ARE_CURRENTLY_USING_THIS_EMAIL'){
+								alertify.notify("Введённый E-Mail является вашей текущей почтой!", 'error', 5);
+							}
+							if(result.reason == 'DISPOSABLE_EMAIL'){
+								alertify.notify("Данная почта не может быть использована!", 'error', 5);
+							}
+							if(result.result == "OK"){
+								alertify.notify("Вам было отправлено письмо для подтверждения нового адреса E-Mail.", 'message', 5);
+							}
 						}
 					}
 				}
+			},
+			function(){
+				console.log("[DEBUG] Cancelled action");
 			}
-			return true;
-		}
-		else{
-			return false;
-		}
+		);
 	}	
 </script>
 
 <div class="main_module">
 	<h1>Управление Аккаунтом</h1>
-	<br>
+	<h2 id="name_container" onclick="changePersonalInfo()" style="cursor: pointer;"></h2>
 	<button onclick="changeEmail()" class="button_feature_new">Сменить Почту</button>
 	<div style="display: none;" id="email_changer" class="text_container">
 		<br>
@@ -223,6 +269,7 @@
 	<button onclick="regenerate_slid()" class="button_feature_new">Переиздать SLID</button>
 	<button onclick="totp_management()" class="button_feature_new">Управление 2FA</button>
 	<button onclick="easylogin_mgmt()" class="button_feature_new">Управление EasyLogin</button>
+	<button onclick="login_with_easylogin()" class="button_feature_new">Беспарольный Вход</button>
 	<br>
 	
 	<button class="button_submit" onclick="save_changes()" style="display: none;" id="save">Сохранить</button>
@@ -257,15 +304,11 @@
 		var password = document.getElementById('new_password');
 		
 		if(email.value != "" && email.value != window.email){
-			var rl_needed_email = submitEmailChange();
+			submitEmailChange();
 		}
 		
 		if(password.value != ""){
-			var rl_needed_pass = submitPasswordChange();
-		}
-		
-		if(rl_needed_email | rl_needed_pass){
-			location.reload();
+			submitPasswordChange();
 		}
 	}
 </script>

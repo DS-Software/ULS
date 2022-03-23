@@ -42,12 +42,15 @@ img{
 		width: 100%;
 		background-color: #ffffff;
 		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
-		margin: 100px auto;
+		margin: 5% auto;
 		border-radius: 10px;
 	}
 }
 @media (max-width: 238px){
 	.login form label{
+		display: none !important;
+	}
+	.label{
 		display: none !important;
 	}
 	.button_login_new{
@@ -74,7 +77,7 @@ img{
 		width: 100%;
 		background-color: #ffffff;
 		box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.3);
-		margin: 100px auto;
+		margin: 5% auto;
 		border-radius: 10px;
 	}
 }
@@ -86,11 +89,17 @@ img{
   	padding: 20px 0 20px 0;
   	border-bottom: 1px solid #dee0e4;
 }
+
 .main_module h2 {
   	text-align: center;
 	color: #202124;
   	font-size: 20px;
   	padding: 10px 0 10px 0;
+	margin-left: auto;
+}
+
+.center{
+	margin-right: auto;
 	margin-left: auto;
 }
 
@@ -124,6 +133,25 @@ img{
   	background-color: #3274d6;
   	color: #ffffff;
 }
+
+.label {
+  	display: flex;
+  	justify-content: center;
+  	align-items: center;
+  	width: 50px;
+  	height: 50px;
+  	background-color: #3274d6;
+  	color: #ffffff;
+}
+
+.main_module form input[type="email"], .main_module form input[type="password"], .main_module form input[type="text"], .main_module form input[type="number"], .main_module form input[type="date"] {
+  	width: 77.5%;
+  	height: 50px;
+  	border: 1px solid #dee0e4;
+  	margin-bottom: 20px;
+  	padding: 0 15px;
+}
+
 .login form input[type="email"], .login form input[type="password"], .login form input[type="text"], .login form input[type="number"] {
   	width: 77.5%;
   	height: 50px;
@@ -613,4 +641,18 @@ img{
 	position: absolute;
 	margin-left: 3%;
 	padding: 15px 15px 15px 15px;
+}
+
+.verify_mark{
+	padding-left: 10px;
+	padding-right: 10px;
+	border-radius: 2em;
+	border: 1px solid #2da44e;
+	font-size: 14px;
+	line-height: 22px;
+	font-weight: 500;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	color: #1a7f37;
+	background-color: rgba(45, 164, 78, 0.09);
 }

@@ -7,6 +7,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
+
+<link href="libs/alertify.min.css" rel="stylesheet">
+<script src="libs/alertify.min.js"></script>
+
 <title>Двухфакторная Аутентификация</title>
 
 <script>
@@ -16,23 +20,22 @@
 	token_xhr.send();
 	token_xhr.onload = function (e) {
 		let access_token = JSON.parse(token_xhr.responseText);
-		if(access_token.description == "2faVerificationRequired"){
-			location.href = "2fa_check.php";
-		}
-		else{
-			if(access_token.token != "" && access_token.result != "FAULT"){
+		switch (access_token.description) {
+			case "2faVerificationRequired":
+				location.href = "2fa_check.php";
+				break;
+			case "unfinishedReg":
+				location.href = "finish_register.php";
+				break;
+			default:
 				window.token = access_token.token;
 				bootstrap();
-			}
-			else{
-				window.token = "";
-				bootstrap();
-			}
+				break;
 		}
 	}
 	
 	function bootstrap(){
-		if(window.token == ""){
+		if(window.token == "" || window.token == undefined){
 			location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
 		}
 		else{
@@ -113,12 +116,11 @@
 				}
 				else{
 					if(result.result == "FAULT" && result.reason == "WRONG_TOTP"){
-						alert("Введённый OTP код недействителен!");
+						alertify.notify("Введённый OTP код недействителен!", 'error', 5);
 					}
 					else{
-						alert("В процессе обработки события произошла непредвиденная ошибка!");
-						location.reload();
-					}
+						alertify.notify("В процессе обработки события произошла непредвиденная ошибка!", 'error', 5);
+					} 
 				}
 			}
 		}
@@ -139,16 +141,14 @@
 			if (xhr.readyState == 4 && xhr.status == 200) {
 				let result = JSON.parse(xhr.responseText);
 				if(result.result == "OK"){
-					alert("Вы успешно отключили 2FA!");
-					location.reload();
+					alertify.notify("Вы успешно отключили 2FA!", 'success', 2, function(){location.reload();});
 				}
 				else{
 					if(result.result == "FAULT" && result.reason == "WRONG_TOTP"){
-						alert("Введённый OTP код недействителен!");
+						alertify.notify("Введённый OTP код недействителен!", 'error', 5);
 					}
 					else{
-						alert("В процессе обработки события произошла непредвиденная ошибка!");
-						location.reload();
+						alertify.notify("В процессе обработки события произошла непредвиденная ошибка!", 'error', 5);
 					}
 				}
 			}
