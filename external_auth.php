@@ -14,7 +14,11 @@
 <link href="libs/alertify.min.css" rel="stylesheet">
 <script src="libs/alertify.min.js"></script>
 
-<div class="main_module">
+<div id="action_required" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display:none;">
+	<iframe style="border: 0px; width: 100%; height: 100%;" id="action"></iframe>
+</div>
+
+<div id="main_module" class="main_module" style="display: none;">
 	<h1>Авторизация</h1>
 	<form id="el_form" action="javascript:void('')">
 		<h2 class="center" style="width: 90%; margin-bottom: 0; padding-bottom: 0;" id="project_name"></h2>
@@ -54,10 +58,10 @@
 		let access_token = JSON.parse(token_xhr.responseText);
 		switch (access_token.description) {
 			case "2faVerificationRequired":
-				location.href = "2fa_check.php";
+				open_login_menu();
 				break;
 			case "unfinishedReg":
-				location.href = "finish_register.php";
+				open_login_menu();
 				break;
 			default:
 				window.token = access_token.token;
@@ -66,11 +70,35 @@
 		}
 	}
 	
+	function open_login_menu(){
+		document.getElementById("action_required").style.display = "";
+		document.getElementById("action").src = "index.php";
+		
+		window.token_check = setInterval(checkaction, 500);
+	}
+	
+	function checkaction(){
+		var check_token = new XMLHttpRequest();
+		check_token.open('GET', 'api.php?section=UNAUTH&method=getAccessToken', true);
+		check_token.send();
+		check_token.onload = function (e) {
+			let access_token = JSON.parse(check_token.responseText);
+			if(access_token.result == "OK" && access_token.token != null && access_token.description == undefined){
+				window.token = access_token.token;
+				bootstrap();
+				document.getElementById("action_required").style.display = "none";
+				document.getElementById("action").src = "";
+				clearInterval(window.token_check);
+			}
+		}
+	}
+	
 	function bootstrap(){
 		if(window.token == "" || window.token == undefined){
-			back();
+			open_login_menu();
 		}
 		else{
+			document.getElementById("main_module").style.display = "";
 			getProjectInfo();
 		}
 	}

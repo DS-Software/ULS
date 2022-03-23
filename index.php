@@ -178,6 +178,9 @@ if($maintenance_mode){
 					if(auth_result.reason == 'WRONG_CREDENTIALS'){
 						alertify.notify("Неверный логин и/или пароль!", 'error', 5);
 					}
+					if(auth_result.reason == 'DISPOSABLE_EMAIL'){
+						alertify.notify("Данная почта не может быть использована для входа!", 'error', 5);
+					}
 				}
 				else{
 					if(auth_result.description == "Success"){
