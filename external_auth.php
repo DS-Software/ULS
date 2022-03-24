@@ -50,23 +50,6 @@
 	function back(){
 		location.href = window.fault_redirect;
 	}
-	
-	function logout(){
-		alertify.confirm("Выход", "Вы уверены, что хотите выйти?",
-			function(){
-				var xhr = new XMLHttpRequest();
-				xhr.open('GET', 'api.php?section=users&method=logout', true);
-				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-				xhr.send();
-				xhr.onload = function (e) {
-					location.reload();
-				}
-			},
-			function(){
-				console.log("[DEBUG] Cancelled Logout");
-			}
-		);
-	}
 
 	var token_xhr = new XMLHttpRequest();
 	token_xhr.open('GET', 'api.php?section=UNAUTH&method=getAccessToken', true);

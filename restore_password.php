@@ -61,7 +61,7 @@
 		if(login == ''){
 			return;
 		}
-		xhr.open('GET', 'api.php?section=UNAUTH&method=send_restore_email&login=' + login, true);
+		xhr.open('GET', 'api.php?section=UNAUTH&method=sendRestoreEmail&login=' + login, true);
 		xhr.send();
 		xhr.onload = function (e) {
 			let reg_result = JSON.parse(xhr.responseText);

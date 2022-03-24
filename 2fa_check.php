@@ -23,7 +23,7 @@
 		<br>
 		<button class="button_login_new_totp" id="send" style="display: none;" onclick="check_totp_code(otp.value)">Отправить</button>
 		<button class="button_cancel_new_mrg" type="button" onclick="totp_logout()">Выйти</button><br>
-		<button class="button_cancel_new_mrg" type="button" onclick="disable_totp()">Отключить 2FA</button>
+		<button class="button_cancel_new_mrg" type="button" onclick="disableTOTP()">Отключить 2FA</button>
 	</form>
 </div>
 
@@ -49,7 +49,7 @@ function totp_logout(){
 	}
 }
 
-function disable_totp(){
+function disableTOTP(){
 	location.href = "2fa_disable.php";
 }
 

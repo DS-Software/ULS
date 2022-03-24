@@ -89,7 +89,7 @@
 	function regenerate_api(){
 		alertify.confirm("Перевыпуск API Ключа", "Этим действием вы перевыпустите ваш API ключ! Это обнулит ваш предыдущий API ключ!",
 			function(){
-				xhr.open('GET', 'api.php?section=users&method=regenerate_api_key', true);
+				xhr.open('GET', 'api.php?section=users&method=regenerateAPIKey', true);
 				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 				xhr.send();
 				xhr.onload = function (e) {
@@ -102,10 +102,10 @@
 		);
 	}
 	
-	function regenerate_slid(){
+	function regenerateSLID(){
 		alertify.confirm("Перевыпуск ID Сессии", "Этим действием вы перевыпустите ID вашей сессии! Это приведёт к принудительному закрытию всех сеансов!",
 			function(){
-				xhr.open('GET', 'api.php?section=users&method=regenerate_slid', true);
+				xhr.open('GET', 'api.php?section=users&method=regenerateSLID', true);
 				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 				xhr.send();
 				xhr.onload = function (e) {
@@ -266,7 +266,7 @@
 		<div style="margin-left: 2%;"><b>Ваш API Ключ:</b> <span id="api"></span> &nbsp; <button onclick="showAPIKey()" class="button-7-new">Показать</button></div> 
 		<br>
 	</div>
-	<button onclick="regenerate_slid()" class="button_feature_new">Переиздать SLID</button>
+	<button onclick="regenerateSLID()" class="button_feature_new">Переиздать SLID</button>
 	<button onclick="totp_management()" class="button_feature_new">Управление 2FA</button>
 	<button onclick="easylogin_mgmt()" class="button_feature_new">Управление EasyLogin</button>
 	<button onclick="login_with_easylogin()" class="button_feature_new">Беспарольный Вход</button>

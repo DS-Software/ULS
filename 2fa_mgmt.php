@@ -75,7 +75,7 @@
 	
 	function enable_totp(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=totp&method=prepare_enable', true);
+		xhr.open('GET', 'api.php?section=totp&method=prepareEnable', true);
 		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
@@ -95,8 +95,8 @@
 		}
 	}
 	
-	function disable_totp(){
-		let el = document.getElementById('disable_totp');
+	function disableTOTP(){
+		let el = document.getElementById('disableTOTP');
 		el.style.display = (el.style.display == 'none') ? '' : 'none';
 	}
 	
@@ -178,8 +178,8 @@
 	</div>
 	
 	<div id="2fa_disable" style="display: none;">
-		<button onclick="disable_totp()" class="button_feature_new_mrg">Отключить 2FA</button>
-		<div style="display: none;" id="disable_totp" class="text_container">
+		<button onclick="disableTOTP()" class="button_feature_new_mrg">Отключить 2FA</button>
+		<div style="display: none;" id="disableTOTP" class="text_container">
 			<div style="margin-left: 2%;">
 				<b>Введите OTP для подтверждения:</b><br><br>
 				<input name="otp_dis" id="otp_dis">

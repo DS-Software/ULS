@@ -144,7 +144,7 @@
 			return;
 		}
 		let password_hash = sha256(password);
-		xhr.open('GET', 'api.php?section=UNAUTH&method=send_register_message&login=' + login + "&password_hash=" + password_hash, true);
+		xhr.open('GET', 'api.php?section=UNAUTH&method=sendRegisterMessage&login=' + login + "&password_hash=" + password_hash, true);
 		xhr.send();
 		xhr.onload = function (e) {
 			let reg_result = JSON.parse(xhr.responseText);

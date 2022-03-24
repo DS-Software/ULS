@@ -47,7 +47,7 @@
 	var xhr2 = new XMLHttpRequest();
 
 	function getELSession(){
-		xhr2.open('GET', 'api.php?section=UNAUTH&method=el_getSession', true);
+		xhr2.open('GET', 'api.php?section=UNAUTH&method=getELSession', true);
 		xhr2.send();
 		xhr2.onload = function (e) {
 			let session = JSON.parse(xhr2.responseText);
@@ -75,7 +75,7 @@
 	
 	function back(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=UNAUTH&method=el_removeSession&session_id=' + window.el_session + "&session_ver=" + window.session_verifier, true);
+		xhr.open('GET', 'api.php?section=UNAUTH&method=removeELSession&session_id=' + window.el_session + "&session_ver=" + window.session_verifier, true);
 		xhr.send();
 		xhr.onload = function (e) {
 			location.href = "<?php echo(htmlspecialchars($login_site)); ?>";
@@ -88,7 +88,7 @@
 	
 	function checkSession(){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=UNAUTH&method=el_checkSession&session_id=' + window.el_session + "&session_ver=" + window.session_verifier, true);
+		xhr.open('GET', 'api.php?section=UNAUTH&method=checkELSession&session_id=' + window.el_session + "&session_ver=" + window.session_verifier, true);
 		xhr.send();
 		xhr.onload = function (e) {
 			let handler = JSON.parse(xhr.responseText);

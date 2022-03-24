@@ -10,7 +10,7 @@ class database{
         $this->ldb->set_charset("utf8mb4");
     }
 	
-    public function get_user_info($user_id){
+    public function getUserInfo($user_id){
         $login_db = $this->ldb;
         $user_id = $login_db->real_escape_string($user_id);
         $req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `password_hash`, `user_ip`, `api_key_seed`, `SLID`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `easylogin` FROM `users` WHERE `user_id`='$user_id'";
@@ -76,7 +76,7 @@ class database{
         return $user_id;
     }
 	
-    public function set_current_user_ip($user_id, $ip){
+    public function setUserIP($user_id, $ip){
         $login_db = $this->ldb;
         $user_id = $login_db->real_escape_string($user_id);
         $ip = $login_db->real_escape_string($ip);
@@ -84,35 +84,35 @@ class database{
         $login_db->query($req);
     }
 	
-    public function disable_totp($user_id){
+    public function disableTOTP($user_id){
         $login_db = $this->ldb;
         $user_id = $login_db->real_escape_string($user_id);
         $req = "UPDATE `users` SET `2fa_active`=0 WHERE `user_id`='$user_id'";
         $login_db->query($req);
     }
 	
-    public function enable_totp($user_id){
+    public function enableTOTP($user_id){
         $login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
         $req = "UPDATE `users` SET `2fa_active`=1 WHERE `user_id`='$user_id'";
         $login_db->query($req);
     }
 	
-    public function disable_el($user_id){
+    public function disableEasyLogin($user_id){
         $login_db = $this->ldb;
         $user_id = $login_db->real_escape_string($user_id);
         $req = "UPDATE `users` SET `easylogin`=0 WHERE `user_id`='$user_id'";
         $login_db->query($req);
     }
 	
-    public function enable_el($user_id){
+    public function enableEasyLogin($user_id){
         $login_db = $this->ldb;
         $user_id = $login_db->real_escape_string($user_id);
         $req = "UPDATE `users` SET `easylogin`=1 WHERE `user_id`='$user_id'";
         $login_db->query($req);
     }
 	
-    public function set_totp_secret($user_id, $totp_secret){
+    public function setTOTPSecret($user_id, $totp_secret){
         $login_db = $this->ldb;
         $user_id = $login_db->real_escape_string($user_id);
         $totp_secret = $login_db->real_escape_string($totp_secret);
@@ -120,7 +120,7 @@ class database{
         $login_db->query($req);
     }
 	
-    public function set_TOTP_disable_code($user_id, $code){
+    public function setTOTPDisableCode($user_id, $code){
         $login_db = $this->ldb;
         $user_id = $login_db->real_escape_string($user_id);
         $hash_code = hash('sha256', $code . "_" . $user_id);
@@ -128,7 +128,7 @@ class database{
         $login_db->query($req);
     }
 	
-    public function create_new_user($email, $password_hash){
+    public function createNewUser($email, $password_hash){
         $login_db = $this->ldb;
         $email = $login_db->real_escape_string($email);
         $password_hash = $login_db->real_escape_string($password_hash);
@@ -183,7 +183,7 @@ class database{
         return $result;
     }
 	
-    public function create_session($session_key, $session_salt, $ip){
+    public function createELSession($session_key, $session_salt, $ip){
         $login_db = $this->ldb;
         $session_key = $login_db->real_escape_string($session_key);
         $session_salt = $login_db->real_escape_string($session_salt);
@@ -194,7 +194,7 @@ class database{
         return $login_db->insert_id;
     }
 	
-    public function get_session($session_key){
+    public function getELSession($session_key){
         $login_db = $this->ldb;
         $session_key = $login_db->real_escape_string($session_key);
         $req = "SELECT `session`, `session_seed`, `user_id`, `claimed`, `created`, `session_ip` FROM `sessions` WHERE `session`='$session_key'";
@@ -214,7 +214,7 @@ class database{
         return $result;
     }
 	
-    public function claim_session($user_id, $session_key){
+    public function claimELSession($user_id, $session_key){
         $login_db = $this->ldb;
         $user_id = $login_db->real_escape_string($user_id);
         $session_key = $login_db->real_escape_string($session_key);
@@ -222,7 +222,7 @@ class database{
         $login_db->query($req);
     }
 		
-    public function delete_session($session_key){
+    public function deleteELSession($session_key){
         $login_db = $this->ldb;
         $session_key = $login_db->real_escape_string($session_key);
         $req = "DELETE FROM `sessions` WHERE `session`='$session_key'";

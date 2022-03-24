@@ -42,7 +42,7 @@ input.oninput = function() {
 function disable(key){
 	var xhr = new XMLHttpRequest();
 	xhr.withCredentials = true;
-	xhr.open('GET', 'api.php?section=UNAUTH&method=disable_totp&key=' + key, true);
+	xhr.open('GET', 'api.php?section=UNAUTH&method=disableTOTP&key=' + key, true);
 	xhr.send();
 	xhr.onload = function (e) {
 		let json = JSON.parse(xhr.responseText);
