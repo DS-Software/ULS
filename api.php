@@ -23,7 +23,6 @@ function returnError($message){
 }
 
 function hasFinishedRegister($user_info){
-	global $login_db;
 	$user_nick = $user_info['user_nick'];
 	$user_name = $user_info['user_name'];
 	$user_surname = $user_info['user_surname'];
@@ -33,6 +32,23 @@ function hasFinishedRegister($user_info){
 		if ($user_name != '' && strlen($user_name) >= 2 && 32 >= strlen($user_name)) {
 			if ($user_surname != '' && strlen($user_surname) >= 2 && 32 >= strlen($user_surname)) {
 				if ($birthday != 0) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+function checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $user_info){
+	global $service_key;
+
+	if ($user_info['user_id'] == $user_id && $user_info['user_id'] != null) {
+		if ($user_info['SLID'] == $SLID) {
+			if ($user_ip == $_SERVER['REMOTE_ADDR']) {
+				$true_hash = hash("sha512", "{$session}_{$email}_{$user_id}_{$SLID}_{$_SERVER['REMOTE_ADDR']}_$service_key");
+
+				if ($true_hash == $user_key) {
 					return true;
 				}
 			}
@@ -81,10 +97,6 @@ function getAPIToken(){
 		$token = null;
 	}
 
-	if (isset($_GET['access_token'])) {
-		$token = $_GET['access_token'];
-	}
-
 	return $token;
 }
 
@@ -117,20 +129,9 @@ if ($section == "UNAUTH") {
 		$totp_timestamp = $_COOKIE['totp_timestamp'];
 		$totp_verification = $_COOKIE['totp_verification'];
 
-		$verified = false;
-
 		$ver_user_info = $login_db->getUserInfo($user_id);
-		if ($ver_user_info['user_id'] == $user_id && $ver_user_info['user_id'] != null) {
-			if ($ver_user_info['SLID'] == $SLID) {
-				if ($user_ip == $_SERVER['REMOTE_ADDR']) {
-					$true_hash = hash("sha512", "{$session}_{$email}_{$user_id}_{$SLID}_{$_SERVER['REMOTE_ADDR']}_{$service_key}");
 
-					if ($true_hash == $user_key) {
-						$verified = true;
-					}
-				}
-			}
-		}
+		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $ver_user_info);
 
 		if ($ver_user_info['2fa_active'] == 1) {
 
@@ -141,7 +142,7 @@ if ($section == "UNAUTH") {
 				$totp_verification = null;
 			}
 
-			$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}");
+			$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_$totp_timestamp");
 
 			if ($_REQUEST['totp_logout'] == "true") {
 				if ($true_totp_ver != $totp_verification) {
@@ -218,6 +219,7 @@ if ($section == "UNAUTH") {
 		$timestamp = time();
 		$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
 		$session = array(
+			'result' => "OK",
 			'session_id' => $session_id,
 			'timestamp' => $timestamp,
 			'rand_session_id' => $rsid,
@@ -250,7 +252,7 @@ if ($section == "UNAUTH") {
 
 		$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $user_ip . "_" . $service_key);
 
-		if ($session_id == $session_id) {
+		if ($session_id == $true_session_id) {
 			$verification['session_ver'] = true;
 		} else {
 			returnError('WRONG_SESSION');
@@ -280,7 +282,7 @@ if ($section == "UNAUTH") {
 				setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
 				setcookie("email", $login, time() + 2678400, $domain_name);
 				setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
-				setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+				setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
 				setcookie("session", $session_id, time() + 2678400, $domain_name);
 				setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
 
@@ -289,7 +291,6 @@ if ($section == "UNAUTH") {
 					'description' => 'Success'
 				);
 
-				echo(json_encode($return));
 			} else {
 				$email_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $session_id . '_' . $user_info['SLID']);
 
@@ -315,8 +316,8 @@ if ($section == "UNAUTH") {
 					'description' => 'emailVerificationNeeded'
 				);
 
-				echo(json_encode($return));
 			}
+			echo(json_encode($return));
 		} else {
 			returnError('WRONG_CREDENTIALS');
 		}
@@ -345,7 +346,7 @@ if ($section == "UNAUTH") {
 
 		$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $user_ip . "_" . $service_key);
 
-		if ($session_id == $session_id) {
+		if ($session_id == $true_session_id) {
 			$verification['session_ver'] = true;
 		} else {
 			returnError('WRONG_SESSION');
@@ -384,7 +385,7 @@ if ($section == "UNAUTH") {
 				setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
 				setcookie("email", $login, time() + 2678400, $domain_name);
 				setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
-				setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+				setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
 				setcookie("session", $session_id, time() + 2678400, $domain_name);
 				setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
 
@@ -441,20 +442,12 @@ if ($section == "UNAUTH") {
 
 			send_email($email_settings, $login, $email_html, $subject);
 
-			$return = array(
-				'result' => 'OK',
-				'description' => 'emailVerificationNeeded'
-			);
-
-			echo(json_encode($return));
-		} else {
-			$return = array(
-				'result' => 'OK',
-				'description' => 'emailVerificationNeeded'
-			);
-
-			echo(json_encode($return));
 		}
+		$return = array(
+			'result' => 'OK',
+			'description' => 'emailVerificationNeeded'
+		);
+		echo(json_encode($return));
 		die();
 	}
 
@@ -493,7 +486,7 @@ if ($section == "UNAUTH") {
 								setcookie("user_id", $user_id, time() + 2678400, $domain_name);
 								setcookie("email", $login, time() + 2678400, $domain_name);
 								setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
-								setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+								setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
 								setcookie("session", $session_id, time() + 2678400, $domain_name);
 								setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
 
@@ -530,6 +523,9 @@ if ($section == "UNAUTH") {
 		if (!filter_var($login, FILTER_VALIDATE_EMAIL)) {
 			returnError("INVALID_EMAIL");
 		}
+		if (checkDisposableEmail($login)) {
+			returnError("DISPOSABLE_EMAIL");
+		}
 
 		if ($login_db->wasEmailRegistered($login)) {
 			$timestamp = time();
@@ -557,20 +553,12 @@ if ($section == "UNAUTH") {
 
 			$login_db->setLastSID($log_user_id, $session_id);
 
-			$return = array(
-				'result' => 'OK',
-				'description' => 'emailVerificationNeeded'
-			);
-
-			echo(json_encode($return));
-		} else {
-			$return = array(
-				'result' => 'OK',
-				'description' => 'emailVerificationNeeded'
-			);
-
-			echo(json_encode($return));
 		}
+		$return = array(
+			'result' => 'OK',
+			'description' => 'emailVerificationNeeded'
+		);
+		echo(json_encode($return));
 		die();
 	}
 	if ($method == "restorePassword") {
@@ -607,7 +595,7 @@ if ($section == "UNAUTH") {
 							setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
 							setcookie("email", $login, time() + 2678400, $domain_name);
 							setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
-							setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+							setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
 							setcookie("session", $session_id, time() + 2678400, $domain_name);
 							setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
 
@@ -689,13 +677,18 @@ if ($section == "UNAUTH") {
 		$user_key = $_COOKIE['user_verkey'];
 		$otp = $_GET['otp'];
 
-		$verified = false;
-
 		$ver_user_info = $login_db->getUserInfo($user_id);
+
+		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $ver_user_info);
+
+		if ($ver_user_info['2fa_active'] != 1) {
+			returnError("2FA_IS_NOT_ENABLED");
+		}
+
 		if ($ver_user_info['user_id'] == $user_id && $ver_user_info['user_id'] != null) {
 			if ($ver_user_info['SLID'] == $SLID) {
 				if ($user_ip == $_SERVER['REMOTE_ADDR']) {
-					$true_hash = hash("sha512", "{$session}_{$email}_{$user_id}_{$SLID}_{$_SERVER['REMOTE_ADDR']}_{$service_key}");
+					$true_hash = hash("sha512", "{$session}_{$email}_{$user_id}_{$SLID}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 
 					if ($true_hash == $user_key) {
 						$verified = true;
@@ -717,7 +710,7 @@ if ($section == "UNAUTH") {
 
 				if ($otp == $key) {
 					$totp_timestamp = time();
-					$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}");
+					$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_$totp_timestamp");
 
 					setcookie("totp_timestamp", $totp_timestamp, time() + 2678400, $domain_name);
 					setcookie("totp_verification", $true_totp_ver, time() + 2678400, $domain_name);
@@ -734,7 +727,6 @@ if ($section == "UNAUTH") {
 				}
 			}
 		}
-
 		returnError("WRONG_CREDENTIALS");
 	}
 
@@ -747,19 +739,12 @@ if ($section == "UNAUTH") {
 		$user_key = $_COOKIE['user_verkey'];
 		$key = $_GET['key'];
 
-		$verified = false;
-
 		$ver_user_info = $login_db->getUserInfo($user_id);
-		if ($ver_user_info['user_id'] == $user_id && $ver_user_info['user_id'] != null) {
-			if ($ver_user_info['SLID'] == $SLID) {
-				if ($user_ip == $_SERVER['REMOTE_ADDR']) {
-					$true_hash = hash("sha512", "{$session}_{$email}_{$user_id}_{$SLID}_{$_SERVER['REMOTE_ADDR']}_{$service_key}");
 
-					if ($true_hash == $user_key) {
-						$verified = true;
-					}
-				}
-			}
+		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $ver_user_info);
+
+		if ($ver_user_info['2fa_active'] != 1) {
+			returnError("2FA_IS_NOT_ENABLED");
 		}
 
 		if ($verified) {
@@ -785,6 +770,13 @@ if ($section == "UNAUTH") {
 	}
 
 	if ($method == "getELSession") {
+		$login_db->cleanUpSessions();
+
+		if ($login_db->countSessionsByIP($_SERVER['REMOTE_ADDR']) >= 10) {
+			$login_db->deleteSessionsByIP($_SERVER['REMOTE_ADDR']);
+			returnError("RATE_LIMIT_FOR_THIS_IP");
+		}
+
 		$session = "session_" . convBase(uniqidReal(256), 16, 36);
 		$sess_salt = convBase(uniqidReal(32), 16, 36);
 		$login_db->createELSession($session, $sess_salt, $_SERVER['REMOTE_ADDR']);
@@ -818,6 +810,7 @@ if ($section == "UNAUTH") {
 	}
 
 	if ($method == "removeELSession") {
+		$login_db->cleanUpSessions();
 		$session = $login_db->getELSession($_GET['session_id']);
 
 		if ($session['session'] != '') {
@@ -841,6 +834,7 @@ if ($section == "UNAUTH") {
 	}
 
 	if ($method == "checkELSession") {
+		$login_db->cleanUpSessions();
 		$session = $login_db->getELSession($_GET['session_id']);
 
 		if ($session['session'] == '') {
@@ -855,10 +849,6 @@ if ($section == "UNAUTH") {
 
 		if ($session['claimed'] != 1) {
 			returnError("UNCLAIMED");
-		}
-
-		if (time() > $session['created'] + 300) {
-			returnError("TIMEOUT");
 		}
 
 		$user_info = $login_db->getUserInfo($session['user_id']);
@@ -880,7 +870,7 @@ if ($section == "UNAUTH") {
 		setcookie("user_id", $user_info['user_id'], time() + 2678400, $domain_name);
 		setcookie("email", $user_info['user_email'], time() + 2678400, $domain_name);
 		setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
-		setcookie("user_verkey", hash("sha512", "{$rsid}_{$user_info['user_email']}_{$user_info['user_id']}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_{$service_key}"), time() + 2678400, $domain_name);
+		setcookie("user_verkey", hash("sha512", "{$rsid}_{$user_info['user_email']}_{$user_info['user_id']}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
 		setcookie("session", $rsid, time() + 2678400, $domain_name);
 		setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
 
@@ -1166,7 +1156,7 @@ if ($section == "UNAUTH") {
 
 				$login_db->setTOTPSecret($user_id, $true_secret);
 
-				$totp_url = "/gen_2fa_qr.php?fn={$first_name}&email={$email}&secret={$true_secret}";
+				$totp_url = "/gen_2fa_qr.php?fn=$first_name&email=$email&secret=$true_secret";
 
 				$return = array(
 					'result' => "OK",
@@ -1272,6 +1262,7 @@ if ($section == "UNAUTH") {
 		}
 
 		if ($method == "claim") {
+			$login_db->cleanUpSessions();
 			$session = $login_db->getELSession($_GET['session_id']);
 
 			if ($session['session'] != '') {
