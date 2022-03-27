@@ -430,7 +430,7 @@ if ($section == "UNAUTH") {
 			$auth_link = $login_site . "/auth_manager.php?method=registerNewUser&timestamp=$timestamp&login=$login&email_ver_id=$email_ver_id&session_id=$session_id&rand_session_id=$rsid";
 
 			$replaceArray = array(
-				'$username' => $user_info['user_nick'] == "" ? "Неизвестный Пользователь" : $user_info['user_nick'],
+				'$username' => "",
 				'$link' => $auth_link,
 				'$ip' => $_SERVER['REMOTE_ADDR']
 			);
@@ -490,7 +490,7 @@ if ($section == "UNAUTH") {
 								setcookie("session", $session_id, time() + 2678400, $domain_name);
 								setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
 
-								$login_db->setUserIP($log_user_id, $_SERVER['REMOTE_ADDR']);
+								$login_db->setUserIP($user_id, $_SERVER['REMOTE_ADDR']);
 
 								$return = array(
 									'result' => 'OK',
@@ -642,7 +642,7 @@ if ($section == "UNAUTH") {
 		if ($true_ver_id == $email_ver_id && $timestamp + 900 > time()) {
 			if ($session_id == $true_session_id) {
 				if ($last_sid == $session_id) {
-					if (!$login_db->wasEmailRegistered($login)) {
+					if (!$login_db->wasEmailRegistered($new_mail)) {
 						$login_db->changeUserEmail($user_id, $new_mail);
 
 						$login_db->clearLastSID($user_id);
@@ -1101,7 +1101,7 @@ if ($section == "UNAUTH") {
 						$auth_link = $login_site . "/auth_manager.php?method=changeEMail&timestamp=$timestamp&user_id=$user_id&email_ver_id=$email_ver_id&rand_session_id=$rsid&session_id=$session_id&new_email=$new_email";
 
 						$replaceArray = array(
-							'$username' => $user_info['user_nick'] == "" ? "Неизвестный Пользователь" : $user_info['user_nick'],
+							'$username' => $uinfo['user_nick'] == "" ? "Неизвестный Пользователь" : $uinfo['user_nick'],
 							'$link' => $auth_link,
 							'$ip' => $_SERVER['REMOTE_ADDR'],
 							'$new_email' => $new_email
