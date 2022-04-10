@@ -15,6 +15,9 @@
 			case "unfinishedReg":
 				location.href = "finish_register.php";
 				break;
+			case "IPVerificationNeeded":
+				location.href = "ip_verification.php";
+				break;
 			default:
 				if(access_token.token != "" && access_token.result != "FAULT"){
 					location.href = "home.php";
@@ -47,8 +50,13 @@
 			<i class="fas fa-lock"></i>
 		</label>
 		<input type="password" name="new_password" placeholder="Новый Пароль" id="new_password" autocomplete="new-password" required>
+		<label for="pwd" style="display: none" id="pwd">
+			<i class="fas fa-lock"></i>
+		</label>
+		<input type="text" name="pwd" id="generated" style="display: none">
 		<button onclick="register(email.value, new_password.value)" class="button_login_new_long">Зарегистрироваться</button>
-		<button onclick="back()" class="button_additional_long">Вернуться</button>
+		<button type="button" onclick="genNewPwd()" class="button_login_new_long">Создать пароль</button>
+		<button onclick="back()" class="button_additional_long">Вернуться</button
 	</form>
 </div>
 
@@ -59,95 +67,22 @@
 		e.preventDefault();
 	});
 	
-	function sha256(ascii) {
-		function rightRotate(value, amount) {
-			return (value>>>amount) | (value<<(32 - amount));
-		};
-		
-		var mathPow = Math.pow;
-		var maxWord = mathPow(2, 32);
-		var lengthProperty = 'length'
-		var i, j; 
-		var result = ''
-		var words = [];
-		var asciiBitLength = ascii[lengthProperty]*8;
-					
-		var hash = sha256.h = sha256.h || [];
-		var k = sha256.k = sha256.k || [];
-		var primeCounter = k[lengthProperty];
-
-		var isComposite = {};
-		for (var candidate = 2; primeCounter < 64; candidate++) {
-			if (!isComposite[candidate]) {
-				for (i = 0; i < 313; i += candidate) {
-					isComposite[i] = candidate;
-				}
-				hash[primeCounter] = (mathPow(candidate, .5)*maxWord)|0;
-				k[primeCounter++] = (mathPow(candidate, 1/3)*maxWord)|0;
-			}
-		}
-					
-		ascii += '\x80'
-		while (ascii[lengthProperty]%64 - 56) ascii += '\x00'
-		for (i = 0; i < ascii[lengthProperty]; i++) {
-			j = ascii.charCodeAt(i);
-			if (j>>8) return; // ASCII check: only accept characters in range 0-255
-			words[i>>2] |= j << ((3 - i)%4)*8;
-		}
-		words[words[lengthProperty]] = ((asciiBitLength/maxWord)|0);
-		words[words[lengthProperty]] = (asciiBitLength)
-		
-		for (j = 0; j < words[lengthProperty];) {
-			var w = words.slice(j, j += 16);
-			var oldHash = hash;
-			hash = hash.slice(0, 8);
-						
-			for (i = 0; i < 64; i++) {
-				var i2 = i + j;
-				var w15 = w[i - 15], w2 = w[i - 2];
-
-				var a = hash[0], e = hash[4];
-				var temp1 = hash[7]
-					+ (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) // S1
-					+ ((e&hash[5])^((~e)&hash[6])) // ch
-					+ k[i] + (w[i] = (i < 16) ? w[i] : (
-						w[i - 16]
-						+ (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15>>>3)) // s0
-						+ w[i - 7]
-						+ (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2>>>10)) // s1
-					)|0
-				);
-				var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) // S0
-					+ ((a&hash[1])^(a&hash[2])^(hash[1]&hash[2])); // maj
-				
-				hash = [(temp1 + temp2)|0].concat(hash); 
-					hash[4] = (hash[4] + temp1)|0;
-			}
-						
-			for (i = 0; i < 8; i++) {
-				hash[i] = (hash[i] + oldHash[i])|0;
-			}
-		}
-					
-		for (i = 0; i < 8; i++) {
-			for (j = 3; j + 1; j--) {
-				var b = (hash[i]>>(j*8))&255;
-				result += ((b < 16) ? 0 : '') + b.toString(16);
-			}
-		}
-		return result;
-	};
 	var xhr2 = new XMLHttpRequest();
 
 	function register(login, password){
 		if(login == '' || password == ''){
 			return;
 		}
-		let password_hash = sha256(password);
-		xhr.open('GET', 'api.php?section=UNAUTH&method=sendRegisterMessage&login=' + login + "&password_hash=" + password_hash, true);
-		xhr.send();
-		xhr.onload = function (e) {
-			let reg_result = JSON.parse(xhr.responseText);
+		
+		var formData = new FormData();
+		formData.append("login", login);
+		formData.append("password", password);
+
+		xhr2.open("POST", "api.php?section=UNAUTH&method=sendRegisterMessage");
+		xhr2.send(formData);
+		
+		xhr2.onload = function (e) {
+			let reg_result = JSON.parse(xhr2.responseText);
 			if(reg_result.description == "emailVerificationNeeded"){
 				alertify.notify("Вам было отправлено письмо для продолжения регистрации!", 'message', 2, function(){location.href = "<?php echo(htmlspecialchars($login_site)) ?>"});
 			}
@@ -158,6 +93,27 @@
 				alertify.notify("Данная почта не может быть использована для регистрации!", 'error', 5);
 			}
 		}
+	}
+	
+	function genNewPwd(){
+		let password = generatePass();
+		new_password.value = password;
+		pwd.style.display = "";
+		generated.style.display = "block";
+		generated.value = password;
+	}
+	
+	function generatePass(){
+		let arr = window.crypto.getRandomValues(new BigUint64Array(1))[0].toString(36).split("");
+		arr = arr.concat(window.crypto.getRandomValues(new BigUint64Array(1))[0].toString(36).split(""));
+		arr = arr.slice(0, 16);
+		arr.forEach(function(element, index){
+			if(Math.round(Math.random())){
+				arr[index] = element.toUpperCase();
+			}
+		});
+		
+		return arr.join("");
 	}
 	
 	function back(){

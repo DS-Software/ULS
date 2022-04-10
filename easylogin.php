@@ -15,6 +15,9 @@
 			case "unfinishedReg":
 				location.href = "finish_register.php";
 				break;
+			case "IPVerificationNeeded":
+				location.href = "ip_verification.php";
+				break;
 			default:
 				if(access_token.token != "" && access_token.token != undefined && access_token.result != "FAULT"){
 					location.href = "home.php";

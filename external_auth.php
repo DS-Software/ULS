@@ -63,6 +63,9 @@
 			case "unfinishedReg":
 				open_login_menu();
 				break;
+			case "IPVerificationNeeded":
+				open_login_menu();
+				break;
 			default:
 				window.token = access_token.token;
 				bootstrap();

@@ -27,6 +27,9 @@
 			case "unfinishedReg":
 				location.href = "finish_register.php";
 				break;
+			case "IPVerificationNeeded":
+				location.href = "ip_verification.php";
+				break;
 			default:
 				window.token = access_token.token;
 				bootstrap();
@@ -72,13 +75,16 @@
 	function logout(){
 		alertify.confirm("Выход", "Вы уверены, что хотите выйти?",
 			function(){
-				var xhr = new XMLHttpRequest();
-				xhr.open('GET', 'api.php?section=users&method=logout', true);
-				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-				xhr.send();
-				xhr.onload = function (e) {
-					location.reload();
-				}
+				document.cookie = 'user_id=; Max-Age=0;';
+				document.cookie = 'email=; Max-Age=0;';
+				document.cookie = 'user_ip=; Max-Age=0;';
+				document.cookie = 'user_verkey=; Max-Age=0;';
+				document.cookie = 'session=; Max-Age=0;';
+				document.cookie = 'SLID=; Max-Age=0;';
+				document.cookie = 'ip_verify=; Max-Age=0;';
+				document.cookie = 'totp_timestamp=; Max-Age=0;';
+				document.cookie = 'totp_verification=; Max-Age=0;';
+				location.href = "index.php";
 			},
 			function(){
 				console.log("[DEBUG] Cancelled Logout");
@@ -282,6 +288,9 @@
 	var input2 = document.getElementById('new_password');
 
 	input.oninput = function() {
+		if(email_changer.style.display == "none"){
+			return;
+		}
 		if((input.value == "" & input2.value == "") || input.value == window.email){
 			document.getElementById('save').style.display = 'none';
 		}
@@ -291,6 +300,9 @@
 	};
 
 	input2.oninput = function() {
+		if(password_changer.style.display == "none"){
+			return;
+		}
 		if(input2.value == "" & (input.value == "" || input.value == window.email)){
 			document.getElementById('save').style.display = 'none';
 		}

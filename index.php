@@ -39,6 +39,9 @@ if($maintenance_mode){
 			case "unfinishedReg":
 				location.href = "finish_register.php";
 				break;
+			case "IPVerificationNeeded":
+				location.href = "ip_verification.php";
+				break;
 			default:
 				if(access_token.token != "" && access_token.result != "FAULT"){
 					location.href = "home.php";
@@ -74,121 +77,36 @@ if($maintenance_mode){
 	f.addEventListener('submit', e => {
 		e.preventDefault();
 	});
-	
-	function sha256(ascii) {
-		function rightRotate(value, amount) {
-			return (value>>>amount) | (value<<(32 - amount));
-		};
-		
-		var mathPow = Math.pow;
-		var maxWord = mathPow(2, 32);
-		var lengthProperty = 'length'
-		var i, j; 
-		var result = ''
-		var words = [];
-		var asciiBitLength = ascii[lengthProperty]*8;
-					
-		var hash = sha256.h = sha256.h || [];
-		var k = sha256.k = sha256.k || [];
-		var primeCounter = k[lengthProperty];
-
-		var isComposite = {};
-		for (var candidate = 2; primeCounter < 64; candidate++) {
-			if (!isComposite[candidate]) {
-				for (i = 0; i < 313; i += candidate) {
-					isComposite[i] = candidate;
-				}
-				hash[primeCounter] = (mathPow(candidate, .5)*maxWord)|0;
-				k[primeCounter++] = (mathPow(candidate, 1/3)*maxWord)|0;
-			}
-		}
-					
-		ascii += '\x80'
-		while (ascii[lengthProperty]%64 - 56) ascii += '\x00'
-		for (i = 0; i < ascii[lengthProperty]; i++) {
-			j = ascii.charCodeAt(i);
-			if (j>>8) return; // ASCII check: only accept characters in range 0-255
-			words[i>>2] |= j << ((3 - i)%4)*8;
-		}
-		words[words[lengthProperty]] = ((asciiBitLength/maxWord)|0);
-		words[words[lengthProperty]] = (asciiBitLength)
-		
-		for (j = 0; j < words[lengthProperty];) {
-			var w = words.slice(j, j += 16);
-			var oldHash = hash;
-			hash = hash.slice(0, 8);
-						
-			for (i = 0; i < 64; i++) {
-				var i2 = i + j;
-				var w15 = w[i - 15], w2 = w[i - 2];
-
-				var a = hash[0], e = hash[4];
-				var temp1 = hash[7]
-					+ (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) // S1
-					+ ((e&hash[5])^((~e)&hash[6])) // ch
-					+ k[i] + (w[i] = (i < 16) ? w[i] : (
-						w[i - 16]
-						+ (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15>>>3)) // s0
-						+ w[i - 7]
-						+ (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2>>>10)) // s1
-					)|0
-				);
-				var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) // S0
-					+ ((a&hash[1])^(a&hash[2])^(hash[1]&hash[2])); // maj
-				
-				hash = [(temp1 + temp2)|0].concat(hash); 
-					hash[4] = (hash[4] + temp1)|0;
-			}
-						
-			for (i = 0; i < 8; i++) {
-				hash[i] = (hash[i] + oldHash[i])|0;
-			}
-		}
-					
-		for (i = 0; i < 8; i++) {
-			for (j = 3; j + 1; j--) {
-				var b = (hash[i]>>(j*8))&255;
-				result += ((b < 16) ? 0 : '') + b.toString(16);
-			}
-		}
-		return result;
-	};
 	var xhr2 = new XMLHttpRequest();
 
 	function login(login, password){
 		if(login == '' || password == ''){
 			return;
 		}
-		xhr.open('GET', 'api.php?section=UNAUTH&method=getAuthChallenge', true);
-		xhr.send();
-		xhr.onload = function (e) {
-			let auth_challenge = JSON.parse(xhr.responseText);
-			let password_token = sha256(sha256(password) + '_' + auth_challenge.session_id + '_' + auth_challenge.user_ip + '_' + auth_challenge.timestamp + '_' + auth_challenge.rand_session_id + '_' + login);
-			xhr2.open('GET', 'api.php?section=UNAUTH&method=verifyAuthChallenge&rand_session_id=' + auth_challenge.rand_session_id + '&session_id=' + auth_challenge.session_id + '&timestamp=' + auth_challenge.timestamp + '&login=' + login + '&password_hash=' + password_token, true);
-			xhr2.send();
-			xhr2.onload = function (e) {
-				let auth_result = JSON.parse(xhr2.responseText);		
-				if(auth_result.result == 'FAULT'){
-					if(auth_result.reason == 'WRONG_SESSION'){
-						alertify.notify('Неверная сессия, обновите страницу!', 'error', 5);
-					}
-					if(auth_result.reason == 'THIS_SESSION_IS_EXPIRED'){
-						alertify.notify('Устаревшая сессия, обновите страницу!', 'error', 5);
-					}
-					if(auth_result.reason == 'WRONG_CREDENTIALS'){
-						alertify.notify("Неверный логин и/или пароль!", 'error', 5);
-					}
-					if(auth_result.reason == 'DISPOSABLE_EMAIL'){
-						alertify.notify("Данная почта не может быть использована для входа!", 'error', 5);
-					}
+		
+		var formData = new FormData();
+		formData.append("login", login);
+		formData.append("password", password);
+
+		xhr2.open("POST", "api.php?section=UNAUTH&method=authorize");
+		xhr2.send(formData);
+
+		xhr2.onload = function (e) {
+			let auth_result = JSON.parse(xhr2.responseText);		
+			if(auth_result.result == 'FAULT'){
+				if(auth_result.reason == 'WRONG_CREDENTIALS'){
+					alertify.notify("Неверный логин и/или пароль!", 'error', 5);
 				}
-				else{
-					if(auth_result.description == "Success"){
-						location.href = "home.php";
-					}
-					if(auth_result.description == "emailVerificationNeeded"){
-						alertify.notify("Вам было отправлено письмо для подтверждения нового IP Адреса.", 'message', 2, function(){location.reload()});
-					}
+				if(auth_result.reason == 'DISPOSABLE_EMAIL'){
+					alertify.notify("Данная почта не может быть использована для входа!", 'error', 5);
+				}
+			}
+			else{
+				if(auth_result.description == "Success"){
+					location.href = "home.php";
+				}
+				if(auth_result.description == "emailVerificationNeeded"){
+					alertify.notify("Вам было отправлено письмо для подтверждения нового IP Адреса.", 'message', 2, function(){location.href = "ip_verification.php"});
 				}
 			}
 		}

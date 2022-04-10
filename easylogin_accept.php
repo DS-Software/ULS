@@ -30,6 +30,9 @@
 			case "unfinishedReg":
 				location.href = "finish_register.php";
 				break;
+			case "IPVerificationNeeded":
+				location.href = "ip_verification.php";
+				break;
 			default:
 				if(access_token.token != "" && access_token.result != "FAULT"){
 					window.token = access_token.token;

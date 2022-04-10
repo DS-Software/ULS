@@ -25,6 +25,9 @@
 			case "2faVerificationRequired":
 				location.href = login_url + "/2fa_check.php";
 				break;
+			case "IPVerificationNeeded":
+				location.href = "ip_verification.php";
+				break;
 			default:
 				window.token = access_token.token;
 				bootstrap();

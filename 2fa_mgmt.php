@@ -27,6 +27,9 @@
 			case "unfinishedReg":
 				location.href = "finish_register.php";
 				break;
+			case "IPVerificationNeeded":
+				location.href = "ip_verification.php";
+				break;
 			default:
 				window.token = access_token.token;
 				bootstrap();

@@ -13,10 +13,10 @@ class database{
 	public function getUserInfo($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
-		$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `password_hash`, `user_ip`, `api_key_seed`, `SLID`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `easylogin` FROM `users` WHERE `user_id`='$user_id'";
+		$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `user_salt`, `password_hash`, `user_ip`, `api_key_seed`, `SLID`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `easylogin` FROM `users` WHERE `user_id`='$user_id'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $password_hash, $user_ip, $api_key_seed, $SLID, $totp_active, $totp_secret, $totp_disable_code, $easylogin);
+		$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $salt, $password_hash, $user_ip, $api_key_seed, $SLID, $totp_active, $totp_secret, $totp_disable_code, $easylogin);
 		$statement->fetch();
 
 		$user_object = array(
@@ -27,6 +27,7 @@ class database{
 			'user_surname' => $user_surname,
 			'birthday' => $birthday,
 			'verified' => $verified,
+			'salt' => $salt,
 			'password_hash' => $password_hash,
 			'user_ip' => $user_ip,
 			'api_key_seed' => $api_key_seed,
@@ -262,6 +263,17 @@ class database{
 		return $projects;
 	}
 	
+	public function countUserProjects($owner_id){
+		$login_db = $this->ldb;
+		$owner_id = $login_db->real_escape_string($owner_id);
+		$req = "SELECT COUNT(*) FROM `projects` WHERE `owner_id`='$owner_id'";
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($amount);
+		$statement->fetch();
+		return $amount;
+	}
+	
 	public function getProjectInfo($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
@@ -430,6 +442,40 @@ class database{
 	public function deleteSessionsByIP($user_ip){
 		$login_db = $this->ldb;
 		$req = "DELETE FROM `sessions` WHERE `session_ip`='$user_ip'";
+		$login_db->query($req);
+	}
+	
+	public function setIPCode($user_id, $code){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+		$code = $login_db->real_escape_string($code);
+		$req = "UPDATE `users` SET `ip_ver_code`='$code' WHERE `user_id`='$user_id'";
+		$login_db->query($req);
+	}
+	
+	public function getIPCode($user_id){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+		$req = "SELECT `ip_ver_code` FROM `users` WHERE `user_id`='$user_id'";
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($last_sid);
+		$statement->fetch();
+		return $last_sid;
+	}
+	
+	public function clearIPCode($user_id){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+		$req = "UPDATE `users` SET `ip_ver_code`=NULL WHERE `user_id`='$user_id'";
+		$login_db->query($req);
+	}
+	
+	public function setUserSalt($user_id, $salt){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+		$salt = $login_db->real_escape_string($salt);
+		$req = "UPDATE `users` SET `user_salt`='$salt' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
 }

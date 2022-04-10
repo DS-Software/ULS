@@ -25,6 +25,6 @@
 <script>
 	function restore(new_password){
 		document.cookie = "restore_password=" + encodeURIComponent(new_password) + "; max-age=120";
-		location.href = "<?php echo(htmlspecialchars($_GET['redirect'])) ?>";
+		location.href = "<?php echo(strtr(htmlspecialchars($_GET['redirect']), ['&amp;' => '&'])) ?>";
 	}
 </script>
