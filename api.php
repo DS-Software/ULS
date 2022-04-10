@@ -133,8 +133,8 @@ if ($section == "unauth") {
 		$ver_user_info = $login_db->getUserInfo($user_id);
 
 		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $ver_user_info);
-		
-		if($ip_verify != hash('sha256', "{$session}_{$ver_user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key") && $verified){
+
+		if ($ip_verify != hash('sha256', "{$session}_{$ver_user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key") && $verified) {
 			$return = array(
 				'result' => 'OK',
 				'description' => 'IPVerificationNeeded',
@@ -210,8 +210,8 @@ if ($section == "unauth") {
 		}
 		die();
 	}
-	
-	if($method == "authorize"){
+
+	if ($method == "authorize") {
 		$login = $_REQUEST['login'];
 		$password = $_REQUEST['password'];
 		if (checkDisposableEmail($login)) {
@@ -219,7 +219,7 @@ if ($section == "unauth") {
 		}
 
 		usleep(random_int(0, 999999));
-		
+
 		$log_user_id = $login_db->getUIDByEMail($login);
 		if (is_int($log_user_id)) {
 			$user_info = $login_db->getUserInfo($log_user_id);
@@ -231,14 +231,14 @@ if ($section == "unauth") {
 		} else {
 			returnError('WRONG_CREDENTIALS');
 		}
-		
+
 		if ($_SERVER['REMOTE_ADDR'] == $user_info['user_ip']) {
 			$rsid = bin2hex(random_bytes($session_length / 2));
 			$timestamp = time();
 			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
-			
+
 			$ip_verify = hash('sha256', "{$session_id}_{$log_user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
-			
+
 			setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
 			setcookie("email", $login, time() + 2678400, $domain_name);
 			setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
@@ -251,7 +251,7 @@ if ($section == "unauth") {
 				'result' => 'OK',
 				'description' => 'Success'
 			);
-			
+
 		} else {
 			$ip_ver_code = strtoupper(uniqidReal(8));
 			$login_db->setIPCode($log_user_id, $ip_ver_code);
@@ -268,11 +268,11 @@ if ($section == "unauth") {
 			$subject = strtr($messageNewIPSubject, $replaceArray);
 
 			send_email($email_settings, $login, $email_html, $subject);
-			
+
 			$rsid = bin2hex(random_bytes($session_length / 2));
 			$timestamp = time();
 			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
-			
+
 			setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
 			setcookie("email", $login, time() + 2678400, $domain_name);
 			setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
@@ -305,7 +305,7 @@ if ($section == "unauth") {
 		if ($verified) {
 			if ($user_info['user_id'] == $user_id && $user_id != "") {
 				$true_code = $login_db->getIPCode($user_id);
-				
+
 				if ($code == $true_code) {
 					$ip_verify = hash('sha256', "{$session}_{$user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 
@@ -397,10 +397,10 @@ if ($section == "unauth") {
 						if ($real_password !== False) {
 							$true_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $real_password . '_' . $timestamp . "_" . $session_id);
 							if ($true_ver_id == $email_ver_id) {
-								
+
 								$salt = hash("sha256", uniqidReal(256));
 								$final_password_hash = hash("sha512", $real_password . "_" . $salt);
-								
+
 								$user_id = $login_db->createNewUser($login, $final_password_hash);
 								$login_db->setUserIP($user_id, $_SERVER['REMOTE_ADDR']);
 								$login_db->regenerateSLID($user_id);
@@ -417,7 +417,7 @@ if ($section == "unauth") {
 								setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
 								setcookie("session", $session_id, time() + 2678400, $domain_name);
 								setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
-								
+
 								$ip_verify = hash('sha256', "{$session_id}_{$user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 								setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
 
@@ -520,7 +520,7 @@ if ($section == "unauth") {
 						if ($login_db->wasEmailRegistered($login)) {
 							$salt = hash("sha256", uniqidReal(256));
 							$final_password_hash = hash("sha512", $new_password . "_" . $salt);
-							
+
 							$login_db->setUserSalt($user_info['user_id'], $salt);
 							$login_db->changeUserPassword($user_info['user_id'], $final_password_hash);
 
@@ -533,7 +533,7 @@ if ($section == "unauth") {
 							setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$log_user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
 							setcookie("session", $session_id, time() + 2678400, $domain_name);
 							setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
-							
+
 							$ip_verify = hash('sha256', "{$session_id}_{$log_user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 							setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
 
@@ -799,7 +799,7 @@ if ($section == "unauth") {
 		setcookie("user_verkey", hash("sha512", "{$rsid}_{$user_info['user_email']}_{$user_info['user_id']}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
 		setcookie("session", $rsid, time() + 2678400, $domain_name);
 		setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
-		
+
 		$ip_verify = hash('sha256', "{$rsid}_{$user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 		setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
 
@@ -974,13 +974,13 @@ if ($section == "unauth") {
 		if ($method == "changeUserPassword") {
 			$old_password = $_COOKIE['new_password_current'];
 			$new_password = $_COOKIE['new_password_new'];
-			
+
 			$old_hash = hash("sha512", $old_password . "_" . $uinfo['salt']);
 
 			if ($uinfo['password_hash'] == $old_hash && $old_password != "") {
 				$salt = hash("sha256", uniqidReal(256));
 				$new_hash = hash("sha512", $new_password . "_" . $salt);
-				
+
 				$login_db->setUserSalt($user_id, $salt);
 				$login_db->changeUserPassword($user_id, $new_hash);
 
@@ -1156,7 +1156,7 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "enable") {
-			if($uinfo['easylogin'] == 0){
+			if ($uinfo['easylogin'] == 0) {
 				$login_db->enableEasyLogin($user_id);
 
 				$return = array(
@@ -1165,14 +1165,13 @@ if ($section == "unauth") {
 				);
 				echo(json_encode($return));
 				die();
-			}
-			else{
+			} else {
 				returnError("EASYLOGIN_WAS_ENABLED_BEFORE");
 			}
 		}
 
 		if ($method == "disable") {
-			if($uinfo['easylogin'] == 1){
+			if ($uinfo['easylogin'] == 1) {
 				$login_db->disableEasyLogin($user_id);
 
 				$return = array(
@@ -1181,8 +1180,7 @@ if ($section == "unauth") {
 				);
 				echo(json_encode($return));
 				die();
-			}
-			else{
+			} else {
 				returnError("EASYLOGIN_WAS_DISABLED_BEFORE");
 			}
 		}
@@ -1239,13 +1237,13 @@ if ($section == "unauth") {
 			die();
 		}
 		if ($method == "createProject") {
-			if ($login_db->countUserProjects($user_id) >= 15 && $uinfo['verified'] != 1){
+			if ($login_db->countUserProjects($user_id) >= 15 && $uinfo['verified'] != 1) {
 				returnError("REACHED_LIMIT_OF_PROJECTS");
 			}
 			if (strlen($_REQUEST['name']) < 3 or strlen($_REQUEST['name']) > 32) {
 				returnError("TOO_LONG_OR_TOO_SHORT");
 			}
-			
+
 			$login_db->createProject($user_id, htmlentities($_REQUEST['name']));
 
 			$return = array(

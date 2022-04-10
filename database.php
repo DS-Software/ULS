@@ -9,7 +9,7 @@ class database{
 		$this->ldb = $login_db;
 		$this->ldb->set_charset("utf8mb4");
 	}
-	
+
 	public function getUserInfo($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -40,7 +40,7 @@ class database{
 
 		return $user_object;
 	}
-	
+
 	public function isNickUsed($nick){
 		$login_db = $this->ldb;
 		$nick = $login_db->real_escape_string($nick);
@@ -48,12 +48,12 @@ class database{
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($user_id);
-		if($statement->fetch()) {
+		if ($statement->fetch()) {
 			return true;
 		}
 		return false;
 	}
-	
+
 	public function saveUserInfo($user_id, $user_nick, $user_name, $user_surname, $birthday){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -61,11 +61,11 @@ class database{
 		$user_name = $login_db->real_escape_string($user_name);
 		$user_surname = $login_db->real_escape_string($user_surname);
 		$birthday = $login_db->real_escape_string($birthday);
-			
+
 		$req = "UPDATE `users` SET `user_nick`='$user_nick', `user_name`='$user_name', `user_surname`='$user_surname', `birthday`='$birthday' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function getUIDByEMail($email){
 		$login_db = $this->ldb;
 		$email = $login_db->real_escape_string($email);
@@ -76,7 +76,7 @@ class database{
 		$statement->fetch();
 		return $user_id;
 	}
-	
+
 	public function setUserIP($user_id, $ip){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -84,35 +84,35 @@ class database{
 		$req = "UPDATE `users` SET `user_ip`='$ip' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function disableTOTP($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
 		$req = "UPDATE `users` SET `2fa_active`=0 WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function enableTOTP($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
 		$req = "UPDATE `users` SET `2fa_active`=1 WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function disableEasyLogin($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
 		$req = "UPDATE `users` SET `easylogin`=0 WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function enableEasyLogin($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
 		$req = "UPDATE `users` SET `easylogin`=1 WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function setTOTPSecret($user_id, $totp_secret){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -120,7 +120,7 @@ class database{
 		$req = "UPDATE `users` SET `2fa_active`=0, `2fa_secret`='$totp_secret' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function setTOTPDisableCode($user_id, $code){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -128,7 +128,7 @@ class database{
 		$req = "UPDATE `users` SET `2fa_disable_code`='$hash_code' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function createNewUser($email, $password_hash){
 		$login_db = $this->ldb;
 		$email = $login_db->real_escape_string($email);
@@ -137,7 +137,7 @@ class database{
 		$login_db->query($req);
 		return $login_db->insert_id;
 	}
-	
+
 	public function regenerateAPIKey($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -145,7 +145,7 @@ class database{
 		$req = "UPDATE `users` SET `api_key_seed`='$random_uuid' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function regenerateSLID($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -153,7 +153,7 @@ class database{
 		$req = "UPDATE `users` SET `SLID`='$random_uuid' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function changeUserPassword($user_id, $password_hash){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -161,7 +161,7 @@ class database{
 		$req = "UPDATE `users` SET `password_hash` = '$password_hash' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function changeUserEmail($user_id, $user_email){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -169,7 +169,7 @@ class database{
 		$req = "UPDATE `users` SET `user_email` = '$user_email' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function wasEmailRegistered($user_email){
 		$login_db = $this->ldb;
 		$user_email = $login_db->real_escape_string($user_email);
@@ -178,12 +178,12 @@ class database{
 		$statement->execute();
 		$statement->bind_result($user_id);
 		$result = false;
-		while($statement->fetch()) {
+		while ($statement->fetch()) {
 			$result = true;
 		}
 		return $result;
 	}
-	
+
 	public function createELSession($session_key, $session_salt, $ip){
 		$login_db = $this->ldb;
 		$session_key = $login_db->real_escape_string($session_key);
@@ -194,7 +194,7 @@ class database{
 		$login_db->query($req);
 		return $login_db->insert_id;
 	}
-	
+
 	public function getELSession($session_key){
 		$login_db = $this->ldb;
 		$session_key = $login_db->real_escape_string($session_key);
@@ -214,7 +214,7 @@ class database{
 
 		return $result;
 	}
-	
+
 	public function claimELSession($user_id, $session_key){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -222,30 +222,30 @@ class database{
 		$req = "UPDATE `sessions` SET `claimed`=1, `user_id`='$user_id' WHERE `session`='$session_key' AND `claimed`=0";
 		$login_db->query($req);
 	}
-		
+
 	public function deleteELSession($session_key){
 		$login_db = $this->ldb;
 		$session_key = $login_db->real_escape_string($session_key);
 		$req = "DELETE FROM `sessions` WHERE `session`='$session_key'";
 		$login_db->query($req);
 	}
-	
+
 	public function cleanUpProjects($delete = false, $timeout = 8035200){
-		if($delete){
+		if ($delete) {
 			$login_db = $this->ldb;
 			$time = time() - $timeout;
 			$req = "DELETE FROM `projects` WHERE `last_used`<$time AND `infinite`=0";
 			$login_db->query($req);
 		}
 	}
-	
+
 	public function deleteProject($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
 		$req = "DELETE FROM `projects` WHERE `project_id`='$project_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function getUserProjects($owner_id){
 		$login_db = $this->ldb;
 		$owner_id = $login_db->real_escape_string($owner_id);
@@ -254,7 +254,7 @@ class database{
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name);
 		$projects = [];
-		while($statement->fetch()) {
+		while ($statement->fetch()) {
 			$projects[$project_id] = array(
 				"project_id" => $project_id,
 				"project_name" => $project_name
@@ -262,7 +262,7 @@ class database{
 		}
 		return $projects;
 	}
-	
+
 	public function countUserProjects($owner_id){
 		$login_db = $this->ldb;
 		$owner_id = $login_db->real_escape_string($owner_id);
@@ -273,7 +273,7 @@ class database{
 		$statement->fetch();
 		return $amount;
 	}
-	
+
 	public function getProjectInfo($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
@@ -281,7 +281,7 @@ class database{
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $last_used, $owner_id, $infinite);
-		while($statement->fetch()) {
+		while ($statement->fetch()) {
 			$project = array(
 				"project_id" => $project_id,
 				"project_name" => $project_name,
@@ -295,7 +295,7 @@ class database{
 		}
 		return $project;
 	}
-	
+
 	public function createProject($owner_id, $project_name){
 		$login_db = $this->ldb;
 		$owner_id = $login_db->real_escape_string($owner_id);
@@ -307,7 +307,7 @@ class database{
 		$login_db->query($req);
 		return $login_db->insert_id;
 	}
-	
+
 	public function regenerateProjectPublic($project_id, $owner_id, $project_name){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
@@ -317,7 +317,7 @@ class database{
 		$req = "UPDATE `projects` SET `public_key`='$public_key' WHERE `project_id`='$project_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function regenerateProjectSecret($project_id, $owner_id, $project_name){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
@@ -327,7 +327,7 @@ class database{
 		$req = "UPDATE `projects` SET `secret_key`='$secret_key' WHERE `project_id`='$project_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function changeRedirectURL($project_id, $redirect_url){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
@@ -335,7 +335,7 @@ class database{
 		$req = "UPDATE `projects` SET `redirect_uri`='$redirect_url' WHERE `project_id`='$project_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function changeProjectName($project_id, $name){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
@@ -343,7 +343,7 @@ class database{
 		$req = "UPDATE `projects` SET `project_name`='$name' WHERE `project_id`='$project_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function getProjectInfoByPublic($public_key){
 		$login_db = $this->ldb;
 		$public_key = $login_db->real_escape_string($public_key);
@@ -351,7 +351,7 @@ class database{
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $last_used, $owner_id, $infinite);
-		while($statement->fetch()) {
+		while ($statement->fetch()) {
 			$project = array(
 				"project_id" => $project_id,
 				"project_name" => $project_name,
@@ -365,7 +365,7 @@ class database{
 		}
 		return $project;
 	}
-	
+
 	public function getLoginProjectInfo($public_key){
 		$login_db = $this->ldb;
 		$public_key = $login_db->real_escape_string($public_key);
@@ -374,7 +374,7 @@ class database{
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $secret_key, $infinite);
 		$project["exists"] = false;
-		while($statement->fetch()) {
+		while ($statement->fetch()) {
 			$project = array(
 				"project_id" => $project_id,
 				"project_name" => $project_name,
@@ -385,7 +385,7 @@ class database{
 		}
 		return $project;
 	}
-	
+
 	public function updateProjectLastUsed($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
@@ -393,7 +393,7 @@ class database{
 		$req = "UPDATE `projects` SET `last_used`='$last_used' WHERE `project_id`='$project_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function getLastSID($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -404,7 +404,7 @@ class database{
 		$statement->fetch();
 		return $last_sid;
 	}
-	
+
 	public function setLastSID($user_id, $sid){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -412,14 +412,14 @@ class database{
 		$req = "UPDATE `users` SET `last_sid`='$sid' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function clearLastSID($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
 		$req = "UPDATE `users` SET `last_sid`=null WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function cleanUpSessions(){
 		$timeout = 300;
 		$login_db = $this->ldb;
@@ -427,7 +427,7 @@ class database{
 		$req = "DELETE FROM `sessions` WHERE `created`<$time";
 		$login_db->query($req);
 	}
-	
+
 	public function countSessionsByIP($user_ip){
 		$login_db = $this->ldb;
 		$user_ip = $login_db->real_escape_string($user_ip);
@@ -438,13 +438,13 @@ class database{
 		$statement->fetch();
 		return $count;
 	}
-	
+
 	public function deleteSessionsByIP($user_ip){
 		$login_db = $this->ldb;
 		$req = "DELETE FROM `sessions` WHERE `session_ip`='$user_ip'";
 		$login_db->query($req);
 	}
-	
+
 	public function setIPCode($user_id, $code){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -452,7 +452,7 @@ class database{
 		$req = "UPDATE `users` SET `ip_ver_code`='$code' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function getIPCode($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -463,14 +463,14 @@ class database{
 		$statement->fetch();
 		return $last_sid;
 	}
-	
+
 	public function clearIPCode($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
 		$req = "UPDATE `users` SET `ip_ver_code`=NULL WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-	
+
 	public function setUserSalt($user_id, $salt){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -479,4 +479,5 @@ class database{
 		$login_db->query($req);
 	}
 }
+
 ?>
