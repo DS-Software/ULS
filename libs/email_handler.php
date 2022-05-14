@@ -1,6 +1,6 @@
 <?php
 
-require_once 'libs/apmailer.php';
+require_once 'libs' . DIRECTORY_SEPARATOR . 'apmailer.php';
 		
 class email{
 	public function __construct($email_settings){

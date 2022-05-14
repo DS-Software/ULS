@@ -1,18 +1,23 @@
 <?php
 	require 'config.php';
 ?>
-<link href="style.css" rel="stylesheet" type="text/css">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
+<link href="libs/alertify.min.css" rel="stylesheet">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
+<script src="libs/main.js"></script>
+<script src="libs/captcha_utils.php"></script>
+<script src="libs/alertify.min.js"></script>
+<script src="libs/qr_reader.min.js" async defer></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>Авторизация</title>
 
-<link href="libs/alertify.min.css" rel="stylesheet">
-<script src="libs/alertify.min.js"></script>
-
-<div class="main_module">
-	<h1>Выполнение Запроса</h1>
-	<h2>Это может занять некоторое время...</h2>
+<div class="login-form" id="login_form">
+	<h1 class="thin-text">Выполнение Запроса</h1>
+	<div class="sep-line"></div>
+	<h2 class="thin-text">Это может занять некоторое время...</h2>
 	<br>
 </div>
 
@@ -23,7 +28,7 @@
 	token_xhr.onload = function (e) {
 		let access_token = JSON.parse(token_xhr.responseText);
 		if((access_token.token != "" && access_token.result != "FAULT") && "<?php echo(htmlspecialchars($_GET['method'])) ?>" != "changeEMail"){
-			location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
+			location.href = "home.php";
 		}
 		else{
 			execute_task();
@@ -109,12 +114,19 @@ if($link != ""){
 		command_xhr.onload = function (e) {
 			let response = JSON.parse(command_xhr.responseText);
 			if(response.result != "OK"){
+				if(response.reason == 'RATE_LIMIT_EXCEEDED'){
+					window.failed_request = function(){
+						execute_task();
+					};
+					callCaptcha();
+					return;
+				}
 				alertify.confirm("Ошибка", "Произошла ошибка в процессе выполнения запроса!<br>Код ошибки: " + response.reason,
-					function(){location.href="<?php echo(htmlspecialchars($login_site)); ?>"}, function(){location.href="<?php echo(htmlspecialchars($login_site)); ?>"}
+					function(){location.href="index.php"}, function(){location.href="index.php"}
 				);
 			}
 			else{
-				location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
+				location.href = "index.php";
 			}
 		}
 	}
@@ -125,7 +137,7 @@ else{
 	?>
 <script>
 	function execute_task(){
-		location.href = "<?php echo(htmlspecialchars($login_site)) ?>";
+		location.href = "index.php";
 	}
 </script>
 	<?php

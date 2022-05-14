@@ -1,262 +1,278 @@
 <?php
-	require '../config.php';
-	require 'integration_config.php';
+	require_once '..' . DIRECTORY_SEPARATOR . 'config.php';
 ?>
 
-<link href="../style.css" rel="stylesheet" type="text/css">
-<link href="style.css" rel="stylesheet" type="text/css">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
-<link rel="shortcut icon" href="../favicon.gif" type="image/gif">
-
+<link rel="stylesheet" href="../style.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
 <link href="../libs/alertify.min.css" rel="stylesheet">
+<link rel="shortcut icon" href="../favicon.gif" type="image/gif">
+<script src="../libs/main.js"></script>
+<script src="../libs/captcha_utils.php"></script>
 <script src="../libs/alertify.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Аутентификация</title>
+<title>Управление Проектом</title>
 
-<script>
-
-	window.login_url = "<?php echo(htmlspecialchars($login_site)) ?>";
-
-	var token_xhr = new XMLHttpRequest();
-	var xhr = new XMLHttpRequest();
-	token_xhr.open('GET', login_url + '/api.php?section=UNAUTH&method=getAccessToken', true);
-	token_xhr.send();
-	token_xhr.onload = function (e) {
-		let access_token = JSON.parse(token_xhr.responseText);
-		switch (access_token.description) {
-			case "2faVerificationRequired":
-				location.href = login_url + "/2fa_check.php";
-				break;
-			case "unfinishedReg":
-				location.href = login_url + "/finish_register.php";
-				break;
-			default:
-				window.token = access_token.token;
-				bootstrap();
-				break;
-		}
-	}
-	
-	function bootstrap(){
-		if(window.token == "" || window.token == undefined){
-			location.href = login_url;
-		}
-		else{
-			loadProjectInfo();
-		}
-	}
-	
-	function escapeHtml(unsafe)
-	{
-		return String(unsafe)
-			 .replace('&', "&amp;")
-			 .replace('<', "&lt;")
-			 .replace('>', "&gt;")
-			 .replace('"', "&quot;")
-			 .replace("'", "&#039;");
-	}
-	
-	function loadProjectInfo(){
-		window.project = "<?php echo(htmlspecialchars($_GET['project_id'])) ?>";
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', login_url + '/api.php?section=integration&method=getProjectInfo&project=' + window.project, true);
-		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-		xhr.send();
-		xhr.onload = function (e) {
-			let project = JSON.parse(xhr.responseText);
-			let name_container = document.getElementById("project_name");
-			let redirect_url = document.getElementById("redirect_url_current");
-			let public_key = document.getElementById("public_key");
-			let secret = document.getElementById("secret_key");
-			
-			if(project.result == "FAULT"){
-				location.href = "<?php echo(htmlspecialchars($int_url)) ?>?error=unauthorized";
-			}
-			
-			name_container.innerHTML = escapeHtml(project.project_name) + "&nbsp;&nbsp;<span class=\"bh\"><button onclick=\"deleteProject()\" class=\"button-7-new\">Удалить проект</button></span>";
-			redirect_url.innerHTML = "<b class=\"bt_noflex\">" + escapeHtml(project.redirect_uri) + "</b>";
-			if(project.redirect_uri == ""){
-				redirect_url.innerHTML = "<b class=\"bt_noflex\">Не настроен!</b>";
-			}
-			public_key.innerHTML = "<i style=\"text-decoration: underline;\" class=\"bt_noflex\">" + escapeHtml(project.public_key) + "</b>";
-			secret.innerHTML = "<i style=\"text-decoration: underline;\" class=\"bt_noflex\">" + escapeHtml(project.secret_key) + "</b>";
-		}
-	}
-	
-	function back(){
-		location.href = "<?php echo(htmlspecialchars($int_url)) ?>";
-	}
-	
-	function showSecret(){
-		let el = document.getElementById('secret_container');
-		let el2 = document.getElementById('show_secret');
-		el.style.display = (el.style.display == 'none') ? '' : 'none';
-		el2.textContent = (el.style.display == 'none') ? 'Показать' : 'Скрыть';
-	}
-</script>
-
-<div class="main scrollable">
-	<h1>Управление Проектом</h1>
-	<span class="delimiter">
-		<font class="bh" id="project_name"></font>
-	</span>
+<div class="extended-form">
+	<h1 class="thin-text">Управление Проектом</h1>
+	<div class="sep-line"></div>
+	<br>
+		<span class="middle-text" id="project_name"></span>&nbsp;&nbsp;&nbsp;<button class="button-secondary" onclick="deleteProject()">Удалить проект</button>
+	<br><br>
+	<div class="sep-line"></div>
+	<br>
 	<div class="project_information">
 		<div id="project_current" style="width: 80%; margin-left: auto; margin-right: auto;">
-			<div align="center" style="word-break: break-all;">
-				<span class="bt_noflex">URL перенаправления:&nbsp;<font id="redirect_url_current"><font></span>
-				<hr>
-				<span class="bt_noflex">Публичный Ключ Приложения:&nbsp; <button onclick="issueNewPublic()" class="button-7-new">Переиздать</button><br><span id="public_key"></span></span>
-				<hr>
-				<span class="bt_noflex">Секретный Ключ Приложения:&nbsp; <button onclick="showSecret()" class="button-7-new" id="show_secret">Показать</button>&nbsp;&nbsp;<button onclick="issueNewSecret()" class="button-7-new">Переиздать</button><span id="secret_container" style="display: none;"><br><span id="secret_key"></span></span></span>
-				<hr>
+			<div align="center">
+				<div class="middle-text">URL перенаправления:&nbsp;<b><span id="redirect_url_current"></span></b></div>
+				<br>
+				<div class="sep-line"></div>
+				<br>
+				<div class="align-center full-width">
+					<button onclick="showKeys()" class="button-primary">Управление ключами</button>
+				</div>
+				<br>
+				<div class="hidden-el" id="keys">
+					<div class="sep-line"></div>
+					<br>
+					<div class="middle-text">Публичный Ключ Приложения:&nbsp;&nbsp;&nbsp;<button class="button-secondary" onclick="issueNewPublic()">Переиздать</button><br><span id="public_key"></span></div>
+					<br>
+					<div class="sep-line"></div>
+					<br>
+					<div class="middle-text">Секретный Ключ Приложения:
+					<div class="align-left">
+						<button onclick="showSecret()" class="button-secondary" id="show_secret">Показать</button>
+						<button onclick="issueNewSecret()" class="button-secondary float-right">Переиздать</button>
+					</div>
+					<span id="secret_container" style="display: none;"><span id="secret_key"></span></span></div>
+					<br>
+				</div>
+				<div class="sep-line"></div>
 			</div>
 		</div>
-		<br>
-		<button onclick="changeName()" class="button_feature_new">Сменить Имя</button>
-		<div id="namechanger" style="display: none;">
-			<font class="bt">Изменение названия:</font>
-			<form action="javascript:void('')">
-				<div align="center">
-					<p>Название проекта: <input class="input" id="project_name_edit" maxlength="32"></p>
-				</div>
-			</form>
+		<div class="align-left full-width">
+			<button onclick="openName()" class="button-secondary">Сменить Название</button>
+			<button onclick="openURL()" class="button-secondary float-right">Сменить URL перенаправления</button>
 		</div>
-		<button onclick="changeURL()" class="button_feature_new">Сменить URL перенаправления</button>
-		<div id="redirect_url" style="display: none;">
-			<font class="bt">Изменение URL перенаправления:</font>
-			<form action="javascript:void('')">
-				<div align="center">
-					<p>URL перенаправления: <input class="input" id="redirect_url_edit"></p>
+		<div id="change_name" class="hidden-el">
+			<p class="middle-text">Изменение названия:</p>
+			<div class="full-width">
+				<div class="align-left icon">
+					<i class="fa-solid fa-tag"></i>
 				</div>
-			</form>
+				<span class="input-placeholder">Название проекта</span>
+				<input class="text-input max-width input-field-decoration" id="new_project_name" autocomplete="off" maxlength="32">
+				<br><br>
+				<div class="align-center full-width">
+					<button onclick="changeProjectName(new_project_name.value)" class="button-primary">Сменить Название</button>
+				</div>
+			</div>
 		</div>
-		<button class="button_submit" onclick="save_changes()" style="display: none;" id="save">Сохранить</button>
+		<div id="change_url" class="hidden-el">
+			<p class="middle-text">Изменение URL перенаправления:</p>
+			<div class="full-width">
+				<div class="align-left icon">
+					<i class="fa-solid fa-tag"></i>
+				</div>
+				<span class="input-placeholder">URL Перенаправления</span>
+				<input class="text-input max-width input-field-decoration" id="new_redirect_url" autocomplete="off">
+				<br><br>
+				<div class="align-center full-width">
+					<button onclick="changeProjectRedirectURL(new_redirect_url.value)" class="button-primary">Сменить URL</button>
+				</div>
+			</div>
+		</div>
 	</div>
-	<button class="button_cancel_new" onclick="back()">Вернуться</button>
 	<br>
+	<div class="sep-line"></div>
+	<br>
+	<div class="align-center full-width">
+		<button class="button-primary max-width" onclick="back()">Вернуться</button>
+	</div>
 </div>
 <script>
-	var input = document.getElementById('project_name_edit');
-	var input2 = document.getElementById('redirect_url_edit');
-	
-	function changeName(){
-		let el = document.getElementById('namechanger');
-		el.style.display = (el.style.display == 'none') ? '' : 'none';
-		input.value = "";
-		if(input2.value == "" & input.value == ""){
-			document.getElementById('save').style.display = 'none';
-		}
-	}
-	
-	function changeURL(){
-		let el = document.getElementById('redirect_url');
-		el.style.display = (el.style.display == 'none') ? '' : 'none';
-		input2.value = "";
-		if(input2.value == "" & input.value == ""){
-			document.getElementById('save').style.display = 'none';
-		}
-	}
-	
-	function issueNewPublic(){
-		alertify.confirm("Перевыпуск Публличного Ключа", "Вы уверены, что хотите переиздать публичный ключ проекта?",
-			function(){
-				var xhr = new XMLHttpRequest();
-				xhr.open('GET', login_url + '/api.php?section=integration&method=issueNewPublic&project=' + window.project, true);
-				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-				xhr.send();
-				xhr.onload = function (e) {
-					location.reload();
-				}
-			},
-			function(){
-				console.log("[DEBUG] Cancelled action");
+prepare_view();
+
+var token_xhr = new XMLHttpRequest();
+var xhr = new XMLHttpRequest();
+token_xhr.open('GET', '../api.php?section=UNAUTH&method=getAccessToken', true);
+token_xhr.send();
+token_xhr.onload = function (e) {
+let access_token = JSON.parse(token_xhr.responseText);
+	switch (access_token.description) {
+		case "2faVerificationRequired":
+			location.href = "../check_user.php";
+			break;
+		case "unfinishedReg":
+			location.href = "../home.php";
+			break;
+		default:
+			if(access_token.result == "FAULT"){
+				back();
+				break;
 			}
-		);
+			window.token = access_token.token;
+			loadProjectInfo();
+			break;
 	}
+}
 	
-	function issueNewSecret(){
-		alertify.confirm("Перевыпуск Приватного Ключа", "Вы уверены, что хотите переиздать приватный ключ проекта?",
-			function(){
-				var xhr = new XMLHttpRequest();
-				xhr.open('GET', login_url + '/api.php?section=integration&method=issueNewSecret&project=' + window.project, true);
-				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-				xhr.send();
-				xhr.onload = function (e) {
-					location.reload();
-				}
-			},
-			function(){
-				console.log("[DEBUG] Cancelled action");
-			}
-		);
+function loadProjectInfo(){
+	window.project = "<?php echo(htmlspecialchars($_GET['project_id'])) ?>";
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', '../api.php?section=integration&method=getProjectInfo&project=' + window.project, true);
+	xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+	xhr.send();
+	xhr.onload = function (e) {
+		let project = JSON.parse(xhr.responseText);
+		let name_container = document.getElementById("project_name");
+		let redirect_url = document.getElementById("redirect_url_current");
+		let public_key = document.getElementById("public_key");
+		let secret = document.getElementById("secret_key");
+			
+		if(project.result == "FAULT"){
+			location.href = "<?php echo(htmlspecialchars($int_url)) ?>?error=unauthorized";
+		}
+			
+		name_container.textContent = project.project_name;
+		redirect_url.textContent = project.redirect_uri;
+		if(project.redirect_uri == ""){
+			redirect_url.innerHTML = "<b>Не настроен!</b>";
+		}
+		public_key.innerHTML = "<i>" + project.public_key + "</i>";
+		secret.innerHTML = "<i>" + project.secret_key + "</i>";
 	}
+}
+	
+function back(){
+	location.href = "<?php echo(htmlspecialchars($int_url)) ?>";
+}
+	
+function showSecret(){
+	let el = document.getElementById('secret_container');
+	let el2 = document.getElementById('show_secret');
+	el.style.display = (el.style.display == 'none') ? '' : 'none';
+	el2.textContent = (el.style.display == 'none') ? 'Показать' : 'Скрыть';
+}
+
+function issueNewPublic(){
+	alertify.confirm("Перевыпуск Публичного Ключа", "Вы уверены, что хотите переиздать публичный ключ проекта?",
+		function(){
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', '../api.php?section=integration&method=issueNewPublic&project=' + window.project, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+			xhr.send();
+			xhr.onload = function (e) {
+				location.reload();
+			}
+		},
+		function(){
+			console.log("[DEBUG] Cancelled action");
+		}
+	);
+}
+	
+function issueNewSecret(){
+	alertify.confirm("Перевыпуск Приватного Ключа", "Вы уверены, что хотите переиздать приватный ключ проекта?",
+		function(){
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', '../api.php?section=integration&method=issueNewSecret&project=' + window.project, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+			xhr.send();
+			xhr.onload = function (e) {
+				location.reload();
+			}
+		},
+		function(){
+			console.log("[DEBUG] Cancelled action");
+		}
+	);
+}
+
+function openName(){
+	let el = document.getElementById('change_name');
+	if(el.classList.contains('hidden-el')){
+		el.classList.remove('hidden-el');
+		document.getElementById('keys').classList.add('hidden-el');
+		document.getElementById('change_url').classList.add('hidden-el');
+	}
+	else{
+		el.classList.add('hidden-el');
+	}
+}
+
+function openURL(){
+	let el = document.getElementById('change_url');
+	if(el.classList.contains('hidden-el')){
+		el.classList.remove('hidden-el');
+		document.getElementById('keys').classList.add('hidden-el');
+		document.getElementById('change_name').classList.add('hidden-el');
+	}
+	else{
+		el.classList.add('hidden-el');
+	}
+}
 
 
-	input.oninput = function() {
-		if(input.value == "" & input2.value == ""){
-			document.getElementById('save').style.display = 'none';
-		}
-		else{
-			document.getElementById('save').style.display = '';
-		}
-	};
-
-	input2.oninput = function() {
-		if(input2.value == "" & input.value == ""){
-			document.getElementById('save').style.display = 'none';
-		}
-		else{
-			document.getElementById('save').style.display = '';
-		}
-	};
+function showKeys(){
+	let el = document.getElementById('keys');
+	if(el.classList.contains('hidden-el')){
+		el.classList.remove('hidden-el');
+		document.getElementById('change_name').classList.add('hidden-el');
+		document.getElementById('change_url').classList.add('hidden-el');
+	}
+	else{
+		el.classList.add('hidden-el');
+	}
+}
 	
-	function save_changes(){
-		let reload = false;
-		if(input.value != ""){
-			reload = changeProjectName(input.value);
-		}
-		
-		if(input2.value != ""){
-			reload = changeProjectRedirectURL(input2.value) | reload;
-		}
-		
-		if(reload){
-			location.reload();
+function changeProjectRedirectURL(new_url){
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', '../api.php?section=integration&method=changeRedirect&project=' + window.project + "&redirect_url=" + encodeURIComponent(new_url), true);
+	xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+	xhr.send();
+	xhr.onload = function (e) {
+		let result = JSON.parse(xhr.responseText);
+		if(result.result == "OK"){
+			loadProjectInfo();
+			document.getElementById('change_url').classList.add('hidden-el');
 		}
 	}
+}
 	
-	function changeProjectRedirectURL(new_url){
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', login_url + '/api.php?section=integration&method=changeRedirect&project=' + window.project + "&redirect_url=" + encodeURIComponent(new_url), true);
-		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-		xhr.send();
-		return true;
+function changeProjectName(new_name){
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', '../api.php?section=integration&method=changeName&project=' + window.project + "&name=" + encodeURIComponent(new_name), true);
+	xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+	xhr.send();
+	xhr.onload = function (e) {
+		let result = JSON.parse(xhr.responseText);
+		if(result.reason == "TOO_LONG_OR_TOO_SHORT"){
+			alertify.notify('Выбранное имя слишком длинное / короткое.', 'error', 500);
+			return;
+		}
+		if(result.result == "OK"){
+			loadProjectInfo();
+			document.getElementById('change_name').classList.add('hidden-el');
+		}
 	}
+}
 	
-	function changeProjectName(new_name){
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', login_url + '/api.php?section=integration&method=changeName&project=' + window.project + "&name=" + encodeURIComponent(new_name), true);
-		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-		xhr.send();
-		return true;
-	}
-	
-	function deleteProject(){
-		alertify.confirm("Удаление проекта", "Вы уверены, что хотите УДАЛИТЬ этот проект? Это действие нельзя отменить!",
-			function(){
-				var xhr = new XMLHttpRequest();
-				xhr.open('GET', login_url + '/api.php?section=integration&method=delete&project=' + window.project, true);
-				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-				xhr.send();
-				xhr.onload = function (e) {
-					back();
-				}
-			},
-			function(){
-				console.log("[DEBUG] Cancelled action");
+function deleteProject(){
+	alertify.confirm("Удаление проекта", "Вы уверены, что хотите УДАЛИТЬ этот проект? Это действие нельзя отменить!",
+		function(){
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', '../api.php?section=integration&method=delete&project=' + window.project, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+			xhr.send();
+			xhr.onload = function (e) {
+				back();
 			}
-		);
-	}
+		},
+		function(){
+			console.log("[DEBUG] Cancelled action");
+		}
+	);
+}
 </script>

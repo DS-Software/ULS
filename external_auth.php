@@ -1,30 +1,33 @@
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
+<link href="libs/alertify.min.css" rel="stylesheet">
+<link rel="shortcut icon" href="favicon.gif" type="image/gif">
+<script src="libs/main.js"></script>
+<script src="libs/captcha_utils.php"></script>
+<script src="libs/alertify.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Авторизация</title>
+
 <?php
 	require 'config.php';
 	
 	$scopes = getScopes($_GET['scopes']);
 ?>
 
-
-<link href="style.css" rel="stylesheet" type="text/css">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="shortcut icon" href="favicon.gif" type="image/gif">
-<title>Авторизация</title>
-
-<link href="libs/alertify.min.css" rel="stylesheet">
-<script src="libs/alertify.min.js"></script>
-
-<div id="action_required" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display:none;">
-	<iframe style="border: 0px; width: 100%; height: 100%;" id="action"></iframe>
+<div id="action_required" class="hidden-el overlap">
+	<iframe class="full-screen" id="action"></iframe>
 </div>
 
-<div id="main_module" class="main_module" style="display: none;">
-	<h1>Авторизация</h1>
-	<form id="el_form" action="javascript:void('')">
-		<h2 class="center" style="width: 90%; margin-bottom: 0; padding-bottom: 0;" id="project_name"></h2>
-		<h2 class="center" style="width: 90%; margin-top: 0; padding-top: 0;">запрашивает доступ к вашему аккаунту.</h2>
-		
-		<div class="center" style="width: 70%; text-align: left;">
+<div class="extended-form" id="main">
+	<h1 class="thin-text">Авторизация</h1>
+	<div class="sep-line"></div>
+	<br>
+	<div class="full-width">
+		<h2 class="thin-text no-mrg-bottom no-padding-bottom" id="project_name"></h2>
+		<h2 class="thin-text no-mrg-top no-padding-top">запрашивает доступ к вашему аккаунту.</h2>
+		<div class="full-width align-left">
 			<?php
 				foreach($scopes AS $key => $value){
 					if($value){
@@ -36,11 +39,13 @@
 				}
 			?>
 		</div>
-		
-		<button class="button_submit" onclick="authenticate()">Продолжить</button>
-		<button class="button_cancel_new" onclick="back()">Вернуться</button>
-		<br>
-	</form>
+	</div>
+	<br>
+	<div class="align-left full-width">
+		<button class="button-primary" onclick="authenticate()">Продолжить</button>
+		<button class="button-secondary float-right" onclick="back()">Вернуться</button>
+	</div>
+	<br>
 </div>
 
 <script>
@@ -63,7 +68,7 @@
 			case "unfinishedReg":
 				open_login_menu();
 				break;
-			case "IPVerificationNeeded":
+			case "IPVerificationRequired":
 				open_login_menu();
 				break;
 			default:
@@ -101,7 +106,7 @@
 			open_login_menu();
 		}
 		else{
-			document.getElementById("main_module").style.display = "";
+			document.getElementById("main").style.display = "";
 			getProjectInfo();
 		}
 	}
@@ -163,10 +168,16 @@
 			
 			if(result.redirect != "" && result.redirect != undefined){
 				location.href = result.redirect;
+				return;
 			}
-			else{
-				alertify.notify("Произошла ошибка при авторизации! Повторите вход в необходимом сервисе!", 'error', 2, function(){back()});
+			if(result.reason == 'RATE_LIMIT_EXCEEDED'){
+				window.failed_request = function(){
+					accept();
+				};
+				callCaptcha();
+				return;
 			}
+			alertify.notify("Произошла ошибка при авторизации! Повторите вход в необходимом сервисе!", 'error', 2, function(){back()});
 		}
 	}
 </script>

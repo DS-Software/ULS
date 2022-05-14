@@ -6,7 +6,7 @@ class database{
 
 	public function __construct($database){
 		$login_db = new mysqli($database['hostname'], $database['login'], $database['password'], $database['dbname']);
-		$this->ldb = $login_db;
+		$this->ldb = $login_db; 
 		$this->ldb->set_charset("utf8mb4");
 	}
 
@@ -476,6 +476,67 @@ class database{
 		$user_id = $login_db->real_escape_string($user_id);
 		$salt = $login_db->real_escape_string($salt);
 		$req = "UPDATE `users` SET `user_salt`='$salt' WHERE `user_id`='$user_id'";
+		$login_db->query($req);
+	}
+	
+	public function getRequests($method, $user_ip){
+		$login_db = $this->ldb;
+		
+		$method = $login_db->real_escape_string($method);
+		$user_ip = $login_db->real_escape_string($user_ip);
+		
+		$req = "SELECT COUNT(*), `request_time` FROM `requests` WHERE `request_ip`='$user_ip' AND `method`='$method'";
+		
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($count, $request_time);
+		$statement->fetch();
+		return ['count' => $count, 'time' => $request_time];
+	}
+	
+	public function addRequest($method, $user_ip){
+		$login_db = $this->ldb;
+		
+		$method = $login_db->real_escape_string($method);
+		$user_ip = $login_db->real_escape_string($user_ip);
+		$timestamp = time();
+		
+		$req = "INSERT INTO `requests`(`method`, `request_ip`, `request_time`) VALUES ('$method','$user_ip','$timestamp')";
+		$login_db->query($req);
+	}
+	
+	public function clearRequest($method, $user_ip){
+		$login_db = $this->ldb;
+		
+		$method = $login_db->real_escape_string($method);
+		$user_ip = $login_db->real_escape_string($user_ip);
+		
+		$req = "DELETE FROM `requests` WHERE `request_ip`='$user_ip' AND `method`='$method'";
+		$login_db->query($req);
+	}
+	
+	public function getEMailCheck($user_id){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+		$req = "SELECT `email_check` FROM `users` WHERE `user_id`='$user_id'";
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($email_check);
+		$statement->fetch();
+		return $email_check;
+	}
+	
+	public function enableEMailCheck($user_id){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+		$req = "UPDATE `users` SET `email_check`=1 WHERE `user_id`='$user_id'";
+		$login_db->query($req);
+	}
+	
+	public function disableEMailCheck($user_id){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+		$req = "UPDATE `users` SET `email_check`=0 WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
 }

@@ -1,16 +1,6 @@
 <?php
 require_once 'config.php';
 require_once 'database.php';
-require_once 'email_templates.php';
-require_once 'email_handler.php';
-require_once 'encryption.php';
-require_once "libs/Base32.php";
-require_once "libs/Hotp.php";
-require_once "libs/Totp.php";
-require_once "libs/browser_libs.php";
-require_once "apps/integration_config.php";
-
-use lfkeitel\phptotp\{Base32, Totp};
 
 function returnError($message){
 	$error = array(
@@ -20,6 +10,63 @@ function returnError($message){
 
 	echo(json_encode($error, 1));
 	die();
+}
+
+function isRateExceeded($method, $ip, $max_rate, $expired){
+	$requests = getRequestCount($method, $ip);
+	$requests_count = $requests['count'];
+	$first_request = $requests['time'];
+	
+	if($requests_count == 0){
+		addRequest($method, $ip);
+		return false;
+	}
+	if(time() > $first_request + $expired){
+		clearRequests($method, $ip);
+		addRequest($method, $ip);
+		return false;
+	}
+	if($requests_count >= $max_rate){
+		if(isset($_COOKIE['passed_captcha'])){
+			global $domain_name;
+			global $captcha_required;
+			
+			if($captcha_required){
+				session_start();
+				$captcha_true = $_SESSION['captcha_keystring'];
+				$captcha_time = $_SESSION['captcha_time'];
+				
+				$_SESSION['captcha_keystring'] = "";
+				$_SESSION['captcha_time'] = "";
+				setcookie("passed_captcha", "", time()-3600, $domain_name);
+					
+				if((strtolower($_COOKIE['passed_captcha']) == $captcha_true) && $captcha_true != ''){
+					if($captcha_time + 180 >= time()){
+						return false;
+					}
+				}
+				return true;
+			}
+		}
+		return true;
+	}
+	addRequest($method, $ip);
+	return false;
+}
+
+function getRequestCount($method, $ip){
+	global $login_db;
+	return $login_db->getRequests($method, $ip);
+}
+
+function addRequest($method, $ip){
+	global $login_db;
+	$login_db->addRequest($method, $ip);
+}
+
+function clearRequests($method, $ip){
+	global $login_db;
+	$login_db->clearRequest($method, $ip);
 }
 
 function hasFinishedRegister($user_info){
@@ -59,7 +106,10 @@ function checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $
 
 function checkDisposableEmail($email){
 	global $spam_provider;
-
+	global $spam_check;
+	if(!$spam_check){
+		return true;
+	}
 	$link = $spam_provider . urlencode($email);
 	$curl = curl_init($link);
 	curl_setopt($curl, CURLOPT_URL, $link);
@@ -70,7 +120,7 @@ function checkDisposableEmail($email){
 
 	$response = json_decode($resp, true);
 
-	if ($response['disposable']) {
+	if ($response['disposable'] == "true") {
 		return true;
 	}
 	return false;
@@ -137,7 +187,7 @@ if ($section == "unauth") {
 		if ($ip_verify != hash('sha256', "{$session}_{$ver_user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key") && $verified) {
 			$return = array(
 				'result' => 'OK',
-				'description' => 'IPVerificationNeeded',
+				'description' => 'IPVerificationRequired',
 				'token' => null
 			);
 
@@ -212,13 +262,14 @@ if ($section == "unauth") {
 	}
 
 	if ($method == "authorize") {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
 		$login = $_REQUEST['login'];
 		$password = $_REQUEST['password'];
 		if (checkDisposableEmail($login)) {
 			returnError("DISPOSABLE_EMAIL");
 		}
-
-		usleep(random_int(0, 999999));
 
 		$log_user_id = $login_db->getUIDByEMail($login);
 		if (is_int($log_user_id)) {
@@ -231,8 +282,10 @@ if ($section == "unauth") {
 		} else {
 			returnError('WRONG_CREDENTIALS');
 		}
+		
+		$needs_email_check = $login_db->getEMailCheck($user_id);
 
-		if ($_SERVER['REMOTE_ADDR'] == $user_info['user_ip']) {
+		if ($_SERVER['REMOTE_ADDR'] == $user_info['user_ip'] || $needs_email_check == 0) {
 			$rsid = bin2hex(random_bytes($session_length / 2));
 			$timestamp = time();
 			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
@@ -251,8 +304,10 @@ if ($section == "unauth") {
 				'result' => 'OK',
 				'description' => 'Success'
 			);
-
 		} else {
+			require_once 'libs' . DIRECTORY_SEPARATOR . 'email_templates.php';
+			require_once 'libs' . DIRECTORY_SEPARATOR . 'email_handler.php';
+
 			$ip_ver_code = strtoupper(uniqidReal(8));
 			$login_db->setIPCode($log_user_id, $ip_ver_code);
 
@@ -282,7 +337,7 @@ if ($section == "unauth") {
 
 			$return = array(
 				'result' => 'OK',
-				'description' => 'emailVerificationNeeded'
+				'description' => 'emailVerificationRequired'
 			);
 		}
 		echo(json_encode($return));
@@ -290,6 +345,9 @@ if ($section == "unauth") {
 	}
 
 	if ($method == 'verifyIP') {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
 		$user_id = $_COOKIE['user_id'];
 		$SLID = $_COOKIE['SLID'];
 		$email = $_COOKIE['email'];
@@ -297,7 +355,7 @@ if ($section == "unauth") {
 		$user_ip = $_COOKIE['user_ip'];
 		$user_key = $_COOKIE['user_verkey'];
 		$code = strtoupper($_REQUEST['code']);
-
+		
 		$user_info = $login_db->getUserInfo($user_id);
 
 		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $user_info);
@@ -329,6 +387,9 @@ if ($section == "unauth") {
 	}
 
 	if ($method == 'sendRegisterMessage') {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 1, 300)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
 		$login = $_REQUEST['login'];
 
 		if (checkDisposableEmail($login)) {
@@ -341,6 +402,10 @@ if ($section == "unauth") {
 		$password = $_REQUEST['password'];
 
 		if (!$login_db->wasEmailRegistered($login)) {
+			require_once 'libs' . DIRECTORY_SEPARATOR . 'encryption.php';
+			require_once 'libs' . DIRECTORY_SEPARATOR . 'email_templates.php';
+			require_once 'libs' . DIRECTORY_SEPARATOR . 'email_handler.php';
+			
 			$timestamp = time();
 			$rsid = bin2hex(random_bytes($session_length / 2));
 			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
@@ -368,13 +433,16 @@ if ($section == "unauth") {
 		}
 		$return = array(
 			'result' => 'OK',
-			'description' => 'emailVerificationNeeded'
+			'description' => 'emailVerificationRequired'
 		);
 		echo(json_encode($return));
 		die();
 	}
 
 	if ($method == "registerNewUser") {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 1, 300)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
 		$login = $_REQUEST['login'];
 		if (checkDisposableEmail($login)) {
 			returnError("DISPOSABLE_EMAIL");
@@ -393,6 +461,8 @@ if ($section == "unauth") {
 				if ($true_session_id == $session_id) {
 					$true_register_verify = hash("sha256", $password_hash . "_" . $service_key . "_" . $session_id);
 					if ($true_register_verify == $register_verify) {
+						require_once 'libs' . DIRECTORY_SEPARATOR . 'encryption.php';
+						
 						$real_password = safe_decrypt($password_hash, $encryption_key);
 						if ($real_password !== False) {
 							$true_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $real_password . '_' . $timestamp . "_" . $session_id);
@@ -450,6 +520,9 @@ if ($section == "unauth") {
 	}
 
 	if ($method == 'sendRestoreEmail') {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 1, 300)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
 		$login = $_REQUEST['login'];
 		if (!filter_var($login, FILTER_VALIDATE_EMAIL)) {
 			returnError("INVALID_EMAIL");
@@ -459,6 +532,9 @@ if ($section == "unauth") {
 		}
 
 		if ($login_db->wasEmailRegistered($login)) {
+			require_once 'libs' . DIRECTORY_SEPARATOR . 'email_templates.php';
+			require_once 'libs' . DIRECTORY_SEPARATOR . 'email_handler.php';
+
 			$timestamp = time();
 			$rsid = bin2hex(random_bytes($session_length / 2));
 			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
@@ -487,12 +563,16 @@ if ($section == "unauth") {
 		}
 		$return = array(
 			'result' => 'OK',
-			'description' => 'emailVerificationNeeded'
+			'description' => 'emailVerificationRequired'
 		);
 		echo(json_encode($return));
 		die();
 	}
+	
 	if ($method == "restorePassword") {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 1, 300)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
 		$login = $_REQUEST['login'];
 		if (checkDisposableEmail($login)) {
 			returnError("DISPOSABLE_EMAIL");
@@ -560,6 +640,9 @@ if ($section == "unauth") {
 	}
 
 	if ($method == "changeUserEMail") {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 1, 300)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
 		$new_mail = $_REQUEST['new_mail'];
 		if (checkDisposableEmail($new_mail)) {
 			returnError("DISPOSABLE_EMAIL");
@@ -607,13 +690,22 @@ if ($section == "unauth") {
 	}
 
 	if ($method == "checkTOTP") {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 30, 60)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
+		$otp = $_REQUEST['otp'];
+		if($otp == ""){
+			returnError("WRONG_2FA_CODE");
+		}
+		
+		require_once 'libs' . DIRECTORY_SEPARATOR . "2fa_utils.php";
+		
 		$user_id = $_COOKIE['user_id'];
 		$SLID = $_COOKIE['SLID'];
 		$email = $_COOKIE['email'];
 		$session = $_COOKIE['session'];
 		$user_ip = $_COOKIE['user_ip'];
 		$user_key = $_COOKIE['user_verkey'];
-		$otp = $_REQUEST['otp'];
 
 		$ver_user_info = $login_db->getUserInfo($user_id);
 
@@ -626,8 +718,8 @@ if ($section == "unauth") {
 		if ($verified) {
 			$user_info = $login_db->getUserInfo($user_id);
 			if ($user_info['user_id'] == $user_id && $user_id != "") {
-				$totp_instance = new Totp();
-				$base32 = new Base32();
+				$totp_instance = TOTPInstance();
+				$base32 = Base32Instance();
 
 				$secret = $user_info['2fa_secret'];
 				$secret = $base32->decode($secret);
@@ -657,6 +749,10 @@ if ($section == "unauth") {
 	}
 
 	if ($method == "disableTOTP") {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 5, 60)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
+
 		$user_id = $_COOKIE['user_id'];
 		$SLID = $_COOKIE['SLID'];
 		$email = $_COOKIE['email'];
@@ -696,6 +792,11 @@ if ($section == "unauth") {
 	}
 
 	if ($method == "getELSession") {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
+		
+		require_once 'libs' . DIRECTORY_SEPARATOR . 'browser_libs.php';
 		$login_db->cleanUpSessions();
 
 		if ($login_db->countSessionsByIP($_SERVER['REMOTE_ADDR']) >= 10) {
@@ -722,7 +823,7 @@ if ($section == "unauth") {
 
 		$session_link = base64_encode($login_site . "/easylogin_accept.php?session_id=" . $session . "&session_ver=" . $session_ver . "&user_agent=" . base64_encode($ua) . "&user_agent_ver=" . hash("sha256", $ua . "_" . $service_key));
 
-		$session_qr = "/gen_2fa_qr.php?method=EasyLoginSession&session=" . $session_link;
+		$session_qr = "libs/gen_2fa_qr.php?method=EasyLoginSession&session=" . $session_link;
 
 		$return = array(
 			'result' => "OK",
@@ -736,9 +837,13 @@ if ($section == "unauth") {
 	}
 
 	if ($method == "removeELSession") {
+		if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
+		
 		$login_db->cleanUpSessions();
 		$session = $login_db->getELSession($_REQUEST['session_id']);
-
+		
 		if ($session['session'] != '') {
 			$true_sess_ver = hash("sha256", $session['session'] . "_" . $service_key . "_" . $session['session_seed'] . "_" . $_SERVER['REMOTE_ADDR']);
 
@@ -836,6 +941,10 @@ if ($section == "unauth") {
 
 	if ($section == "projects" && $token_scopes['profile_management']) {
 		if ($method == "login") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
+			
 			$project_public = $_REQUEST['public'];
 			$project = $login_db->getProjectInfoByPublic($project_public);
 
@@ -851,12 +960,20 @@ if ($section == "unauth") {
 			$session = hash('sha256', $uinfo['user_id'] . "_" . $project['secret_key'] . "_" . bin2hex(random_bytes(32)) . "_" . $timestamp);
 
 			$at_seed = bin2hex(random_bytes(32));
+			
+			$project_fields = array(
+				"passed_scopes" => $_REQUEST['scopes'],
+				"issued_for" => $project_public,
+				"session_created" => $session
+			);
 
 			$access_token = array(
 				'uls_id' => $uinfo['user_id'],
 				'seed' => $at_seed,
 				'scopes' => $scopes,
-				'sign' => hash('sha512', $uinfo['user_id'] . "_" . $at_seed . "_" . json_encode($scopes) . "_" . $uinfo['api_key_seed'] . "_" . $service_key)
+				'sign' => hash('sha512', $uinfo['user_id'] . "_" . $at_seed . "_" . json_encode($scopes) . "_" . $uinfo['api_key_seed'] . "_" . $service_key),
+				'project' => $project_fields,
+				'additional_sign' => hash('sha512', json_encode($project_fields) . "_" . $project['secret_key'])
 			);
 
 			$access_token = base64_encode(json_encode($access_token));
@@ -948,8 +1065,62 @@ if ($section == "unauth") {
 			echo(json_encode($return));
 			die();
 		}
+		
+		if($method == "isEMailCheckEnabled"){
+			$result = $login_db->getEMailCheck($user_id);
+			
+			$return = array(
+				'result' => "OK",
+				'state' => $result
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "enableEMailCheck"){
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
+			
+			if($login_db->getEMailCheck($user_id) == 0){
+				$login_db->enableEMailCheck($user_id);
+				
+				$return = array(
+					'result' => "OK",
+					'description' => "Success"
+				);
+				echo(json_encode($return));
+				die();
+			}
+			else{
+				returnError("EMAIL_CHECK_WAS_ALREADY_ENABLED");
+			}
+		}
+		
+		if($method == "disableEMailCheck"){
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
+			
+			if($login_db->getEMailCheck($user_id) == 1){
+				$login_db->disableEMailCheck($user_id);
+				
+				$return = array(
+					'result' => "OK",
+					'description' => "Success"
+				);
+				echo(json_encode($return));
+				die();
+			}
+			else{
+				returnError("EMAIL_CHECK_WAS_NOT_ENABLED");
+			}
+		}
 
 		if ($method == "regenerateAPIKey") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
 			$login_db->regenerateAPIKey($user_id);
 
 			$return = array(
@@ -961,6 +1132,9 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "regenerateSLID") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
 			$login_db->regenerateSLID($user_id);
 
 			$return = array(
@@ -972,6 +1146,9 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "changeUserPassword") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
 			$old_password = $_COOKIE['new_password_current'];
 			$new_password = $_COOKIE['new_password_new'];
 
@@ -1005,9 +1182,17 @@ if ($section == "unauth") {
 			if (checkDisposableEmail($new_email)) {
 				returnError("DISPOSABLE_EMAIL");
 			}
+			
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 1, 300)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
+			
 			if ($new_email != $uinfo['user_email']) {
 				if (filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
 					if (!$login_db->wasEmailRegistered($new_email)) {
+						require_once 'libs' . DIRECTORY_SEPARATOR . 'email_templates.php';
+						require_once 'libs' . DIRECTORY_SEPARATOR . 'email_handler.php';
+						
 						$timestamp = time();
 						$rsid = bin2hex(random_bytes($session_length / 2));
 						$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
@@ -1034,7 +1219,7 @@ if ($section == "unauth") {
 
 						$return = array(
 							'result' => 'OK',
-							'description' => 'emailVerificationNeeded'
+							'description' => 'emailVerificationRequired'
 						);
 
 						echo(json_encode($return));
@@ -1061,18 +1246,24 @@ if ($section == "unauth") {
 
 		if ($method == "prepareEnable") {
 			if ($uinfo['2fa_active'] == 0) {
+				if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 15, 60)){
+					returnError("RATE_LIMIT_EXCEEDED");
+				}
+				
+				require_once 'libs' . DIRECTORY_SEPARATOR . "2fa_utils.php";
+				
 				$first_name = $email_info['$project_name'];
 				$email = $uinfo['user_email'];
 
-				$totp_instance = new Totp();
-				$base32 = new Base32();
+				$totp_instance = TOTPInstance();
+				$base32 = Base32Instance();
 
 				$secret = $totp_instance->GenerateSecret(16);
 				$true_secret = $base32->encode($secret);
 
 				$login_db->setTOTPSecret($user_id, $true_secret);
 
-				$totp_url = "/gen_2fa_qr.php?fn=$first_name&email=$email&secret=$true_secret";
+				$totp_url = "libs/gen_2fa_qr.php?fn=$first_name&email=$email&secret=$true_secret";
 
 				$return = array(
 					'result' => "OK",
@@ -1087,9 +1278,14 @@ if ($section == "unauth") {
 		}
 		if ($method == "enable") {
 			if ($uinfo['2fa_active'] == 0) {
+				if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+					returnError("RATE_LIMIT_EXCEEDED");
+				}
+				require_once 'libs' . DIRECTORY_SEPARATOR . "2fa_utils.php";
+				
 				$otp = $_REQUEST['otp'];
-				$totp_instance = new Totp();
-				$base32 = new Base32();
+				$totp_instance = TOTPInstance();
+				$base32 = Base32Instance();
 
 				$secret = $uinfo['2fa_secret'];
 				$secret = $base32->decode($secret);
@@ -1118,9 +1314,14 @@ if ($section == "unauth") {
 		}
 		if ($method == "disable") {
 			if ($uinfo['2fa_active'] == 1) {
+				if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+					returnError("RATE_LIMIT_EXCEEDED");
+				}
+				require_once 'libs' . DIRECTORY_SEPARATOR . "2fa_utils.php";
+				
 				$otp = $_REQUEST['otp'];
-				$totp_instance = new Totp();
-				$base32 = new Base32();
+				$totp_instance = TOTPInstance();
+				$base32 = Base32Instance();
 
 				$secret = $uinfo['2fa_secret'];
 				$secret = $base32->decode($secret);
@@ -1156,6 +1357,9 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "enable") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 15, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
 			if ($uinfo['easylogin'] == 0) {
 				$login_db->enableEasyLogin($user_id);
 
@@ -1171,6 +1375,9 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "disable") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 15, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
 			if ($uinfo['easylogin'] == 1) {
 				$login_db->disableEasyLogin($user_id);
 
@@ -1186,6 +1393,9 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "claim") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
 			$login_db->cleanUpSessions();
 			$session = $login_db->getELSession($_REQUEST['session_id']);
 
@@ -1237,6 +1447,12 @@ if ($section == "unauth") {
 			die();
 		}
 		if ($method == "createProject") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 5, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
+			if(!$enable_creation){
+				returnError("PROJECT_CREATION_WAS_DISABLED");
+			}
 			if ($login_db->countUserProjects($user_id) >= 15 && $uinfo['verified'] != 1) {
 				returnError("REACHED_LIMIT_OF_PROJECTS");
 			}
@@ -1271,6 +1487,9 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "issueNewPublic") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
 			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 			if ($project['owner_id'] != $user_id) {
@@ -1285,6 +1504,9 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "issueNewSecret") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
 			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 			if ($project['owner_id'] != $user_id) {
@@ -1331,6 +1553,9 @@ if ($section == "unauth") {
 			}
 		}
 		if ($method == "delete") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 5, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
 			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 			if ($project['owner_id'] != $user_id) {
@@ -1347,6 +1572,10 @@ if ($section == "unauth") {
 
 	if ($section == "register" && $token_scopes['profile_management']) {
 		if ($method == "saveInfo") {
+			if(isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 30, 60)){
+				returnError("RATE_LIMIT_EXCEEDED");
+			}
+			
 			$user_nick = $_REQUEST['user_nick'];
 			$user_name = $_REQUEST['user_name'];
 			$user_surname = $_REQUEST['user_surname'];
