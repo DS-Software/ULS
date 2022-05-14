@@ -15,6 +15,7 @@
 <title>Проекты</title>
 
 <script>
+        prepare_view();
 	var token_xhr = new XMLHttpRequest();
 	var xhr = new XMLHttpRequest();
 	token_xhr.open('GET', '../api.php?section=UNAUTH&method=getAccessToken', true);
