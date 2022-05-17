@@ -3,7 +3,7 @@
 	$scope_desc = array(
 		'auth' => array(
 			"name" => "Проверка Данных",
-			"description" => "• Приложение узнает ваш ключ авторизации."
+			"description" => "• Приложение узнает ваш Ключ Доступа Пользователя."
 		),
 		'email' => array(
 			"name" => "Доступ к общей информации",
@@ -44,12 +44,11 @@
 		
 		return $scopes;
 	}
-
-	if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) { $_SERVER['REMOTE_ADDR'] = $_SERVER['HTTP_CF_CONNECTING_IP']; }
 	
-	$maintenance_mode = false;
-
-	$spam_provider = "https://spam.ds-software.xyz/api/?email=";
+	$spam_check = true;
+	$spam_provider = "https://disposable.debounce.io/?email=";
+	
+	$captcha_required = true;
 
 	$login_site = "https://example.com/login";
 	$status_page = "https://status.example.com/";
@@ -85,4 +84,9 @@
 		'password' => 'SMTP Password'
 	);
 	
+	$enable_creation = true;
+	$int_url = $login_site . "/apps";
+	
+	$delete_projects_on_inactivity = false;
+	$deletion_timeout = 8035200;
 ?>
