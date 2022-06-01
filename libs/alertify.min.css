@@ -1040,7 +1040,12 @@
 	padding: 8px;
 	margin: 4px;
 	border-radius: 2px;
-	border: 1px solid #CCC
+	outline: none;
+	border: 0;
+	border-bottom: 1px solid var(--primary-color);
+	background: rgba(255, 255, 255, 0);
+	color: var(--text-color);
+	font-size: 1.5em;
 }
 
 .alertify .ajs-body .ajs-content p {

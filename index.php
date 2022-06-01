@@ -34,7 +34,6 @@ if($maintenance_mode){
 	<h2 class="thin-text"><?php echo(htmlspecialchars($email_info['$project_name'])) ?></h2>
 	<h1 class="thin-text">Вход</h1>
 	<div class="sep-line"></div>
-	<br>
 	<form action="javascript:void('')">
 		<div class="full-width">
 			<div class="align-left icon">
@@ -55,7 +54,6 @@ if($maintenance_mode){
 		<div class="align-left full-width">
 			<p class="no-mrg-top"><a onclick="restore()">Забыли пароль?</a></p>
 		</div>
-		<br>
 		<div class="align-left full-width">
 			<div class="max-width">
 				<button class="button-primary" onclick="login(email.value, password.value)">Войти</button>
@@ -71,7 +69,6 @@ if($maintenance_mode){
 <div class="login-form hidden-el" id="restore_form">
 	<h1 class="thin-text">Восстановление Пароля</h1>
 	<div class="sep-line"></div>
-	<br>
 	<form action="javascript:void('')">
 		<div class="full-width">
 			<div class="align-left icon">
@@ -91,7 +88,6 @@ if($maintenance_mode){
 <div class="login-form hidden-el" id="easylogin_form">
 	<h1 class="thin-text">Беспарольный Вход</h1>
 	<div class="sep-line"></div>
-	<br>
 	<h2 class="thin-text full-width">Считайте QR код на устройстве, где вход в <?php echo(htmlspecialchars($email_info['$project_name'])) ?> уже был произведён:</h2>
 	<div id="QR_Container" class="full-width"><img id="session_container"></div>
 	<br>
@@ -103,7 +99,6 @@ if($maintenance_mode){
 <div class="login-form hidden-el" id="register_form">
 	<h1 class="thin-text">Регистрация</h1>
 	<div class="sep-line"></div>
-	<br>
 	<form action="javascript:void('')">
 		<div class="full-width">
 			<div class="align-left icon">

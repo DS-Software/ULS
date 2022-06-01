@@ -31,7 +31,7 @@
 	--primary-color-darkest: hsl(240, 0%, 56%);
 	/* Recommend 12% lighter */
 	--primary-color-text: hsl(0, 0%, 99%);
-	--secondary-color: hsl(240, 1%, 22%);
+	--secondary-color: hsl(0, 0%, 25%);
 	--secondary-color-darker: hsl(240, 1%, 26%);
 	/* Recommend 4% lighter */
 	--secondary-color-darkest: hsl(240, 1%, 30%);
@@ -91,6 +91,19 @@ body {
 	text-align: center;
 	padding: 1.5em;
 }
+.full-width {
+	width: 80%;
+	margin-left: auto;
+	margin-right: auto;
+	overflow: auto;
+	margin-top: 1rem;
+}
+.half-width {
+	width: 50%;
+}
+.max-width {
+	width: 100%;
+}
 @media (min-width: 651px) {
 	.login-form {
 		width: 500px;
@@ -116,6 +129,9 @@ body {
 		margin-top: 1em;
 		width: 100%;
 	}
+	.login-form .full-width {
+		margin-top: 0;
+	}
 }
 @media (min-width: 851px) {
 	.extended-form {
@@ -136,9 +152,12 @@ body {
 		padding: 0;
 		margin: auto;
 	}
-	 .extended-form .button-primary, .extended-form .button-secondary {
+	.extended-form .button-primary, .extended-form .button-secondary {
 		margin-top: 1em;
 		width: 100%;
+	}
+	.extended-form .full-width {
+		margin-top: 0;
 	}
 }
 .thin-text {
@@ -178,18 +197,6 @@ body {
 	outline: none;
 	border-bottom: 1px solid var(--primary-color);
 }
-.full-width {
-	width: 80%;
-	margin-left: auto;
-	margin-right: auto;
-	overflow: auto;
-}
-.half-width {
-	width: 50%;
-}
-.max-width {
-	width: 100%;
-}
 .no-mrg-bottom {
 	margin-bottom: 0;
 }
@@ -227,6 +234,7 @@ a, .a-element:hover {
 	width: 100%;
 	height: 1px;
 	background-color: var(--border-color);
+	margin-bottom: 1rem;
 }
 .icon {
 	position: absolute;

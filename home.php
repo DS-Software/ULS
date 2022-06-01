@@ -242,7 +242,6 @@ function close_sidebar(){
 					<button class="button-primary" onclick="change_password(password.value, new_password.value)">Сменить</button>
 					<button class="button-secondary float-right" onclick="choose_tab('main')">Вернуться</button>
 				</div>
-				<br>
 				<div class="full-width">
 					<button class="button-secondary" onclick="genNewPwd()">Создать пароль</button>
 				</div>

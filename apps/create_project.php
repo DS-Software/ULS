@@ -17,7 +17,6 @@
 <div class="extended-form">
 	<h1 class="thin-text">Создание проекта:</h1>
 	<div class="sep-line"></div>
-	<br>
 	<div class="full-width">
 		<div class="align-left icon">
 			<i class="fa-solid fa-tag"></i>

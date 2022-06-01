@@ -17,35 +17,30 @@
 <div class="extended-form">
 	<h1 class="thin-text">Управление Проектом</h1>
 	<div class="sep-line"></div>
+	<div class="full-width"><span class="middle-text" id="project_name"></span>&nbsp;&nbsp;&nbsp;<button class="button-secondary" onclick="deleteProject()">Удалить проект</button></div>
 	<br>
-		<span class="middle-text" id="project_name"></span>&nbsp;&nbsp;&nbsp;<button class="button-secondary" onclick="deleteProject()">Удалить проект</button>
-	<br><br>
 	<div class="sep-line"></div>
-	<br>
 	<div class="project_information">
 		<div id="project_current" style="width: 80%; margin-left: auto; margin-right: auto;">
 			<div align="center">
 				<div class="middle-text">URL перенаправления:&nbsp;<b><span id="redirect_url_current"></span></b></div>
 				<br>
 				<div class="sep-line"></div>
-				<br>
 				<div class="align-center full-width">
 					<button onclick="showKeys()" class="button-primary">Управление ключами</button>
 				</div>
 				<br>
 				<div class="hidden-el" id="keys">
 					<div class="sep-line"></div>
-					<br>
 					<div class="middle-text">Публичный Ключ Приложения:&nbsp;&nbsp;&nbsp;<button class="button-secondary" onclick="issueNewPublic()">Переиздать</button><br><span id="public_key"></span></div>
 					<br>
 					<div class="sep-line"></div>
-					<br>
 					<div class="middle-text">Секретный Ключ Приложения:
-					<div class="align-left">
+					<div class="align-left full-width">
 						<button onclick="showSecret()" class="button-secondary" id="show_secret">Показать</button>
 						<button onclick="issueNewSecret()" class="button-secondary float-right">Переиздать</button>
 					</div>
-					<span id="secret_container" style="display: none;"><span id="secret_key"></span></span></div>
+					<span id="secret_container" style="display: none;"><br><span id="secret_key"></span></span></div>
 					<br>
 				</div>
 				<div class="sep-line"></div>
@@ -73,7 +68,7 @@
 			<p class="middle-text">Изменение URL перенаправления:</p>
 			<div class="full-width">
 				<div class="align-left icon">
-					<i class="fa-solid fa-tag"></i>
+					<i class="fa-solid fa-link"></i>
 				</div>
 				<span class="input-placeholder">URL Перенаправления</span>
 				<input class="text-input max-width input-field-decoration" id="new_redirect_url" autocomplete="off">
@@ -86,7 +81,6 @@
 	</div>
 	<br>
 	<div class="sep-line"></div>
-	<br>
 	<div class="align-center full-width">
 		<button class="button-primary max-width" onclick="back()">Вернуться</button>
 	</div>

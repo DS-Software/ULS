@@ -14,8 +14,25 @@
 
 <title>Проекты</title>
 
+<div class="extended-form">
+	<h1 class="thin-text">Управление Проектами</h1>
+	<div class="sep-line"></div>
+	<span class="middle-text">Выберите проект, либо&nbsp;<a onclick="createNewProject()">создайте новый</a>:</span>
+	<br><br>
+	<div class="sep-line"></div>
+	<div id="project_container" class="container">
+		
+	</div>
+	<br>
+	<div class="align-center full-width">
+		<button class="button-primary" onclick="location.href = '../home.php'">Вернуться</button>
+	</div>
+	<br>
+</div>
+
 <script>
-        prepare_view();
+	prepare_view();
+
 	var token_xhr = new XMLHttpRequest();
 	var xhr = new XMLHttpRequest();
 	token_xhr.open('GET', '../api.php?section=UNAUTH&method=getAccessToken', true);
@@ -94,20 +111,3 @@
 		location.href = "projects.php?project_id=" + project_id;
 	}
 </script>
-
-<div class="extended-form">
-	<h1 class="thin-text">Управление Проектами</h1>
-	<div class="sep-line"></div>
-	<br>
-	<span class="middle-text">Выберите проект, либо&nbsp;<a onclick="createNewProject()">создайте новый</a>:</span>
-	<br><br>
-	<div class="sep-line"></div>
-	<div id="project_container" class="container">
-		
-	</div>
-	<br><br>
-	<div class="align-center full-width">
-		<button class="button-primary" onclick="location.href = '../home.php'">Вернуться</button>
-	</div>
-	<br>
-</div>
