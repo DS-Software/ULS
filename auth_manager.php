@@ -18,6 +18,7 @@
 </div>
 
 <script>
+	prepare_view();
 	function getCookie(name) {
 		var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
 		return r ? r[1] : null;
@@ -38,24 +39,24 @@
 	let link = "";
 	
 	if(method == "registerNewUser"){
-		let timestamp = window.params.get('timestamp');
-		let login = window.params.get('login');
-		let email_ver_id = window.params.get('email_ver_id');
-		let session_id = window.params.get('session_id');
-		let rand_session_id = window.params.get('rand_session_id');
+		let timestamp = encodeURIComponent(window.params.get('timestamp'));
+		let login = encodeURIComponent(window.params.get('login'));
+		let email_ver_id = encodeURIComponent(window.params.get('email_ver_id'));
+		let session_id = encodeURIComponent(window.params.get('session_id'));
+		let rand_session_id = encodeURIComponent(window.params.get('rand_session_id'));
 		
 		link = "api.php?section=UNAUTH&method=registerNewUser&rand_session_id=" + rand_session_id +"&session_id=" + session_id + "&timestamp=" + timestamp +"&login=" + login + "&email_ver_id=" + email_ver_id;
 	}
 	
 	if(method == "restorePassword"){
-		let timestamp = window.params.get('timestamp');
-		let login = window.params.get('login');
-		let email_ver_id = window.params.get('email_ver_id');
-		let session_id = window.params.get('session_id');
-		let rand_session_id = window.params.get('rand_session_id');
-		let new_password = getCookie("restore_password");
+		let timestamp = encodeURIComponent(window.params.get('timestamp'));
+		let login = encodeURIComponent(window.params.get('login'));
+		let email_ver_id = encodeURIComponent(window.params.get('email_ver_id'));
+		let session_id = encodeURIComponent(window.params.get('session_id'));
+		let rand_session_id = encodeURIComponent(window.params.get('rand_session_id'));
+		let new_password = encodeURIComponent(getCookie("restore_password"));
 		
-		if(new_password == ""){
+		if(new_password == null){
 			location.href = "new_password.php?redirect=" + encodeURIComponent(location.href);
 			
 		}
@@ -65,12 +66,12 @@
 	}
 	
 	if(method == "changeEMail"){
-		let timestamp = window.params.get('timestamp');
-		let user_id = window.params.get('user_id');
-		let email_ver_id = window.params.get('email_ver_id');
-		let session_id = window.params.get('session_id');
-		let rand_session_id = window.params.get('rand_session_id');
-		let new_email = window.params.get('new_email');
+		let timestamp = encodeURIComponent(window.params.get('timestamp'));
+		let user_id = encodeURIComponent(window.params.get('user_id'));
+		let email_ver_id = encodeURIComponent(window.params.get('email_ver_id'));
+		let session_id = encodeURIComponent(window.params.get('session_id'));
+		let rand_session_id = encodeURIComponent(window.params.get('rand_session_id'));
+		let new_email = encodeURIComponent(window.params.get('new_email'));
 		
 		link = "api.php?section=UNAUTH&method=changeUserEMail&rand_session_id=" + rand_session_id +"&session_id=" + session_id + "&timestamp=" + timestamp +"&user_id=" + user_id + "&email_ver_id=" + email_ver_id + "&new_mail=" + new_email;
 	}
@@ -78,8 +79,7 @@
 	function execute_task(){
 		if(link != ""){
 			var command_xhr = new XMLHttpRequest();
-			let link = "<?php echo(htmlspecialchars($link)) ?>";
-			command_xhr.open('GET', link.replace(/&amp;/g, "&"), true);
+			command_xhr.open('GET', link, true);
 			command_xhr.send();
 			command_xhr.onload = function (e) {
 				let response = JSON.parse(command_xhr.responseText);
@@ -103,5 +103,7 @@
 		else{
 			location.href = "index.php";
 		}
-	}		
+	}
+	
+	execute_task();
 </script>

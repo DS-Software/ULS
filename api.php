@@ -150,6 +150,40 @@ function getAPIToken(){
 	return $token;
 }
 
+function deleteLoginCookies(){
+	global $domain_name;
+	
+	if(isset($_COOKIE['user_verkey'])){
+		setcookie('user_verkey', '', 0, $domain_name);
+	}
+	if(isset($_COOKIE['user_ip'])){
+		setcookie('user_ip', '', 0, $domain_name);
+	}
+	if(isset($_COOKIE['session'])){
+		setcookie('session', '', 0, $domain_name);
+	}
+	if(isset($_COOKIE['email'])){
+		setcookie('email', '', 0, $domain_name);
+	}
+	if(isset($_COOKIE['SLID'])){
+		setcookie('SLID', '', 0, $domain_name);
+	}
+	if(isset($_COOKIE['user_id'])){
+		setcookie('user_id', '', 0, $domain_name);
+	}
+}
+
+function deleteTOTPCookies(){
+	global $domain_name;
+	
+	if(isset($_COOKIE['totp_verification'])){
+		setcookie('totp_verification', '', 0, $domain_name);
+	}
+	if(isset($_COOKIE['totp_timestamp'])){
+		setcookie('totp_timestamp', '', 0, $domain_name);
+	}
+}
+
 function convBase($num, $base_a, $base_b){
 	return gmp_strval(gmp_init($num, $base_a), $base_b);
 }
@@ -185,7 +219,7 @@ if ($section == "unauth") {
 		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $ver_user_info);
 
 		if ($verified) {
-			if ($ip_verify != hash('sha256', "{$session}_{$ver_user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key")) {
+			if ($ip_verify != hash("sha512", "{$SLID}_{$ver_user_info['user_id']}_{$user_ip}_$service_key")) {
 				$return = array(
 					'result' => 'OK',
 					'description' => 'IPVerificationRequired',
@@ -197,13 +231,12 @@ if ($section == "unauth") {
 			}
 			if ($ver_user_info['2fa_active'] == 1) {
 				if ($totp_timestamp + 2678400 < time()) {
-					setcookie('totp_timestamp', '', 0, $domain_name);
-					setcookie('totp_verification', '', 0, $domain_name);
+					deleteTOTPCookies();
 					$totp_timestamp = null;
 					$totp_verification = null;
 				}
 
-				$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_$totp_timestamp");
+				$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}_$service_key");
 
 				if ($true_totp_ver != $totp_verification) {
 					$verified = false;
@@ -248,13 +281,7 @@ if ($section == "unauth") {
 
 			echo(json_encode($return, 1));
 		} else {
-			setcookie('user_verkey', '', 0, $domain_name);
-			setcookie('user_ip', '', 0, $domain_name);
-			setcookie('session', '', 0, $domain_name);
-			setcookie('email', '', 0, $domain_name);
-			setcookie('SLID', '', 0, $domain_name);
-			setcookie('user_id', '', 0, $domain_name);
-			setcookie('ip_verify', '', 0, $domain_name);
+			deleteLoginCookies();
 			returnError("WRONG_LOGIN_INFO");
 		}
 		die();
@@ -284,12 +311,12 @@ if ($section == "unauth") {
 
 		$needs_email_check = $login_db->getEMailCheck($log_user_id);
 
-		if ($_SERVER['REMOTE_ADDR'] == $user_info['user_ip'] || $needs_email_check == 0) {
+		if (($_SERVER['REMOTE_ADDR'] == $user_info['user_ip']) || $needs_email_check == 0) {
 			$rsid = bin2hex(random_bytes($session_length / 2));
 			$timestamp = time();
 			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
 
-			$ip_verify = hash('sha256', "{$session_id}_{$log_user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
+			$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_info['user_id']}_{$user_info['user_ip']}_$service_key");
 
 			setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
 			setcookie("email", $login, time() + 2678400, $domain_name);
@@ -364,7 +391,7 @@ if ($section == "unauth") {
 				$true_code = $login_db->getIPCode($user_id);
 
 				if ($code == $true_code) {
-					$ip_verify = hash('sha256', "{$session}_{$user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
+					$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 
 					setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
 					$login_db->setUserIP($user_id, $_SERVER['REMOTE_ADDR']);
@@ -727,7 +754,7 @@ if ($section == "unauth") {
 
 				if ($otp == $key) {
 					$totp_timestamp = time();
-					$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_$totp_timestamp");
+					$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}_$service_key");
 
 					setcookie("totp_timestamp", $totp_timestamp, time() + 2678400, $domain_name);
 					setcookie("totp_verification", $true_totp_ver, time() + 2678400, $domain_name);
@@ -773,7 +800,7 @@ if ($section == "unauth") {
 			if ($user_info['user_id'] == $user_id && $user_id != "") {
 				$hash_code = hash('sha256', $key . "_" . $user_id);
 				if ($hash_code == $user_info['2fa_disable_code']) {
-					$login_db->disableTOTP($user_id);
+					$login_db->setTOTPState($user_id, 0);
 					$return = array(
 						'result' => "OK",
 						'description' => "Success"
@@ -796,7 +823,6 @@ if ($section == "unauth") {
 		}
 
 		require_once 'libs' . DIRECTORY_SEPARATOR . 'browser_libs.php';
-		$login_db->cleanUpSessions();
 
 		if ($login_db->countSessionsByIP($_SERVER['REMOTE_ADDR']) >= 10) {
 			$login_db->deleteSessionsByIP($_SERVER['REMOTE_ADDR']);
@@ -840,7 +866,6 @@ if ($section == "unauth") {
 			returnError("RATE_LIMIT_EXCEEDED");
 		}
 
-		$login_db->cleanUpSessions();
 		$session = $login_db->getELSession($_REQUEST['session_id']);
 
 		if ($session['session'] != '') {
@@ -864,10 +889,14 @@ if ($section == "unauth") {
 	}
 
 	if ($method == "checkELSession") {
-		$login_db->cleanUpSessions();
 		$session = $login_db->getELSession($_REQUEST['session_id']);
 
 		if ($session['session'] == '') {
+			returnError("WRONG_SESSION");
+		}
+		
+		if($session['created'] + 300 < time()){
+			$login_db->deleteELSession($session['session']);
 			returnError("WRONG_SESSION");
 		}
 
@@ -960,8 +989,6 @@ if ($section == "unauth") {
 			if ($project['project_id'] == "") {
 				returnError("UNKNOWN_PROJECT");
 			}
-
-			$login_db->updateProjectLastUsed($project['project_id']);
 
 			$timestamp = time();
 			$session = hash('sha256', $uinfo['user_id'] . "_" . $project['secret_key'] . "_" . bin2hex(random_bytes(32)) . "_" . $timestamp);
@@ -1082,7 +1109,7 @@ if ($section == "unauth") {
 			}
 
 			if ($login_db->getEMailCheck($user_id) == 0) {
-				$login_db->enableEMailCheck($user_id);
+				$login_db->setEMailCheckState($user_id, 1);
 
 				$return = array(
 					'result' => "OK",
@@ -1101,7 +1128,7 @@ if ($section == "unauth") {
 			}
 
 			if ($login_db->getEMailCheck($user_id) == 1) {
-				$login_db->disableEMailCheck($user_id);
+				$login_db->setEMailCheckState($user_id, 0);
 
 				$return = array(
 					'result' => "OK",
@@ -1292,7 +1319,7 @@ if ($section == "unauth") {
 				if ($key == $otp) {
 					$dis_code = convBase(uniqidReal(20), 16, 36);
 
-					$login_db->enableTOTP($user_id);
+					$login_db->setTOTPState($user_id, 1);
 					$login_db->setTOTPDisableCode($user_id, $dis_code);
 
 					$return = array(
@@ -1326,7 +1353,7 @@ if ($section == "unauth") {
 				$key = $totp_instance->GenerateToken($secret);
 
 				if ($key == $otp) {
-					$login_db->disableTOTP($user_id);
+					$login_db->setTOTPState($user_id, 0);
 
 					$return = array(
 						'result' => "OK",
@@ -1358,7 +1385,7 @@ if ($section == "unauth") {
 				returnError("RATE_LIMIT_EXCEEDED");
 			}
 			if ($uinfo['easylogin'] == 0) {
-				$login_db->enableEasyLogin($user_id);
+				$login_db->setEasyloginState($user_id, 1);
 
 				$return = array(
 					'result' => "OK",
@@ -1376,7 +1403,7 @@ if ($section == "unauth") {
 				returnError("RATE_LIMIT_EXCEEDED");
 			}
 			if ($uinfo['easylogin'] == 1) {
-				$login_db->disableEasyLogin($user_id);
+				$login_db->setEasyloginState($user_id, 0);
 
 				$return = array(
 					'result' => "OK",
@@ -1393,7 +1420,6 @@ if ($section == "unauth") {
 			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
 				returnError("RATE_LIMIT_EXCEEDED");
 			}
-			$login_db->cleanUpSessions();
 			$session = $login_db->getELSession($_REQUEST['session_id']);
 
 			if ($session['session'] != '') {
@@ -1434,7 +1460,6 @@ if ($section == "unauth") {
 	if ($section == "integration" && $token_scopes['profile_management']) {
 		if ($method == "getUserProjects") {
 			$projects = $login_db->getUserProjects($user_id);
-			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 
 			$return = array(
 				'result' => "OK",
@@ -1467,7 +1492,6 @@ if ($section == "unauth") {
 		}
 		if ($method == "getProjectInfo") {
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
-			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 			if ($project['owner_id'] != $user_id) {
 				returnError("UNAUTHORIZED");
 			}
@@ -1488,7 +1512,6 @@ if ($section == "unauth") {
 				returnError("RATE_LIMIT_EXCEEDED");
 			}
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
-			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 			if ($project['owner_id'] != $user_id) {
 				returnError("UNAUTHORIZED");
 			}
@@ -1505,7 +1528,6 @@ if ($section == "unauth") {
 				returnError("RATE_LIMIT_EXCEEDED");
 			}
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
-			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 			if ($project['owner_id'] != $user_id) {
 				returnError("UNAUTHORIZED");
 			}
@@ -1519,7 +1541,6 @@ if ($section == "unauth") {
 
 		if ($method == "changeRedirect") {
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
-			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 			if ($project['owner_id'] != $user_id) {
 				returnError("UNAUTHORIZED");
 			}
@@ -1533,7 +1554,6 @@ if ($section == "unauth") {
 
 		if ($method == "changeName") {
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
-			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 			if ($project['owner_id'] != $user_id) {
 				returnError("UNAUTHORIZED");
 			}
@@ -1554,7 +1574,6 @@ if ($section == "unauth") {
 				returnError("RATE_LIMIT_EXCEEDED");
 			}
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
-			$login_db->cleanUpProjects($delete_projects_on_inactivity, $deletion_timeout);
 			if ($project['owner_id'] != $user_id) {
 				returnError("UNAUTHORIZED");
 			}

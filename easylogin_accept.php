@@ -16,6 +16,8 @@
 <title>Беспарольный вход</title>
 
 <script>
+window.params = (new URL(document.location)).searchParams;
+
 function back(){
 	window.close();
 	location.href = "index.php";
@@ -43,7 +45,7 @@ function back(){
 
 <?php
 
-if(!hash("sha256", base64_decode($_GET['user_agent']) . "_" . $service_key) == $_GET['user_agent_ver']){
+if(hash("sha256", base64_decode($_GET['user_agent']) . "_" . $service_key) != $_GET['user_agent_ver']){
 	echo("<script>back();</script>");
 }
 else{
@@ -91,7 +93,10 @@ function checkAPIToken(){
 
 function accept(){
 	var xhr = new XMLHttpRequest();
-	xhr.open('GET', 'api.php?section=easylogin&method=claim&session_id=' + "<?php echo(htmlspecialchars($_GET['session_id'])) ?>&session_ver=<?php echo(htmlspecialchars($_GET['session_ver'])) ?>&ip=<?php echo(htmlspecialchars($ip)) ?>", true);
+	let session_id = window.params.get('session_id');
+	let session_ver = window.params.get('session_ver');
+	let ip = window.params.get('ip');
+	xhr.open('GET', 'api.php?section=easylogin&method=claim&session_id=' + session_id +"&session_ver=" + session_ver + "&ip=" + ip, true);
 	xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 	xhr.send();
 	xhr.onload = function (e) {

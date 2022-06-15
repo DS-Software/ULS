@@ -84,32 +84,20 @@ class database{
 		$req = "UPDATE `users` SET `user_ip`='$ip' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-
-	public function disableTOTP($user_id){
+	
+	public function setTOTPState($user_id, $state){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
-		$req = "UPDATE `users` SET `2fa_active`=0 WHERE `user_id`='$user_id'";
+		$state = $login_db->real_escape_string($state);
+		$req = "UPDATE `users` SET `2fa_active`='$state' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
-
-	public function enableTOTP($user_id){
+	
+	public function setEasyloginState($user_id, $state){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
-		$req = "UPDATE `users` SET `2fa_active`=1 WHERE `user_id`='$user_id'";
-		$login_db->query($req);
-	}
-
-	public function disableEasyLogin($user_id){
-		$login_db = $this->ldb;
-		$user_id = $login_db->real_escape_string($user_id);
-		$req = "UPDATE `users` SET `easylogin`=0 WHERE `user_id`='$user_id'";
-		$login_db->query($req);
-	}
-
-	public function enableEasyLogin($user_id){
-		$login_db = $this->ldb;
-		$user_id = $login_db->real_escape_string($user_id);
-		$req = "UPDATE `users` SET `easylogin`=1 WHERE `user_id`='$user_id'";
+		$state = $login_db->real_escape_string($state);
+		$req = "UPDATE `users` SET `easylogin`='$state' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
 
@@ -178,7 +166,7 @@ class database{
 		$statement->execute();
 		$statement->bind_result($user_id);
 		$result = false;
-		while ($statement->fetch()) {
+		if ($statement->fetch()) {
 			$result = true;
 		}
 		return $result;
@@ -230,15 +218,6 @@ class database{
 		$login_db->query($req);
 	}
 
-	public function cleanUpProjects($delete = false, $timeout = 8035200){
-		if ($delete) {
-			$login_db = $this->ldb;
-			$time = time() - $timeout;
-			$req = "DELETE FROM `projects` WHERE `last_used`<$time AND `infinite`=0";
-			$login_db->query($req);
-		}
-	}
-
 	public function deleteProject($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
@@ -277,22 +256,22 @@ class database{
 	public function getProjectInfo($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
-		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `last_used`, `owner_id`, `infinite` FROM `projects` WHERE `project_id`='$project_id'";
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `infinite` FROM `projects` WHERE `project_id`='$project_id'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $last_used, $owner_id, $infinite);
-		while ($statement->fetch()) {
-			$project = array(
-				"project_id" => $project_id,
-				"project_name" => $project_name,
-				"redirect_uri" => $redirect_uri,
-				"secret_key" => $secret_key,
-				"public_key" => $public_key,
-				"last_used" => $last_used,
-				"owner_id" => $owner_id,
-				"infinite" => $infinite
-			);
-		}
+		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $infinite);
+		$statement->fetch();
+		
+		$project = array(
+			"project_id" => $project_id,
+			"project_name" => $project_name,
+			"redirect_uri" => $redirect_uri,
+			"secret_key" => $secret_key,
+			"public_key" => $public_key,
+			"owner_id" => $owner_id,
+			"infinite" => $infinite
+		);
+		
 		return $project;
 	}
 
@@ -303,7 +282,7 @@ class database{
 		$time = time();
 		$public_key = hash('sha256', $owner_id . "_" . $project_name . "_" . bin2hex(random_bytes(32)) . "_" . time());
 		$private_key = hash('sha512', $owner_id . "_" . $project_name . "_" . bin2hex(random_bytes(32)) . bin2hex(random_bytes(32)) . "_" . time());
-		$req = "INSERT INTO `projects`(`project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `last_used`, `infinite`) VALUES ('$project_name', '', '$private_key', '$public_key', $owner_id, $time, 0)";
+		$req = "INSERT INTO `projects`(`project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `infinite`) VALUES ('$project_name', '', '$private_key', '$public_key', $owner_id, 0)";
 		$login_db->query($req);
 		return $login_db->insert_id;
 	}
@@ -347,22 +326,20 @@ class database{
 	public function getProjectInfoByPublic($public_key){
 		$login_db = $this->ldb;
 		$public_key = $login_db->real_escape_string($public_key);
-		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `last_used`, `owner_id`, `infinite` FROM `projects` WHERE `public_key`='$public_key'";
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `infinite` FROM `projects` WHERE `public_key`='$public_key'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $last_used, $owner_id, $infinite);
-		while ($statement->fetch()) {
-			$project = array(
-				"project_id" => $project_id,
-				"project_name" => $project_name,
-				"redirect_uri" => $redirect_uri,
-				"secret_key" => $secret_key,
-				"public_key" => $public_key,
-				"last_used" => $last_used,
-				"owner_id" => $owner_id,
-				"infinite" => $infinite
-			);
-		}
+		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $infinite);
+		$statement->fetch();
+		$project = array(
+			"project_id" => $project_id,
+			"project_name" => $project_name,
+			"redirect_uri" => $redirect_uri,
+			"secret_key" => $secret_key,
+			"public_key" => $public_key,
+			"owner_id" => $owner_id,
+			"infinite" => $infinite
+		);
 		return $project;
 	}
 
@@ -374,24 +351,15 @@ class database{
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $secret_key, $infinite);
 		$project["exists"] = false;
-		while ($statement->fetch()) {
-			$project = array(
-				"project_id" => $project_id,
-				"project_name" => $project_name,
-				"secret_key" => $secret_key,
-				"infinite" => $infinite,
-				"exists" => true
-			);
-		}
+		$statement->fetch();
+		$project = array(
+			"project_id" => $project_id,
+			"project_name" => $project_name,
+			"secret_key" => $secret_key,
+			"infinite" => $infinite,
+			"exists" => true
+		);
 		return $project;
-	}
-
-	public function updateProjectLastUsed($project_id){
-		$login_db = $this->ldb;
-		$project_id = $login_db->real_escape_string($project_id);
-		$last_used = time();
-		$req = "UPDATE `projects` SET `last_used`='$last_used' WHERE `project_id`='$project_id'";
-		$login_db->query($req);
 	}
 
 	public function getLastSID($user_id){
@@ -417,14 +385,6 @@ class database{
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
 		$req = "UPDATE `users` SET `last_sid`=null WHERE `user_id`='$user_id'";
-		$login_db->query($req);
-	}
-
-	public function cleanUpSessions(){
-		$timeout = 300;
-		$login_db = $this->ldb;
-		$time = time() - $timeout;
-		$req = "DELETE FROM `sessions` WHERE `created`<$time";
 		$login_db->query($req);
 	}
 
@@ -485,7 +445,7 @@ class database{
 		$method = $login_db->real_escape_string($method);
 		$user_ip = $login_db->real_escape_string($user_ip);
 		
-		$req = "SELECT COUNT(*), `request_time` FROM `requests` WHERE `request_ip`='$user_ip' AND `method`='$method'";
+		$req = "SELECT COUNT(*), `request_time` FROM `requests` WHERE `request_ip`='$user_ip' AND `method`='$method' LIMIT 1";
 		
 		$statement = $login_db->prepare($req);
 		$statement->execute();
@@ -526,17 +486,11 @@ class database{
 		return $email_check;
 	}
 	
-	public function enableEMailCheck($user_id){
+	public function setEMailCheckState($user_id, $state){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
-		$req = "UPDATE `users` SET `email_check`=1 WHERE `user_id`='$user_id'";
-		$login_db->query($req);
-	}
-	
-	public function disableEMailCheck($user_id){
-		$login_db = $this->ldb;
-		$user_id = $login_db->real_escape_string($user_id);
-		$req = "UPDATE `users` SET `email_check`=0 WHERE `user_id`='$user_id'";
+		$state = $login_db->real_escape_string($state);
+		$req = "UPDATE `users` SET `email_check`='$state' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
 }
