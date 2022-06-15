@@ -1,7 +1,3 @@
-<?php
-	require 'config.php';
-?>
-
 <link rel="stylesheet" href="style.css">
 <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
@@ -36,6 +32,7 @@
 
 <script>
 prepare_view();
+window.params = (new URL(document.location)).searchParams;
 
 function genNewPwd(){
 	let password = generatePass();
@@ -59,6 +56,6 @@ function generatePass(){
 
 function restore(new_password){
 	document.cookie = "restore_password=" + encodeURIComponent(new_password) + "; max-age=120";
-	location.href = "<?php echo(strtr(htmlspecialchars($_GET['redirect']), ['&amp;' => '&'])) ?>";
+	location.href = window.params.get('redirect');
 }
 </script>
