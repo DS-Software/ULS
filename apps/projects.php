@@ -1,7 +1,3 @@
-<?php
-	require_once '..' . DIRECTORY_SEPARATOR . 'config.php';
-?>
-
 <link rel="stylesheet" href="../style.css">
 <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
@@ -87,6 +83,7 @@
 </div>
 <script>
 prepare_view();
+window.params = (new URL(document.location)).searchParams;
 
 var token_xhr = new XMLHttpRequest();
 var xhr = new XMLHttpRequest();
@@ -113,7 +110,7 @@ let access_token = JSON.parse(token_xhr.responseText);
 }
 	
 function loadProjectInfo(){
-	window.project = "<?php echo(htmlspecialchars($_GET['project_id'])) ?>";
+	window.project = window.params.get('project_id');
 	var xhr = new XMLHttpRequest();
 	xhr.open('GET', '../api.php?section=integration&method=getProjectInfo&project=' + window.project, true);
 	xhr.setRequestHeader("Authorization", "Bearer " + window.token);
@@ -126,7 +123,7 @@ function loadProjectInfo(){
 		let secret = document.getElementById("secret_key");
 			
 		if(project.result == "FAULT"){
-			location.href = "<?php echo(htmlspecialchars($int_url)) ?>?error=unauthorized";
+			location.href = "index.php?error=unauthorized";
 		}
 			
 		name_container.textContent = project.project_name;
@@ -140,7 +137,7 @@ function loadProjectInfo(){
 }
 	
 function back(){
-	location.href = "<?php echo(htmlspecialchars($int_url)) ?>";
+	location.href = "index.php";
 }
 	
 function showSecret(){

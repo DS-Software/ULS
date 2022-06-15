@@ -1,7 +1,3 @@
-<?php
-	require_once '..' . DIRECTORY_SEPARATOR . 'config.php';
-?>
-
 <link rel="stylesheet" href="../style.css">
 <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
@@ -31,6 +27,7 @@
 </div>
 
 <script>
+	window.params = (new URL(document.location)).searchParams;
 	prepare_view();
 
 	var token_xhr = new XMLHttpRequest();
@@ -58,8 +55,8 @@
 	}
 	
 	function bootstrap(){
-		if("<?php echo(htmlspecialchars($_GET['error'])); ?>" == "unauthorized"){
-			alertify.notify("Вы не можете управлять этим проектом!", 'error', 2, function(){location.replace("<?php echo(htmlspecialchars($int_url)); ?>")});
+		if(window.params.get('error') == "unauthorized"){
+			alertify.notify("Вы не можете управлять этим проектом!", 'error', 2, function(){history.pushState({}, "", "?reacted=true");});
 		}
 		loadUserProjects();
 	}
