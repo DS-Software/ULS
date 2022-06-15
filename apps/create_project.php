@@ -1,7 +1,3 @@
-<?php
-	require_once '..' . DIRECTORY_SEPARATOR . 'config.php';
-?>
-
 <link rel="stylesheet" href="../style.css">
 <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
