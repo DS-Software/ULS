@@ -1104,10 +1104,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "enableEMailCheck") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
-
 			if ($login_db->getEMailCheck($user_id) == 0) {
 				$login_db->setEMailCheckState($user_id, 1);
 
@@ -1123,10 +1119,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "disableEMailCheck") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
-
 			if ($login_db->getEMailCheck($user_id) == 1) {
 				$login_db->setEMailCheckState($user_id, 0);
 
@@ -1142,9 +1134,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "regenerateAPIKey") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
 			$login_db->regenerateAPIKey($user_id);
 
 			$return = array(
@@ -1156,9 +1145,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "regenerateSLID") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
 			$login_db->regenerateSLID($user_id);
 
 			$return = array(
@@ -1170,9 +1156,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "changeUserPassword") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
 			$old_password = $_COOKIE['new_password_current'];
 			$new_password = $_COOKIE['new_password_new'];
 
@@ -1381,9 +1364,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "enable") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 15, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
 			if ($uinfo['easylogin'] == 0) {
 				$login_db->setEasyloginState($user_id, 1);
 
@@ -1399,9 +1379,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "disable") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 15, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
 			if ($uinfo['easylogin'] == 1) {
 				$login_db->setEasyloginState($user_id, 0);
 
@@ -1417,9 +1394,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "claim") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
 			$session = $login_db->getELSession($_REQUEST['session_id']);
 
 			if ($session['session'] != '') {
@@ -1508,9 +1482,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "issueNewPublic") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
 			if ($project['owner_id'] != $user_id) {
 				returnError("UNAUTHORIZED");
@@ -1524,9 +1495,6 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "issueNewSecret") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
 			$project = $login_db->getProjectInfo($_REQUEST['project']);
 			if ($project['owner_id'] != $user_id) {
 				returnError("UNAUTHORIZED");
@@ -1588,10 +1556,6 @@ if ($section == "unauth") {
 
 	if ($section == "register" && $token_scopes['profile_management']) {
 		if ($method == "saveInfo") {
-			if (isRateExceeded($method, $_SERVER['REMOTE_ADDR'], 30, 60)) {
-				returnError("RATE_LIMIT_EXCEEDED");
-			}
-
 			$user_nick = $_REQUEST['user_nick'];
 			$user_name = $_REQUEST['user_name'];
 			$user_surname = $_REQUEST['user_surname'];
