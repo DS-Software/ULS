@@ -17,29 +17,33 @@
 			"name" => "Управление Аккаунтом",
 			"description" => "• Приложение сможет управлять вашим аккаунтом!"
 		),
+		'admin' => array(
+			"name" => "Доступ к управлению ULS",
+			"description" => "• Приложение сможет управлять ULS!"
+		)
 	);
 
-	function getScopes($scope_text, $infinite=1){
-		global $scope_desc;
-		$scopes = array_fill_keys(array_keys($scope_desc), false);
-		$scopes['auth'] = true;
+	function getScopes($expl_scopes, $infinite=0, $admin_required=false){
+		$scopes = array(
+			'auth' => true,
+			'email' => false,
+			'personal' => false,
+			'profile_management' => false,
+			'admin' => false
+		);
 		
-		$expl_scopes = explode(",", $scope_text);
-			
-		if(in_array("personal", $expl_scopes)){
+		if(isset($expl_scopes["personal"])){
 			$scopes['personal'] = true;
 		}
-		if(in_array("email", $expl_scopes)){
+		if(isset($expl_scopes["email"])){
 			$scopes['email'] = true;
 		}
-		if(in_array("profile_management", $expl_scopes) && $infinite == 1){
+		if(isset($expl_scopes["profile_management"]) && $infinite == 1){
 			$scopes['profile_management'] = true;
 		}
-		if(in_array("all", $expl_scopes)){
-			$scopes = array_fill_keys(array_keys($scopes), true);
-			if($infinite != 1){
-				$scopes['profile_management'] = false;
-			}
+		
+		if($admin_required){
+			$scopes['admin'] = true;
 		}
 		
 		return $scopes;
@@ -90,7 +94,4 @@
 	
 	$enable_creation = true;
 	$int_url = $login_site . "/apps";
-	
-	$delete_projects_on_inactivity = false;
-	$deletion_timeout = 8035200;
 ?>
