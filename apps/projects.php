@@ -13,7 +13,7 @@
 <div class="extended-form">
 	<h1 class="thin-text">Управление Проектом</h1>
 	<div class="sep-line"></div>
-	<div class="full-width"><span class="middle-text" id="project_name"></span>&nbsp;&nbsp;&nbsp;<button class="button-secondary" onclick="deleteProject()">Удалить проект</button></div>
+	<div class="full-width"><span class="middle-text" id="project_name"></span><br><button class="full-width button-secondary" onclick="deleteProject()">Удалить проект</button></div>
 	<br>
 	<div class="sep-line"></div>
 	<div class="project_information">
@@ -127,6 +127,9 @@ function loadProjectInfo(){
 		}
 			
 		name_container.textContent = project.project_name;
+		if(project.verified == 1){
+			name_container.innerHTML += "&nbsp;<span class=\"verify_mark\">Verified</span>";
+		}
 		redirect_url.textContent = project.redirect_uri;
 		if(project.redirect_uri == ""){
 			redirect_url.innerHTML = "<b>Не настроен!</b>";

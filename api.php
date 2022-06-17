@@ -984,7 +984,7 @@ if ($section == "unauth") {
 			$project_public = $_REQUEST['public'];
 			$project = $login_db->getProjectInfoByPublic($project_public);
 
-			$scopes = getScopes($_REQUEST['scopes'], $project['infinite']);
+			$scopes = getScopes($_REQUEST['scopes'], $project['verified']);
 
 			if ($project['project_id'] == "") {
 				returnError("UNKNOWN_PROJECT");
@@ -1069,7 +1069,7 @@ if ($section == "unauth") {
 				'result' => "OK",
 				'project_id' => $project['project_id'],
 				'project_name' => $project['project_name'],
-				'verified' => $project['infinite'],
+				'verified' => $project['verified'],
 				'fault_redirect' => $fault_redirect
 			);
 			echo(json_encode($return));
@@ -1475,7 +1475,8 @@ if ($section == "unauth") {
 				'project_name' => $project['project_name'],
 				'redirect_uri' => $project['redirect_uri'],
 				'secret_key' => $project['secret_key'],
-				'public_key' => $project['public_key']
+				'public_key' => $project['public_key'],
+				'verified' => $project['verified']
 			);
 			echo(json_encode($return));
 			die();

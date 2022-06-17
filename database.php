@@ -256,10 +256,10 @@ class database{
 	public function getProjectInfo($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
-		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `infinite` FROM `projects` WHERE `project_id`='$project_id'";
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified` FROM `projects` WHERE `project_id`='$project_id'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $infinite);
+		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $verified);
 		$statement->fetch();
 		
 		$project = array(
@@ -269,7 +269,7 @@ class database{
 			"secret_key" => $secret_key,
 			"public_key" => $public_key,
 			"owner_id" => $owner_id,
-			"infinite" => $infinite
+			"verified" => $verified
 		);
 		
 		return $project;
@@ -282,7 +282,7 @@ class database{
 		$time = time();
 		$public_key = hash('sha256', $owner_id . "_" . $project_name . "_" . bin2hex(random_bytes(32)) . "_" . time());
 		$private_key = hash('sha512', $owner_id . "_" . $project_name . "_" . bin2hex(random_bytes(32)) . bin2hex(random_bytes(32)) . "_" . time());
-		$req = "INSERT INTO `projects`(`project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `infinite`) VALUES ('$project_name', '', '$private_key', '$public_key', $owner_id, 0)";
+		$req = "INSERT INTO `projects`(`project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified`) VALUES ('$project_name', '', '$private_key', '$public_key', $owner_id, 0)";
 		$login_db->query($req);
 		return $login_db->insert_id;
 	}
@@ -326,10 +326,10 @@ class database{
 	public function getProjectInfoByPublic($public_key){
 		$login_db = $this->ldb;
 		$public_key = $login_db->real_escape_string($public_key);
-		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `infinite` FROM `projects` WHERE `public_key`='$public_key'";
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified` FROM `projects` WHERE `public_key`='$public_key'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $infinite);
+		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $verified);
 		$statement->fetch();
 		$project = array(
 			"project_id" => $project_id,
@@ -338,7 +338,7 @@ class database{
 			"secret_key" => $secret_key,
 			"public_key" => $public_key,
 			"owner_id" => $owner_id,
-			"infinite" => $infinite
+			"verified" => $verified
 		);
 		return $project;
 	}
@@ -346,17 +346,17 @@ class database{
 	public function getLoginProjectInfo($public_key){
 		$login_db = $this->ldb;
 		$public_key = $login_db->real_escape_string($public_key);
-		$req = "SELECT `project_id`, `project_name`, `secret_key`, `infinite` FROM `projects` WHERE `public_key`='$public_key'";
+		$req = "SELECT `project_id`, `project_name`, `secret_key`, `verified` FROM `projects` WHERE `public_key`='$public_key'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($project_id, $project_name, $secret_key, $infinite);
+		$statement->bind_result($project_id, $project_name, $secret_key, $verified);
 		$project["exists"] = false;
 		$statement->fetch();
 		$project = array(
 			"project_id" => $project_id,
 			"project_name" => $project_name,
 			"secret_key" => $secret_key,
-			"infinite" => $infinite,
+			"verified" => $verified,
 			"exists" => true
 		);
 		return $project;
