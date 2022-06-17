@@ -9,8 +9,14 @@ CREATE TABLE `projects` (
   `secret_key` text NOT NULL,
   `public_key` text NOT NULL,
   `owner_id` int(11) NOT NULL,
-  `last_used` int(11) NOT NULL DEFAULT 0,
-  `infinite` int(11) NOT NULL
+  `verified` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `requests` (
+  `request_id` int(10) UNSIGNED NOT NULL,
+  `method` text NOT NULL,
+  `request_ip` text NOT NULL,
+  `request_time` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `sessions` (
@@ -25,13 +31,21 @@ CREATE TABLE `sessions` (
 
 CREATE TABLE `users` (
   `user_id` int(10) UNSIGNED NOT NULL,
+  `user_nick` text DEFAULT NULL,
   `user_email` text NOT NULL,
+  `user_name` text DEFAULT NULL,
+  `user_surname` text DEFAULT NULL,
+  `verified` int(11) NOT NULL DEFAULT 0,
+  `birthday` int(11) DEFAULT NULL,
+  `user_salt` text DEFAULT NULL,
   `password_hash` text NOT NULL,
+  `ip_ver_code` text DEFAULT NULL,
   `user_ip` text NOT NULL DEFAULT '',
   `api_key_seed` text DEFAULT NULL,
   `SLID` text NOT NULL DEFAULT '',
   `last_sid` text DEFAULT NULL,
   `easylogin` int(11) NOT NULL DEFAULT 0,
+  `email_check` int(11) NOT NULL DEFAULT 1,
   `2fa_active` int(11) NOT NULL DEFAULT 0,
   `2fa_secret` text DEFAULT NULL,
   `2fa_disable_code` text DEFAULT NULL
@@ -39,6 +53,9 @@ CREATE TABLE `users` (
 
 ALTER TABLE `projects`
   ADD PRIMARY KEY (`project_id`);
+
+ALTER TABLE `requests`
+  ADD PRIMARY KEY (`request_id`);
 
 ALTER TABLE `sessions`
   ADD PRIMARY KEY (`session_id`);
@@ -48,6 +65,9 @@ ALTER TABLE `users`
 
 ALTER TABLE `projects`
   MODIFY `project_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+ALTER TABLE `requests`
+  MODIFY `request_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 ALTER TABLE `sessions`
   MODIFY `session_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
