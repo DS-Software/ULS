@@ -18,6 +18,7 @@
 </div>
 
 <script>
+	window.prevent_cmd = false;
 	prepare_view();
 	function getCookie(name) {
 		var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
@@ -54,10 +55,11 @@
 		let email_ver_id = encodeURIComponent(window.params.get('email_ver_id'));
 		let session_id = encodeURIComponent(window.params.get('session_id'));
 		let rand_session_id = encodeURIComponent(window.params.get('rand_session_id'));
-		let new_password = encodeURIComponent(getCookie("restore_password"));
+		let new_password = getCookie("restore_password");
 		
 		if(new_password == null){
 			location.href = "new_password.php?redirect=" + encodeURIComponent(location.href);
+			window.prevent_cmd = true;
 			
 		}
 		else{
@@ -77,6 +79,9 @@
 	}
 	
 	function execute_task(){
+		if(window.prevent_cmd){
+			return;
+		}
 		if(link != ""){
 			var command_xhr = new XMLHttpRequest();
 			command_xhr.open('GET', link, true);

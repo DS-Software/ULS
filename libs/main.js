@@ -1,3 +1,7 @@
+console.log("%cWARNING!", "font-size: 5rem; color: red;");
+console.log("%cDo not execute anything here unless you know what you are doing!", "font-size: 1.5rem; color: red;");
+console.log("%cYou might lose your account otherwise!", "font-size: 1.5rem; color: red;");
+
 function getCookie(name) {
     var nameEQ = name + "=";
     var ca = document.cookie.split(';');
@@ -60,12 +64,12 @@ function prepare_view(){
 
 function change_theme(){
 	if(getCookie("dark_mode") == 1){
-		document.cookie = "dark_mode=0";
+		document.cookie = "dark_mode=0;max-age=315360000";
 		prepare_view();
 		return;
 	}
 	else{
-		document.cookie = "dark_mode=1";
+		document.cookie = "dark_mode=1;max-age=315360000";
 		prepare_view();
 		return;
 	}	

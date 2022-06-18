@@ -513,8 +513,9 @@ if ($section == "unauth") {
 								setcookie("user_verkey", hash("sha512", "{$session_id}_{$login}_{$user_id}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
 								setcookie("session", $session_id, time() + 2678400, $domain_name);
 								setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
-
-								$ip_verify = hash('sha256', "{$session_id}_{$user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
+								
+								$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
+								
 								setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
 
 								$login_db->setUserIP($user_id, $_SERVER['REMOTE_ADDR']);
@@ -640,7 +641,7 @@ if ($section == "unauth") {
 							setcookie("session", $session_id, time() + 2678400, $domain_name);
 							setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
 
-							$ip_verify = hash('sha256', "{$session_id}_{$log_user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
+							$ip_verify = hash("sha512", "{$user_info['SLID']}_{$log_user_id}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 							setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
 
 							$return = array(
@@ -933,7 +934,7 @@ if ($section == "unauth") {
 		setcookie("session", $rsid, time() + 2678400, $domain_name);
 		setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
 
-		$ip_verify = hash('sha256', "{$rsid}_{$user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key");
+		$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 		setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
 
 		$return = array(
@@ -1078,6 +1079,10 @@ if ($section == "unauth") {
 	}
 	if ($section == "users" && $token_scopes['profile_management']) {
 		if ($method == "getCurrentEmail") {
+			$is_admin = false;
+			if($allowed_admins[$uinfo['user_id']]){
+				$is_admin = true;
+			}
 			$return = array(
 				'result' => "OK",
 				'email' => $uinfo['user_email'],
@@ -1085,7 +1090,8 @@ if ($section == "unauth") {
 				'user_name' => $uinfo['user_name'],
 				'user_surname' => $uinfo['user_surname'],
 				'user_bday' => $uinfo['birthday'],
-				'verified' => $uinfo['verified']
+				'verified' => $uinfo['verified'],
+				'admin' => $is_admin
 			);
 
 			echo(json_encode($return));
@@ -1579,6 +1585,42 @@ if ($section == "unauth") {
 			}
 
 			$login_db->saveUserInfo($user_id, $user_nick, $user_name, $user_surname, $birthday);
+			$return = array(
+				'result' => "OK"
+			);
+			echo(json_encode($return));
+			die();
+		}
+	}
+	
+	if($section == "admin" && $token_scopes['admin'] && $allowed_admins[$user_id]){
+		if($method == "getStats"){
+			$request_st = $login_db->getRequestStats();
+			$session_st = $login_db->getSessionStats();
+			$user_st = $login_db->getUserStats();
+			$project_st = $login_db->getProjectStats();
+			$return = array(
+				'result' => "OK",
+				'requests' => $request_st,
+				'sessions' => $session_st,
+				'users' => $user_st,
+				'projects' => $project_st
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "purgeRequests"){
+			$login_db->cleanupRequests();
+			$return = array(
+				'result' => "OK"
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "purgeSessions"){
+			$login_db->cleanupSessions();
 			$return = array(
 				'result' => "OK"
 			);

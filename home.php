@@ -45,7 +45,11 @@ require_once "config.php";
 		<i class="fa-solid fa-palette content-icon"></i>
 		Тема
 	</div>
-	<div class="menu-item padding-1em align-left top-margin" onclick="logout()">
+	<div class="hidden-el menu-item padding-1em align-left" onclick="choose_tab('admin')" id="admin_item">
+		<i class="fa-solid fa-gear content-icon"></i>
+		Управление
+	</div>
+	<div class="menu-item padding-1em align-left" onclick="logout()">
 		<i class="fa-solid fa-arrow-right content-icon"></i>
 		Выйти
 	</div>
@@ -199,6 +203,57 @@ function close_sidebar(){
 		</div>
 		<br>
 	</div>
+	<div id="admin">
+		<h2 class="thin-text">Статистика Платформы</h2>
+		
+		<div class="data-container">
+			<span class="middle-text">
+				<i class="fa-solid fa-server content-icon"></i>
+				<span>Количество Запросов:</span>
+			</span>&nbsp;&nbsp;&nbsp;<span class="big-text" id="requests"></span>
+			<br>
+			<span class="hint-text">Количество запросов к методам, ограниченным лимитами.</span>
+			<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-ticket content-icon"></i>
+				<span>Количество Сессий EasyLogin:</span>
+			</span>&nbsp;&nbsp;&nbsp;<span class="big-text" id="sessions"></span>
+			<br>
+			<span class="hint-text">Количество активных сессий EasyLogin созданных для беспарольного входа.</span>
+			<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-user content-icon"></i>
+				<span>Количество Пользователей:</span>
+			</span>&nbsp;&nbsp;&nbsp;<span class="big-text" id="users"></span>
+			<br>
+			<span class="hint-text">Количество активных аккаунтов созданных на этой платформе.</span>
+			<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-chain content-icon"></i>
+				<span>Количество Проектов:</span>
+			</span>&nbsp;&nbsp;&nbsp;<span class="big-text" id="projects"></span>
+			<br>
+			<span class="hint-text">Количество активных сторонних интеграций.</span>
+		</div>
+		<br>
+		<h2 class="thin-text">Управление Платформой</h2>
+		<div class="data-container">
+			<span class="middle-text">
+				<i class="fa-solid fa-eraser content-icon"></i>
+				<span>Очистить запросы</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="purgeRequests()">Очистить</button><br><br>
+			<span class="hint-text">Очистит таблицу запросов, что приведёт к обнулению лимитов API.</span>
+			<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-eraser content-icon"></i>
+				<span>Очистить сессии EasyLogin</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="purgeSessions()">Очистить</button><br><br>
+			<span class="hint-text">Очистит таблицу сессий EasyLogin, что приведёт к аннулированию предыдущих сессий.</span>
+		</div>
+		<br>
+	</div>
 	
 	<div id="email_change_form">
 		<div class="data-prompt align-center">
@@ -322,6 +377,9 @@ prepare_view();
 checkAPIToken();
 conflict_preventer();
 
+window.admin_initalized = false;
+window.is_admin = false;
+
 window.onpopstate = function(event) {
 	window.state_updated = true;
 	choose_tab(event.state.tab);
@@ -360,6 +418,9 @@ function checkAPIToken(){
 					|| tab == "api"
 					|| tab == "easylogin"){
 						choose_tab(tab);
+						if(!(tab == "main" || tab == "personal_info")){
+							load_admin();
+						}
 					}
 					else{
 						choose_tab("main");
@@ -426,6 +487,11 @@ function choose_tab(tab){
 		initQRReader();
 		update_state = true;
 	}
+	if(tab == "admin" && window.is_admin){
+		sel_tab.innerHTML = admin.textContent;
+		load_admin_stats();
+		update_state = true;
+	}
 	
 	if(update_state){
 		if(!window.state_updated){
@@ -461,6 +527,60 @@ var xhr2 = new XMLHttpRequest();
 /*
 	Internal Functions
 */
+
+function load_admin_stats(){
+	if(window.is_admin){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=getStats', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					projects.textContent = result.projects;
+					users.textContent = result.users;
+					sessions.textContent = result.sessions;
+					requests.textContent = result.requests;
+				}	
+			}
+		}
+	}
+}
+
+function purgeRequests(){
+	if(window.is_admin){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=purgeRequests', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					load_admin_stats();
+				}	
+			}
+		}
+	}
+}
+
+function purgeSessions(){
+	if(window.is_admin){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=purgeSessions', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					load_admin_stats();
+				}	
+			}
+		}
+	}
+}
 
 function initQRReader(){
 	window.html5QrCode = new Html5Qrcode("reader");
@@ -844,9 +964,9 @@ function prepare_main(){
 		xhr2.send();
 		xhr2.onload = function (e) {
 			let result = JSON.parse(xhr2.responseText);
-			window.user_info = result;
 			
 			if(result.result == "OK"){
+				window.user_info = result;
 				let verification_mark = "&nbsp;<span class=\"verify_mark\">Verified</span>";
 				if(result.verified != 1){
 					verification_mark = "";
@@ -856,6 +976,10 @@ function prepare_main(){
 				document.getElementById('email').innerHTML = result.email;
 				document.getElementById('email_changer').innerHTML = result.email;
 				window.email = result.email;
+				
+				if(!window.admin_initalized){
+					load_admin();
+				}
 			}
 		}
 	}
@@ -871,6 +995,10 @@ function prepare_main(){
 			document.getElementById('email').innerHTML = result.email;
 			document.getElementById('email_changer').innerHTML = result.email;
 			window.email = result.email;
+			
+			if(!window.admin_initalized){
+				load_admin();
+			}
 		}
 	}
 }
@@ -883,8 +1011,8 @@ function loadUserInfo(){
 		xhr2.send();
 		xhr2.onload = function (e) {
 			let result = JSON.parse(xhr2.responseText);
-			window.user_info = result;
 			if(result.result == "OK"){
+				window.user_info = result;
 				user_tag.value = result.user_nick;
 				user_tag.previousElementSibling.classList.add('placeholder-upper');
 				user_name.value = result.user_name;
@@ -892,6 +1020,10 @@ function loadUserInfo(){
 				user_surname.value = result.user_surname;
 				user_surname.previousElementSibling.classList.add('placeholder-upper');
 				user_birthday.valueAsNumber = result.user_bday * 1000;
+				
+				if(!window.admin_initalized){
+					load_admin();
+				}
 			}
 		}
 	}
@@ -905,6 +1037,40 @@ function loadUserInfo(){
 			user_surname.value = result.user_surname;
 			user_surname.previousElementSibling.classList.add('placeholder-upper');
 			user_birthday.valueAsNumber = result.user_bday * 1000;
+			
+			if(!window.admin_initalized){
+				load_admin();
+			}
+		}
+	}
+}
+
+function load_admin(){
+	if(window.user_info == undefined){
+		var xhr2 = new XMLHttpRequest();
+		xhr2.open('GET', 'api.php?section=users&method=getCurrentEmail', true);
+		xhr2.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr2.send();
+		xhr2.onload = function (e) {
+			let result = JSON.parse(xhr2.responseText);
+			if(result.result == "OK"){
+				window.user_info = result;
+				window.admin_initalized = true;
+				if(result.admin){
+					admin_item.classList.remove('hidden-el');
+					window.is_admin = true;
+				}
+			}
+		}
+	}
+	else{
+		let result = window.user_info;
+		if(result.result == "OK"){
+			window.admin_initalized = true;
+			if(result.admin){
+				admin_item.classList.remove('hidden-el');
+				window.is_admin = true;
+			}
 		}
 	}
 }

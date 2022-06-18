@@ -493,6 +493,64 @@ class database{
 		$req = "UPDATE `users` SET `email_check`='$state' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
+	
+	public function getRequestStats(){
+		$login_db = $this->ldb;
+		$req = "SELECT COUNT(*) FROM `requests`";
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($count);
+		$statement->fetch();
+		return $count;
+	}
+	
+	public function getSessionStats(){
+		$login_db = $this->ldb;
+		
+		$req = "SELECT COUNT(*) FROM `sessions`";
+		
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($count);
+		$statement->fetch();
+		return $count;
+	}
+	
+	public function getUserStats(){
+		$login_db = $this->ldb;
+		
+		$req = "SELECT COUNT(*) FROM `users`";
+		
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($count);
+		$statement->fetch();
+		return $count;
+	}
+	
+	public function getProjectStats(){
+		$login_db = $this->ldb;
+		
+		$req = "SELECT COUNT(*) FROM `projects`";
+		
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($count);
+		$statement->fetch();
+		return $count;
+	}
+	
+	public function cleanupRequests(){
+		$login_db = $this->ldb;
+		$req = "DELETE FROM `requests` WHERE 1";
+		$login_db->query($req);
+	}
+	
+	public function cleanupSessions(){
+		$login_db = $this->ldb;
+		$req = "DELETE FROM `sessions` WHERE 1";
+		$login_db->query($req);
+	}
 }
 
 ?>
