@@ -9,8 +9,8 @@ class CAPTCHA{
 		$width = 160;
 		$height = 80;
 		$fluctuation_amplitude = 8;
-		$white_noise_density=1/6;
-		$black_noise_density=1/30;
+		$white_noise_density=1/5;
+		$black_noise_density=1/25;
 		$no_spaces = true;
 		$foreground_color = array(random_int(0,80), random_int(0,80), random_int(0,80));
 		$background_color = array(random_int(220,255), random_int(220,255), random_int(220,255));
