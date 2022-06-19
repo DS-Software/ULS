@@ -959,7 +959,7 @@ function manage_easylogin(){
 function prepare_main(){
 	if(window.user_info == undefined){
 		var xhr2 = new XMLHttpRequest();
-		xhr2.open('GET', 'api.php?section=users&method=getCurrentEmail', true);
+		xhr2.open('GET', 'api.php?section=users&method=getUserInfo', true);
 		xhr2.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr2.send();
 		xhr2.onload = function (e) {
@@ -970,6 +970,9 @@ function prepare_main(){
 				let verification_mark = "&nbsp;<span class=\"verify_mark\">Verified</span>";
 				if(result.verified != 1){
 					verification_mark = "";
+				}
+				if(result.admin){
+					verification_mark = "&nbsp;<span class=\"verify_mark\">Administrator</span>";
 				}
 				document.getElementById('user_name').innerHTML = result.user_name + " " + result.user_surname + verification_mark;
 				
@@ -990,6 +993,9 @@ function prepare_main(){
 			if(result.verified != 1){
 				verification_mark = "";
 			}
+			if(result.admin){
+				verification_mark = "&nbsp;<span class=\"verify_mark\">Administrator</span>";
+			}
 			document.getElementById('user_name').innerHTML = result.user_name + " " + result.user_surname + verification_mark;
 			
 			document.getElementById('email').innerHTML = result.email;
@@ -1006,7 +1012,7 @@ function prepare_main(){
 function loadUserInfo(){
 	if(window.user_info == undefined){
 		var xhr2 = new XMLHttpRequest();
-		xhr2.open('GET', 'api.php?section=users&method=getCurrentEmail', true);
+		xhr2.open('GET', 'api.php?section=users&method=getUserInfo', true);
 		xhr2.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr2.send();
 		xhr2.onload = function (e) {
@@ -1048,7 +1054,7 @@ function loadUserInfo(){
 function load_admin(){
 	if(window.user_info == undefined){
 		var xhr2 = new XMLHttpRequest();
-		xhr2.open('GET', 'api.php?section=users&method=getCurrentEmail', true);
+		xhr2.open('GET', 'api.php?section=users&method=getUserInfo', true);
 		xhr2.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr2.send();
 		xhr2.onload = function (e) {

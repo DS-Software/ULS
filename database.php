@@ -542,13 +542,13 @@ class database{
 	
 	public function cleanupRequests(){
 		$login_db = $this->ldb;
-		$req = "DELETE FROM `requests` WHERE 1";
+		$req = "TRUNCATE `requests`";
 		$login_db->query($req);
 	}
 	
 	public function cleanupSessions(){
 		$login_db = $this->ldb;
-		$req = "DELETE FROM `sessions` WHERE 1";
+		$req = "TRUNCATE `sessions`";
 		$login_db->query($req);
 	}
 }

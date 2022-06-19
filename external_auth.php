@@ -39,8 +39,9 @@
 </div>
 
 <script>
+	prepare_view();
 
-	window.fault_redirect = "index.php";
+	window.fault_redirect = "home.php";
 
 	function back(){
 		location.href = window.fault_redirect;
@@ -205,7 +206,7 @@
 			}
 			if(result.reason == 'RATE_LIMIT_EXCEEDED'){
 				window.failed_request = function(){
-					accept();
+					sendrequest();
 				};
 				callCaptcha();
 				return;
