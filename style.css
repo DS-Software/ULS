@@ -1,6 +1,7 @@
 * {
 	font-family: 'Roboto', sans-serif;
 	word-break: break-word;
+	transition: background-color 100ms ease-out;
 }
 :root {
 	--primary-color: hsl(251, 92%, 58%);
