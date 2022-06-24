@@ -1580,7 +1580,7 @@ if ($section == "unauth") {
 				returnError("MALFORMED_SURNAME");
 			}
 
-			if (0 >= $birthday || !is_int($birthday)) {
+			if (0 >= intval($birthday)) {
 				returnError("MALFORMED_BIRTHDAY");
 			}
 
