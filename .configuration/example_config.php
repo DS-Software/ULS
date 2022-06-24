@@ -65,7 +65,7 @@
 	
 	$session_length = 32;
 	
-	$service_key = "Very_Long_Service_Key"
+	$service_key = "Very_Long_Service_Key";
 	
 	$encryption_key = "Long_Key_For_AES_Encryption.";
 	
