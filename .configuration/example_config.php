@@ -94,4 +94,6 @@
 	
 	$enable_creation = true;
 	$int_url = $login_site . "/apps";
+	
+	$allowed_admins = []; // [1 => true] ([USER_ID => true])
 ?>
