@@ -214,12 +214,12 @@ if ($section == "unauth") {
 		$totp_timestamp = $_COOKIE['totp_timestamp'];
 		$totp_verification = $_COOKIE['totp_verification'];
 
-		$ver_user_info = $login_db->getUserInfo($user_id);
+		$user_info = $login_db->getUserInfo($user_id);
 
-		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $ver_user_info);
+		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $user_info);
 
 		if ($verified) {
-			if ($ip_verify != hash("sha512", "{$SLID}_{$ver_user_info['user_id']}_{$user_ip}_$service_key")) {
+			if ($ip_verify != hash("sha512", "{$SLID}_{$user_info['user_id']}_{$user_ip}_$service_key")) {
 				$return = array(
 					'result' => 'OK',
 					'description' => 'IPVerificationRequired',
@@ -229,14 +229,14 @@ if ($section == "unauth") {
 				echo(json_encode($return, 1));
 				die();
 			}
-			if ($ver_user_info['2fa_active'] == 1) {
+			if ($user_info['2fa_active'] == 1) {
 				if ($totp_timestamp + 2678400 < time()) {
 					deleteTOTPCookies();
 					$totp_timestamp = null;
 					$totp_verification = null;
 				}
 
-				$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}_$service_key");
+				$true_totp_ver = hash("sha512", "{$SLID}_{$user_info['2fa_secret']}_{$user_info['user_id']}_{$totp_timestamp}_$service_key");
 
 				if ($true_totp_ver != $totp_verification) {
 					$verified = false;
@@ -255,15 +255,15 @@ if ($section == "unauth") {
 			$at_seed = bin2hex(random_bytes(32));
 
 			$access_token = array(
-				'uls_id' => $ver_user_info['user_id'],
+				'uls_id' => $user_info['user_id'],
 				'seed' => $at_seed,
 				'scopes' => $scopes,
-				'sign' => hash('sha512', $ver_user_info['user_id'] . "_" . $at_seed . "_" . json_encode($scopes) . "_" . $ver_user_info['api_key_seed'] . "_" . $service_key)
+				'sign' => hash('sha512', $user_info['user_id'] . "_" . $at_seed . "_" . json_encode($scopes) . "_" . $user_info['api_key_seed'] . "_" . $service_key)
 			);
 
 			$access_token = base64_encode(json_encode($access_token));
 
-			if (!hasFinishedRegister($ver_user_info)) {
+			if (!hasFinishedRegister($user_info)) {
 				$return = array(
 					'result' => 'OK',
 					'description' => 'unfinishedReg',
@@ -309,7 +309,7 @@ if ($section == "unauth") {
 			returnError('WRONG_CREDENTIALS');
 		}
 
-		$needs_email_check = $login_db->getEMailCheck($log_user_id);
+		$needs_email_check = $user_info['email_check'];
 
 		if (($_SERVER['REMOTE_ADDR'] == $user_info['user_ip']) || $needs_email_check == 0) {
 			$rsid = bin2hex(random_bytes($session_length / 2));
@@ -388,7 +388,7 @@ if ($section == "unauth") {
 
 		if ($verified) {
 			if ($user_info['user_id'] == $user_id && $user_id != "") {
-				$true_code = $login_db->getIPCode($user_id);
+				$true_code = $user_info['ip_ver_code'];
 
 				if ($code == $true_code) {
 					$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key");
@@ -618,7 +618,7 @@ if ($section == "unauth") {
 
 		$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
 		$true_ver_id = hash("sha256", $login . '_' . $service_key . '_' . $timestamp . "_" . $user_info['SLID'] . "_" . $session_id);
-		$last_sid = $login_db->getLastSID($log_user_id);
+		$last_sid = $user_info['last_sid'];
 
 		if ($true_ver_id != $email_ver_id){
 			returnError("UNABLE_TO_CHANGE_PASSWORD");
@@ -683,7 +683,7 @@ if ($section == "unauth") {
 
 		$true_session_id = hash('sha256', $rand_session_id . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
 		$true_ver_id = hash("sha256", $user_id . '_' . $service_key . '_' . $timestamp . "_" . $user_info['SLID'] . "_" . $session_id . "_" . $new_mail);
-		$last_sid = $login_db->getLastSID($user_id);
+		$last_sid = $user_info['last_sid'];
 
 		if ($true_ver_id != $email_ver_id){
 			returnError("UNABLE_TO_CHANGE_EMAIL");
@@ -731,16 +731,15 @@ if ($section == "unauth") {
 		$user_ip = $_COOKIE['user_ip'];
 		$user_key = $_COOKIE['user_verkey'];
 
-		$ver_user_info = $login_db->getUserInfo($user_id);
+		$user_info = $login_db->getUserInfo($user_id);
 
-		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $ver_user_info);
+		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $user_info);
 
-		if ($ver_user_info['2fa_active'] != 1) {
+		if ($user_info['2fa_active'] != 1) {
 			returnError("2FA_IS_NOT_ENABLED");
 		}
 
 		if ($verified) {
-			$user_info = $login_db->getUserInfo($user_id);
 			if ($user_info['user_id'] == $user_id && $user_id != "") {
 				$totp_instance = TOTPInstance();
 				$base32 = Base32Instance();
@@ -752,7 +751,7 @@ if ($section == "unauth") {
 
 				if ($otp == $key) {
 					$totp_timestamp = time();
-					$true_totp_ver = hash("sha512", "{$SLID}_{$ver_user_info['2fa_secret']}_{$ver_user_info['user_id']}_{$totp_timestamp}_$service_key");
+					$true_totp_ver = hash("sha512", "{$SLID}_{$user_info['2fa_secret']}_{$user_info['user_id']}_{$totp_timestamp}_$service_key");
 
 					setcookie("totp_timestamp", $totp_timestamp, time() + 2678400, $domain_name);
 					setcookie("totp_verification", $true_totp_ver, time() + 2678400, $domain_name);
@@ -785,16 +784,15 @@ if ($section == "unauth") {
 		$user_key = $_COOKIE['user_verkey'];
 		$key = $_REQUEST['key'];
 
-		$ver_user_info = $login_db->getUserInfo($user_id);
+		$user_info = $login_db->getUserInfo($user_id);
 
-		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $ver_user_info);
+		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $user_info);
 
-		if ($ver_user_info['2fa_active'] != 1) {
+		if ($user_info['2fa_active'] != 1) {
 			returnError("2FA_IS_NOT_ENABLED");
 		}
 
 		if ($verified) {
-			$user_info = $login_db->getUserInfo($user_id);
 			if ($user_info['user_id'] == $user_id && $user_id != "") {
 				$hash_code = hash('sha256', $key . "_" . $user_id);
 				if ($hash_code == $user_info['2fa_disable_code']) {
@@ -1094,20 +1092,9 @@ if ($section == "unauth") {
 			echo(json_encode($return));
 			die();
 		}
-
-		if ($method == "isEMailCheckEnabled") {
-			$result = $login_db->getEMailCheck($user_id);
-
-			$return = array(
-				'result' => "OK",
-				'state' => $result
-			);
-			echo(json_encode($return));
-			die();
-		}
-
+		
 		if ($method == "enableEMailCheck") {
-			if ($login_db->getEMailCheck($user_id) == 0) {
+			if ($uinfo['email_check'] == 0) {
 				$login_db->setEMailCheckState($user_id, 1);
 
 				$return = array(
@@ -1122,7 +1109,7 @@ if ($section == "unauth") {
 		}
 
 		if ($method == "disableEMailCheck") {
-			if ($login_db->getEMailCheck($user_id) == 1) {
+			if ($uinfo['email_check'] == 1) {
 				$login_db->setEMailCheckState($user_id, 0);
 
 				$return = array(
@@ -1241,17 +1228,22 @@ if ($section == "unauth") {
 			die();
 		}
 	}
-
-	if ($section == "totp" && $token_scopes['profile_management']) {
-		if ($method == "get2FAInfo") {
+	
+	if ($section == "security" && $token_scopes['profile_management']) {
+		if ($method == "getSecurityInfo") {
 			$return = array(
 				'result' => "OK",
-				'totp_active' => $uinfo['2fa_active']
+				'totp' => $uinfo['2fa_active'],
+				'email_check' => $uinfo['email_check'],
+				'easylogin' => $uinfo['easylogin']
 			);
+			
 			echo(json_encode($return));
 			die();
 		}
+	}
 
+	if ($section == "totp" && $token_scopes['profile_management']) {
 		if ($method == "prepareEnable") {
 			if ($uinfo['2fa_active'] == 0) {
 				if (isRateExceeded($section.'-'.$method, $_SERVER['REMOTE_ADDR'], 15, 60)) {
@@ -1355,15 +1347,6 @@ if ($section == "unauth") {
 	}
 
 	if ($section == "easylogin" && $token_scopes['profile_management']) {
-		if ($method == "getEasyLoginInfo") {
-			$return = array(
-				'result' => "OK",
-				'easylogin_active' => $uinfo['easylogin']
-			);
-			echo(json_encode($return));
-			die();
-		}
-
 		if ($method == "enable") {
 			if ($uinfo['easylogin'] == 0) {
 				$login_db->setEasyloginState($user_id, 1);
@@ -1411,12 +1394,10 @@ if ($section == "unauth") {
 				returnError("TIMEOUT");
 			}
 			
-			$user_info = $login_db->getUserInfo($user_id);
-			
-			if ($user_info['easylogin'] != 1) {
+			if ($uinfo['easylogin'] != 1) {
 				returnError("THIS_FEATURE_WAS_DISABLED_BY_OWNER");
 			}
-			if ($user_info['2fa_active'] != 1) {
+			if ($uinfo['2fa_active'] != 1) {
 				returnError("2FA_DISABLED");
 			}
 			

@@ -473,9 +473,7 @@ function choose_tab(tab){
 	}
 	if(tab == "security"){
 		sel_tab.innerHTML = security.textContent;
-		get2FAInfo();
-		getEmailCheck();
-		getEasyLoginInfo();
+		getSecurityInfo();
 		update_state = true;
 	}
 	if(tab == "api"){
@@ -675,80 +673,11 @@ function regenerateSLID(){
 }
 
 function manage_totp(){
-	if(window.totp_active == 0){
+	if(window.security_info.totp == 0){
 		choose_tab('totp_enable_form');
 	}
 	else{
 		choose_tab('totp_disable_form');
-	}
-}
-
-function getEasyLoginInfo(){
-	if(window.easylogin_active == undefined){
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=easylogin&method=getEasyLoginInfo', true);
-		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-		xhr.send();
-		xhr.onload = function (e) {
-			if (xhr.readyState == 4 && xhr.status == 200) {
-				let result = JSON.parse(xhr.responseText);
-				window.easylogin_active = result.easylogin_active;
-				if(result.easylogin_active == 1){
-					easylogin_state.classList.remove('button-primary');
-					easylogin_state.classList.add('button-secondary');
-						
-					easylogin_state.textContent = "Отключить";
-				}
-				else{
-					easylogin_state.classList.remove('button-secondary');
-					easylogin_state.classList.add('button-primary');
-					
-					easylogin_state.textContent = "Включить";
-				}				
-			}
-		}
-	}
-	else{
-		if(window.easylogin_active == 1){
-			easylogin_state.classList.remove('button-primary');
-			easylogin_state.classList.add('button-secondary');
-			
-			easylogin_state.textContent = "Отключить";
-		}
-		else{
-			easylogin_state.classList.remove('button-secondary');
-			easylogin_state.classList.add('button-primary');
-			
-			easylogin_state.textContent = "Включить";
-		}	
-	}
-}
-
-function get2FAInfo(){
-	if(window.totp_active == undefined){
-		xhr2.open('GET', 'api.php?section=totp&method=get2FAInfo', true);
-		xhr2.setRequestHeader("Authorization", "Bearer " + window.token);
-		xhr2.send();
-		xhr2.onload = function (e) {
-			if (xhr2.readyState == 4 && xhr2.status == 200) {
-				let result = JSON.parse(xhr2.responseText);
-				window.totp_active = result.totp_active;
-				if(result.totp_active == 1){
-					totp_state.classList.remove('button-primary');
-					totp_state.classList.add('button-secondary');
-					
-					totp_state.textContent = "Отключить";
-				}
-			}
-		}
-	}
-	else{		
-		if(window.totp_active == 1){
-			totp_state.classList.remove('button-primary');
-			totp_state.classList.add('button-secondary');
-			
-			totp_state.textContent = "Отключить";
-		}
 	}
 }
 
@@ -780,7 +709,7 @@ function proceed_totp_enable(otp){
 			if(result.result == "OK"){
 				choose_tab('totp_completed_form');
 				disable_code.textContent = result.disableCode;
-				window.totp_active = undefined;
+				window.security_info = undefined;
 			}
 			else{
 				if(result.reason == "WRONG_TOTP"){
@@ -807,7 +736,7 @@ function proceed_totp_disable(otp){
 			let result = JSON.parse(xhr.responseText);
 			if(result.result == "OK"){
 				alertify.notify("Вы успешно отключили 2FA!", 'success', 2);
-				window.totp_active = undefined;
+				window.security_info = undefined;
 				choose_tab('security');
 			}
 			else{
@@ -825,49 +754,77 @@ function proceed_totp_disable(otp){
 	}
 }
 
-function getEmailCheck(){
-	if(window.email_state == undefined){
+function getSecurityInfo(){	
+	if(window.security_info == undefined){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=users&method=isEMailCheckEnabled', true);
+		xhr.open('GET', 'api.php?section=security&method=getSecurityInfo', true);
 		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
 			if (xhr.readyState == 4 && xhr.status == 200) {
 				let result = JSON.parse(xhr.responseText);
-				window.email_state = result.state;
-				if(result.state == 1){
+				window.security_info = result;
+				if(result.email_check == 1){
 					email_check.classList.remove('button-primary');
 					email_check.classList.add('button-secondary');
-					
 					email_check.textContent = "Отключить";
 				}
-				if(result.state == 0){
+				if(result.email_check == 0){
 					email_check.classList.remove('button-secondary');
 					email_check.classList.add('button-primary');
-					
 					email_check.textContent = "Включить";
+				}
+				
+				if(result.totp == 1){
+					totp_state.classList.remove('button-primary');
+					totp_state.classList.add('button-secondary');
+					totp_state.textContent = "Отключить";
+				}
+				
+				if(result.easylogin == 1){
+					easylogin_state.classList.remove('button-primary');
+					easylogin_state.classList.add('button-secondary');
+					easylogin_state.textContent = "Отключить";
+				}
+				else{
+					easylogin_state.classList.remove('button-secondary');
+					easylogin_state.classList.add('button-primary');
+					easylogin_state.textContent = "Включить";
 				}
 			}
 		}
 	}
 	else{		
-		if(window.email_state == 1){
+		if(window.security_info.email_check == 1){
 			email_check.classList.remove('button-primary');
 			email_check.classList.add('button-secondary');
-			
 			email_check.textContent = "Отключить";
 		}
-		if(window.email_state == 0){
+		if(window.security_info.email_check == 0){
 			email_check.classList.remove('button-secondary');
 			email_check.classList.add('button-primary');
-			
 			email_check.textContent = "Включить";
 		}
+		if(window.security_info.totp == 1){
+			totp_state.classList.remove('button-primary');
+			totp_state.classList.add('button-secondary');
+			totp_state.textContent = "Отключить";
+		}
+		if(window.security_info.easylogin == 1){
+			easylogin_state.classList.remove('button-primary');
+			easylogin_state.classList.add('button-secondary');
+			easylogin_state.textContent = "Отключить";
+		}
+		else{
+			easylogin_state.classList.remove('button-secondary');
+			easylogin_state.classList.add('button-primary');
+			easylogin_state.textContent = "Включить";
+		}	
 	}
 }
 
 function manage_email(){
-	if(window.email_state == 1){
+	if(window.security_info.email_check == 1){
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', 'api.php?section=users&method=disableEMailCheck', true);
 		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
@@ -882,8 +839,8 @@ function manage_email(){
 					callCaptcha();
 					return;
 				}
-				window.email_state = undefined;
-				getEmailCheck();
+				window.security_info = undefined;
+				getSecurityInfo();
 			}
 		}
 	}
@@ -902,15 +859,15 @@ function manage_email(){
 					callCaptcha();
 					return;
 				}
-				window.email_state = undefined;
-				getEmailCheck();
+				window.security_info = undefined;
+				getSecurityInfo();
 			}
 		}
 	}
 }
 
 function manage_easylogin(){
-	if(window.easylogin_active == 1){
+	if(window.security_info.easylogin == 1){
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', 'api.php?section=easylogin&method=disable', true);
 		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
@@ -926,8 +883,8 @@ function manage_easylogin(){
 						callCaptcha();
 						return;
 					}
-					window.easylogin_active = undefined;
-					getEasyLoginInfo();
+					window.security_info = undefined;
+					getSecurityInfo();
 				}
 			}
 		}
@@ -948,8 +905,8 @@ function manage_easylogin(){
 						callCaptcha();
 						return;
 					}
-					window.easylogin_active = undefined;
-					getEasyLoginInfo();
+					window.security_info = undefined;
+					getSecurityInfo();
 				}
 			}
 		}

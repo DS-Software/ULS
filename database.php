@@ -13,10 +13,10 @@ class database{
 	public function getUserInfo($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
-		$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `user_salt`, `password_hash`, `user_ip`, `api_key_seed`, `SLID`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `easylogin` FROM `users` WHERE `user_id`='$user_id'";
+		$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `user_salt`, `password_hash`, `ip_ver_code`, `user_ip`, `api_key_seed`, `SLID`, `last_sid`, `easylogin`, `email_check`, `2fa_active`, `2fa_secret`, `2fa_disable_code` FROM `users` WHERE `user_id`='$user_id'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $salt, $password_hash, $user_ip, $api_key_seed, $SLID, $totp_active, $totp_secret, $totp_disable_code, $easylogin);
+		$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $salt, $password_hash, $ip_ver_code, $user_ip, $api_key_seed, $SLID, $last_sid, $easylogin, $email_check, $totp_active, $totp_secret, $totp_disable_code);
 		$statement->fetch();
 
 		$user_object = array(
@@ -29,13 +29,16 @@ class database{
 			'verified' => $verified,
 			'salt' => $salt,
 			'password_hash' => $password_hash,
+			'ip_ver_code' => $ip_ver_code,
 			'user_ip' => $user_ip,
 			'api_key_seed' => $api_key_seed,
 			'SLID' => $SLID,
+			'last_sid' => $last_sid,
+			'easylogin' => $easylogin,
+			'email_check' => $email_check,
 			'2fa_active' => $totp_active,
 			'2fa_secret' => $totp_secret,
-			'2fa_disable_code' => $totp_disable_code,
-			'easylogin' => $easylogin
+			'2fa_disable_code' => $totp_disable_code
 		);
 
 		return $user_object;
@@ -362,17 +365,6 @@ class database{
 		return $project;
 	}
 
-	public function getLastSID($user_id){
-		$login_db = $this->ldb;
-		$user_id = $login_db->real_escape_string($user_id);
-		$req = "SELECT `last_sid` FROM `users` WHERE `user_id`='$user_id'";
-		$statement = $login_db->prepare($req);
-		$statement->execute();
-		$statement->bind_result($last_sid);
-		$statement->fetch();
-		return $last_sid;
-	}
-
 	public function setLastSID($user_id, $sid){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
@@ -411,17 +403,6 @@ class database{
 		$code = $login_db->real_escape_string($code);
 		$req = "UPDATE `users` SET `ip_ver_code`='$code' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
-	}
-
-	public function getIPCode($user_id){
-		$login_db = $this->ldb;
-		$user_id = $login_db->real_escape_string($user_id);
-		$req = "SELECT `ip_ver_code` FROM `users` WHERE `user_id`='$user_id'";
-		$statement = $login_db->prepare($req);
-		$statement->execute();
-		$statement->bind_result($last_sid);
-		$statement->fetch();
-		return $last_sid;
 	}
 
 	public function clearIPCode($user_id){
@@ -473,17 +454,6 @@ class database{
 		
 		$req = "DELETE FROM `requests` WHERE `request_ip`='$user_ip' AND `method`='$method'";
 		$login_db->query($req);
-	}
-	
-	public function getEMailCheck($user_id){
-		$login_db = $this->ldb;
-		$user_id = $login_db->real_escape_string($user_id);
-		$req = "SELECT `email_check` FROM `users` WHERE `user_id`='$user_id'";
-		$statement = $login_db->prepare($req);
-		$statement->execute();
-		$statement->bind_result($email_check);
-		$statement->fetch();
-		return $email_check;
 	}
 	
 	public function setEMailCheckState($user_id, $state){
