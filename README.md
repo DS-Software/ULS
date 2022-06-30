@@ -48,6 +48,7 @@ There is a list of all libraries that are used in ULS.
 * PHP TOTP (https://github.com/lfkeitel/php-totp/)
 * Html5-QRCode (https://github.com/mebjas/html5-qrcode)
 * Alertify JS (https://github.com/MohammadYounes/AlertifyJS)
+* KCaptcha (http://www.captcha.ru/kcaptcha/)
 
 ## Contributing & Issues
 When contributing changes to the project, please provide as much detail on the changes. Malicious or meaningless contributions won't be accepted.
