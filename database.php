@@ -3,11 +3,17 @@
 class database{
 	
 	private $ldb;
+	public $success;
 
 	public function __construct($database){
 		$login_db = new mysqli($database['hostname'], $database['login'], $database['password'], $database['dbname']);
+		if ($login_db->connect_errno) {
+			$this->success = false;
+			return;
+		}
 		$this->ldb = $login_db; 
 		$this->ldb->set_charset("utf8mb4");
+		$this->success = true;
 	}
 
 	public function getUserInfo($user_id){
@@ -168,11 +174,10 @@ class database{
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($user_id);
-		$result = false;
 		if ($statement->fetch()) {
-			$result = true;
+			return true;
 		}
-		return $result;
+		return false;
 	}
 
 	public function createELSession($session_key, $session_salt, $ip){
@@ -224,22 +229,23 @@ class database{
 	public function deleteProject($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
-		$req = "DELETE FROM `projects` WHERE `project_id`='$project_id'";
+		$req = "UPDATE `projects` SET `enabled`=0 WHERE `project_id`='$project_id'";
 		$login_db->query($req);
 	}
 
 	public function getUserProjects($owner_id){
 		$login_db = $this->ldb;
 		$owner_id = $login_db->real_escape_string($owner_id);
-		$req = "SELECT `project_id`, `project_name` FROM `projects` WHERE `owner_id`='$owner_id'";
+		$req = "SELECT `project_id`, `project_name`, `enabled` FROM `projects` WHERE `owner_id`='$owner_id'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($project_id, $project_name);
+		$statement->bind_result($project_id, $project_name, $enabled);
 		$projects = [];
 		while ($statement->fetch()) {
 			$projects[$project_id] = array(
 				"project_id" => $project_id,
-				"project_name" => $project_name
+				"project_name" => $project_name,
+				"enabled" => $enabled
 			);
 		}
 		return $projects;
@@ -259,7 +265,7 @@ class database{
 	public function getProjectInfo($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
-		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified` FROM `projects` WHERE `project_id`='$project_id'";
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified` FROM `projects` WHERE `project_id`='$project_id' AND `enabled`=1";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $verified);
@@ -276,6 +282,49 @@ class database{
 		);
 		
 		return $project;
+	}
+	
+	public function getAdminProjectInfo($project_id){
+		$login_db = $this->ldb;
+		$project_id = $login_db->real_escape_string($project_id);
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `owner_id`, `verified`, `enabled` FROM `projects` WHERE `project_id`='$project_id'";
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($project_id, $project_name, $redirect_uri, $owner_id, $verified, $enabled);
+		$project["exists"] = false;
+		if($statement->fetch()){
+			$project = array(
+				"project_id" => $project_id,
+				"project_name" => $project_name,
+				"redirect_uri" => $redirect_uri,
+				"owner_id" => $owner_id,
+				"verified" => $verified,
+				"enabled" => $enabled,
+				"exists" => true
+			);
+		}
+		return $project;
+	}
+	
+	public function adminDeleteProject($project_id){
+		$login_db = $this->ldb;
+		$project_id = $login_db->real_escape_string($project_id);
+		$req = "DELETE FROM `projects` WHERE `project_id`='$project_id'";
+		$login_db->query($req);
+	}
+	
+	public function adminRestoreProject($project_id){
+		$login_db = $this->ldb;
+		$project_id = $login_db->real_escape_string($project_id);
+		$req = "UPDATE `projects` SET `enabled`=1 WHERE `project_id`='$project_id'";
+		$login_db->query($req);
+	}
+	
+	public function adminVerifyProject($project_id){
+		$login_db = $this->ldb;
+		$project_id = $login_db->real_escape_string($project_id);
+		$req = "UPDATE `projects` SET `verified` = IF(`verified`=1, 0, 1) WHERE `project_id`='$project_id'";
+		$login_db->query($req);
 	}
 
 	public function createProject($owner_id, $project_name){
@@ -326,42 +375,24 @@ class database{
 		$login_db->query($req);
 	}
 
-	public function getProjectInfoByPublic($public_key){
-		$login_db = $this->ldb;
-		$public_key = $login_db->real_escape_string($public_key);
-		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified` FROM `projects` WHERE `public_key`='$public_key'";
-		$statement = $login_db->prepare($req);
-		$statement->execute();
-		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $verified);
-		$statement->fetch();
-		$project = array(
-			"project_id" => $project_id,
-			"project_name" => $project_name,
-			"redirect_uri" => $redirect_uri,
-			"secret_key" => $secret_key,
-			"public_key" => $public_key,
-			"owner_id" => $owner_id,
-			"verified" => $verified
-		);
-		return $project;
-	}
-
 	public function getLoginProjectInfo($public_key){
 		$login_db = $this->ldb;
 		$public_key = $login_db->real_escape_string($public_key);
-		$req = "SELECT `project_id`, `project_name`, `secret_key`, `verified` FROM `projects` WHERE `public_key`='$public_key'";
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `verified` FROM `projects` WHERE `public_key`='$public_key' AND `enabled`=1";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($project_id, $project_name, $secret_key, $verified);
+		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $verified);
 		$project["exists"] = false;
-		$statement->fetch();
-		$project = array(
-			"project_id" => $project_id,
-			"project_name" => $project_name,
-			"secret_key" => $secret_key,
-			"verified" => $verified,
-			"exists" => true
-		);
+		if($statement->fetch()){
+			$project = array(
+				"project_id" => $project_id,
+				"project_name" => $project_name,
+				"redirect_uri" => $redirect_uri,
+				"secret_key" => $secret_key,
+				"verified" => $verified,
+				"exists" => true
+			);
+		}
 		return $project;
 	}
 

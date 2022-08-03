@@ -199,6 +199,10 @@ if ($maintenance_mode) {
 
 $login_db = new database($database);
 
+if(!$login_db->success){
+	returnError("MAINTENANCE_MODE");
+}
+
 $method = $_REQUEST['method'];
 $section = strtolower($_REQUEST['section']);
 
@@ -978,7 +982,7 @@ if ($section == "unauth") {
 			}
 
 			$project_public = $_REQUEST['public'];
-			$project = $login_db->getProjectInfoByPublic($project_public);
+			$project = $login_db->getLoginProjectInfo($project_public);
 
 			$scopes = getScopes($_REQUEST['scopes'], $project['verified']);
 
@@ -1604,6 +1608,86 @@ if ($section == "unauth") {
 		
 		if($method == "purgeSessions"){
 			$login_db->cleanupSessions();
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if ($method == "getProjectInfo") {
+			$project = $login_db->getAdminProjectInfo($_REQUEST['project_id']);
+			if(!$project["exists"]){
+				returnError("UNKNOWN_PROJECT");
+			}
+			$return = array(
+				'result' => "OK",
+				'project_id' => $project['project_id'],
+				'project_name' => $project['project_name'],
+				'redirect_uri' => $project['redirect_uri'],
+				'verified' => $project['verified'],
+				'owner_id' => $project['owner_id'],
+				'enabled' => $project['enabled']
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "deleteProject"){
+			$project = $login_db->getAdminProjectInfo($_REQUEST['project_id']);
+			if(!$project["exists"]){
+				returnError("UNKNOWN_PROJECT");
+			}
+			if($project['enabled'] == 0){
+				$login_db->adminDeleteProject($_REQUEST['project_id']);
+				$return = array(
+					'result' => "OK",
+					'description' => 'Success'
+				);
+				echo(json_encode($return));
+				die();
+			}
+			returnError("PROJECT_CANNOT_BE_DELETED");
+		}
+		
+		if($method == "restoreProject"){
+			$project = $login_db->getAdminProjectInfo($_REQUEST['project_id']);
+			if(!$project["exists"]){
+				returnError("UNKNOWN_PROJECT");
+			}
+			if($project['enabled'] == 0){
+				$login_db->adminRestoreProject($_REQUEST['project_id']);
+				$return = array(
+					'result' => "OK",
+					'description' => 'Success'
+				);
+				echo(json_encode($return));
+				die();
+			}
+			returnError("PROJECT_CANNOT_BE_RESTORED");
+		}
+		
+		if($method == "toggleProjectVerify"){
+			$project = $login_db->getAdminProjectInfo($_REQUEST['project_id']);
+			if(!$project["exists"]){
+				returnError("UNKNOWN_PROJECT");
+			}
+			$login_db->adminVerifyProject($_REQUEST['project_id']);
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "resetProject"){
+			$project = $login_db->getAdminProjectInfo($_REQUEST['project_id']);
+			if(!$project["exists"]){
+				returnError("UNKNOWN_PROJECT");
+			}
+			$login_db->changeRedirectURL($project['project_id'], $login_site);
 			$return = array(
 				'result' => "OK",
 				'description' => 'Success'

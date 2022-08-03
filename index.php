@@ -12,23 +12,14 @@
 
 <?php
 require 'config.php';
-
-if($maintenance_mode){
-	?>
-	<div class="login-form">
-		<h1 class="thin-text">Сервис недоступен!</h1>
-		<div class="sep-line"></div>
-		<h2 class="full-width thin-text">В текущий момент сервис недоступен. Подробнее:</h2>
-		<h2 onclick="location.href = '<?php echo($status_page) ?>'" class="a-element">Status Page</h2>
-		<h2 class="thin-text">Извините за причинённые неудобства!</h2>
-	</div>
-	<script>
-	prepare_view();
-	</script>
-	<?php
-	die();
-}
 ?>
+<div class="login-form" style="hidden-el" id="maintenance">
+	<h1 class="thin-text">Сервис недоступен!</h1>
+	<div class="sep-line"></div>
+	<h2 class="full-width thin-text">В текущий момент сервис недоступен. Подробнее:</h2>
+	<h2 onclick="location.href = '<?php echo($status_page) ?>'" class="a-element">Status Page</h2>
+	<h2 class="thin-text">Извините за причинённые неудобства!</h2>
+</div>
 
 <div class="login-form" id="login_form">
 	<h2 class="thin-text"><?php echo(htmlspecialchars($email_info['$project_name'])) ?></h2>
@@ -156,6 +147,10 @@ function checkAPIToken(){
 					location.href = "home.php";
 				}
 				break;
+		}
+		if(access_token.reason = "MAINTENANCE_MODE"){
+			prepare_gui();
+			maintenance.classList.remove('hidden-el');
 		}
 	}
 }

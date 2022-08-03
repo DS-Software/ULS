@@ -81,6 +81,10 @@
 						container.innerHTML += "<div class=\"margin-top-1em middle-text a-element project-clickable\" id=\"" + id + "\"></div>";
 						let handler = document.getElementById(id);
 						handler.textContent = element.project_name;
+						if(element.enabled == 0){
+							handler.textContent += " [ID: " + element.project_id + "]";
+						}
+						
 						handler.dataset.id = element.project_id;
 					}
 				);

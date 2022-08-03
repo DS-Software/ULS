@@ -251,10 +251,104 @@ function close_sidebar(){
 			</span>&nbsp;&nbsp;&nbsp;
 			<button class="button-primary float-right" onclick="purgeSessions()">Очистить</button><br><br>
 			<span class="hint-text">Очистит таблицу сессий EasyLogin, что приведёт к аннулированию предыдущих сессий.</span>
+			<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-gear content-icon"></i>
+				<span>Управление Проектом</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="choose_tab('admin_project')">Продолжить</button><br><br>
+			<span class="hint-text">Управление проектом от имени администратора.</span>
+			<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-user content-icon"></i>
+				<span>Управление Пользователем</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="choose_tab('admin_user')">Продолжить</button><br><br>
+			<span class="hint-text">Управление аккаунтом пользователя от имени администратора.</span>
 		</div>
 		<br>
 	</div>
 	
+	<div id="admin_user">
+		<div class="data-prompt align-center">
+			<br>
+			<h1 class="thin-text">Управление Пользователем</h1>
+			<div class="full-width">
+				<div class="align-left icon">
+					<i class="fa-solid fa-key"></i>
+				</div>
+				<span class="input-placeholder">ID Пользователя</span>
+				<input class="text-input max-width input-field-decoration" id="user_id" autocomplete="off">
+			</div>
+			<div class="align-left full-width">
+				<button class="button-primary" onclick="admin_user_info(user_id.value)">Продолжить</button>
+				<button class="button-primary float-right" onclick="choose_tab('admin')">Вернуться</button>
+			</div>
+			<br><br>
+		</div>
+		<br>
+	</div>
+	<div id="admin_project">
+		<div class="data-prompt align-center">
+			<br>
+			<h1 class="thin-text">Управление Проектом</h1>
+			<div class="full-width">
+				<div class="align-left icon">
+					<i class="fa-solid fa-key"></i>
+				</div>
+				<span class="input-placeholder">ID Проекта</span>
+				<input class="text-input max-width input-field-decoration" id="project_id" autocomplete="off">
+			</div>
+			<div class="align-left full-width">
+				<button class="button-primary" onclick="admin_project_info(project_id.value)">Продолжить</button>
+				<button class="button-primary float-right" onclick="choose_tab('admin')">Вернуться</button>
+			</div>
+			<br><br>
+		</div>
+		<br>
+	</div>
+	<div id="admin_project_actions">
+		<div class="user-overview">
+			<span id="project_name" class="middle-text"></span><br>
+			<span id="redirect_uri"></span><br>
+			<span id="owner_id"></span>
+		</div>
+		<h2 class="thin-text">Управление Проектом</h2>
+		<div class="data-container">
+			<span class="middle-text">
+				<i class="fa-solid fa-trash-can content-icon"></i>
+				<span>Удалить Проект</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_delete_project()" id="delete_project">Удалить</button><br><br>
+			<span class="hint-text">Окончательно удаляет проект.<br>Доступно только после удаления проекта пользователем.</span>
+		<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-trash-can-arrow-up content-icon"></i>
+				<span>Восстановить Проект</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_restore_project()" id="restore_project">Восстановить</button><br><br>
+			<span class="hint-text">Восстанавливает проект.<br>Доступно только после удаления проекта пользователем.</span>
+		<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-circle-check content-icon"></i>
+				<span>Подтвердить Проект</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_verify_project()" id="verify_project">Подтвердить</button><br><br>
+			<span class="hint-text">Подтверждает проект.<br>Проект получит статус Verified и дополнительные права доступа.</span>
+		<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-redo content-icon"></i>
+				<span>Сбросить URL Перенаправления</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_reset_project()" id="reset_project">Сбросить</button><br><br>
+			<span class="hint-text">Сбрасывает URL Перенаправления Проекта<br>Используется для приостановки деятельности проекта.</span>
+		<br>
+		<div class="full-width">
+			<button class="button-primary max-width" onclick="choose_tab('admin_project')">Вернуться</button>
+		</div>
+		</div>
+		<br><br>
+	</div>
 	<div id="email_change_form">
 		<div class="data-prompt align-center">
 			<br>
@@ -517,6 +611,18 @@ function choose_tab(tab){
 	if(tab == "totp_disable_form"){
 		sel_tab.innerHTML = totp_disable_form.textContent;
 	}
+	if(tab == "admin_project" && window.is_admin){
+		sel_tab.innerHTML = admin_project.textContent;
+	}
+	if(tab == "admin_project_actions" && window.is_admin){
+		sel_tab.innerHTML = admin_project_actions.textContent;
+	}
+	if(tab == "admin_user" && window.is_admin){
+		sel_tab.innerHTML = admin_user.textContent;
+	}
+	if(tab == "admin_user_actions" && window.is_admin){
+		sel_tab.innerHTML = admin_user_actions.textContent;
+	}
 	prepare_view();
 }
 	
@@ -541,6 +647,172 @@ function load_admin_stats(){
 					sessions.textContent = result.sessions;
 					requests.textContent = result.requests;
 				}	
+			}
+		}
+	}
+}
+
+function admin_project_info(project_id){
+	if(window.is_admin){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=getProjectInfo&project_id=' + project_id, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					choose_tab("admin_project_actions");
+					project_name.textContent = result.project_name;
+					if(result.verified == 1){
+						verify_project.classList.add('button-secondary');
+						verify_project.classList.remove('button-primary');
+						verify_project.textContent = "Отозвать";
+						
+						let verification_mark = "&nbsp;<span class=\"verify_mark\">Verified</span>";
+						project_name.innerHTML += verification_mark;
+					}
+					else{
+						verify_project.classList.add('button-primary');
+						verify_project.classList.remove('button-secondary');
+						verify_project.textContent = "Подтвердить";
+					}
+					redirect_uri.textContent = result.redirect_uri;
+					owner_id.textContent = "ID Владельца: " + result.owner_id;
+					window.admin_current_project = project_id;
+					window.admin_project_state = result.enabled;
+					if(window.admin_project_state != 0){
+						delete_project.classList.add('button-secondary');
+						delete_project.classList.remove('button-primary');
+						
+						restore_project.classList.add('button-secondary');
+						restore_project.classList.remove('button-primary');
+					}
+				}
+				else{
+					choose_tab("admin_project");
+					alertify.notify("Такого проекта не существует, либо он был удалён.", 'error', 5);
+				}
+			}
+		}
+	}
+}
+
+function admin_user_info(user_id){
+	if(window.is_admin){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=getUserInfo&user_id=' + user_id, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					choose_tab("admin_user_actions");
+					project_name.textContent = result.project_name;
+					if(result.verified == 1){
+						verify_project.classList.add('button-secondary');
+						verify_project.classList.remove('button-primary');
+						verify_project.textContent = "Отозвать";
+						
+						let verification_mark = "&nbsp;<span class=\"verify_mark\">Verified</span>";
+						project_name.innerHTML += verification_mark;
+					}
+					else{
+						verify_project.classList.add('button-primary');
+						verify_project.classList.remove('button-secondary');
+						verify_project.textContent = "Подтвердить";
+					}
+					redirect_uri.textContent = result.redirect_uri;
+					owner_id.textContent = "ID Владельца: " + result.owner_id;
+					window.admin_current_project = project_id;
+					window.admin_project_state = result.enabled;
+					if(window.admin_project_state != 0){
+						delete_project.classList.add('button-secondary');
+						delete_project.classList.remove('button-primary');
+						
+						restore_project.classList.add('button-secondary');
+						restore_project.classList.remove('button-primary');
+					}
+				}
+				else{
+					choose_tab("admin_user");
+					alertify.notify("Пользователя с указанным ID не существует!", 'error', 5);
+				}
+			}
+		}
+	}
+}
+
+function admin_delete_project(){
+	if(window.is_admin && window.admin_project_state == 0){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=deleteProject&project_id=' + window.admin_current_project, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					choose_tab("admin_project");
+				}
+				else{
+					alertify.notify("Этот проект не может быть удалён!", 'error', 5);
+				}
+			}
+		}
+	}
+}
+
+function admin_restore_project(){
+	if(window.is_admin && window.admin_project_state == 0){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=restoreProject&project_id=' + window.admin_current_project, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					choose_tab("admin_project");
+				}
+				else{
+					alertify.notify("Этот проект не может быть восстановлен!", 'error', 5);
+				}
+			}
+		}
+	}
+}
+
+function admin_verify_project(){
+	if(window.is_admin){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=toggleProjectVerify&project_id=' + window.admin_current_project, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					admin_project_info(window.admin_current_project);
+				}
+			}
+		}
+	}
+}
+
+function admin_reset_project(){
+	if(window.is_admin){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=resetProject&project_id=' + window.admin_current_project, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					admin_project_info(window.admin_current_project);
+				}
 			}
 		}
 	}
