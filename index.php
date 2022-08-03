@@ -13,7 +13,7 @@
 <?php
 require 'config.php';
 ?>
-<div class="login-form" style="hidden-el" id="maintenance">
+<div class="login-form hidden-el" id="maintenance">
 	<h1 class="thin-text">Сервис недоступен!</h1>
 	<div class="sep-line"></div>
 	<h2 class="full-width thin-text">В текущий момент сервис недоступен. Подробнее:</h2>
@@ -148,7 +148,7 @@ function checkAPIToken(){
 				}
 				break;
 		}
-		if(access_token.reason = "MAINTENANCE_MODE"){
+		if(access_token.reason == "MAINTENANCE_MODE"){
 			prepare_gui();
 			maintenance.classList.remove('hidden-el');
 		}
