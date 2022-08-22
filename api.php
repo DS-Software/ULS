@@ -2,6 +2,8 @@
 require_once 'config.php';
 require_once 'database.php';
 
+header('Content-Type: application/json');
+
 function returnError($message){
 	$error = array(
 		'result' => 'FAULT',
@@ -254,6 +256,10 @@ if ($section == "unauth") {
 					die();
 				}
 			}
+			
+			if($user_info['is_banned'] == 1 && !$allowed_admins[$user_id]){
+				returnError("ACCOUNT_BANNED");
+			}
 
 			$scopes = getScopes(['profile_management' => ''], 1, true);
 			$at_seed = bin2hex(random_bytes(32));
@@ -311,6 +317,16 @@ if ($section == "unauth") {
 			}
 		} else {
 			returnError('WRONG_CREDENTIALS');
+		}
+		
+		if($user_info['is_banned'] == 1 && !$allowed_admins[$log_user_id]){
+			$return = array(
+				'result' => 'FAULT',
+				'reason' => 'ACCOUNT_BANNED',
+				'support' => "$support"
+			);
+			echo(json_encode($return));
+			die();
 		}
 
 		$needs_email_check = $user_info['email_check'];
@@ -965,6 +981,10 @@ if ($section == "unauth") {
 
 	if (!hasFinishedRegister($uinfo) && $section != "register") {
 		returnError("UNFINISHED_REG");
+	}
+	
+	if ($uinfo['is_banned'] == 1 && !$allowed_admins[$user_id]) {
+		returnError("ACCOUNT_BANNED");
 	}
 
 	if ($section == "projects" && $token_scopes['profile_management']) {
@@ -1688,6 +1708,139 @@ if ($section == "unauth") {
 				returnError("UNKNOWN_PROJECT");
 			}
 			$login_db->changeRedirectURL($project['project_id'], $login_site);
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if ($method == "getUserInfo") {
+			if(is_numeric($_REQUEST['email'])){
+				$test_user_id = $_REQUEST['email'];
+			}
+			else{
+				$test_user_id = $login_db->getUIDByEMail($_REQUEST['email']);
+			}
+			if($test_user_id == ""){
+				returnError("UNKNOWN_USER");
+			}
+			$user = $login_db->getUserInfo($test_user_id);
+			$is_admin = false;
+			if($allowed_admins[$user['user_id']]){
+				$is_admin = true;
+			}
+			$return = array(
+				'result' => "OK",
+				'user_id' => $user['user_id'],
+				'user_nick' => $user['user_nick'],
+				'user_email' => $user['user_email'],
+				'user_name' => $user['user_name'],
+				'user_surname' => $user['user_surname'],
+				'verified' => $user['verified'],
+				'easylogin' => $user['easylogin'],
+				'email_check' => $user['email_check'],
+				'2fa_active' => $user['2fa_active'],
+				'admin' => $is_admin,
+				'is_banned' => $user['is_banned'],
+				'ban_reason' => $user['ban_reason']
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "toggleUserVerify"){
+			$user = $login_db->getUserInfo($_GET['user_id']);
+			if($user['user_id'] == ""){
+				returnError("UNKNOWN_USER");
+			}
+			if($allowed_admins[$user['user_id']]){
+				returnError("UNABLE_TO_TOGGLE_VERIFY");
+			}
+			$login_db->adminVerifyUser($user['user_id']);
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "resetUserPassword"){
+			$user = $login_db->getUserInfo($_GET['user_id']);
+			if($user['user_id'] == ""){
+				returnError("UNKNOWN_USER");
+			}
+			if($allowed_admins[$user['user_id']]){
+				returnError("UNABLE_TO_MANAGE_USER");
+			}
+			$login_db->changeUserPassword($user['user_id'], "");
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "resetUserIP"){
+			$user = $login_db->getUserInfo($_GET['user_id']);
+			if($user['user_id'] == ""){
+				returnError("UNKNOWN_USER");
+			}
+			if($allowed_admins[$user['user_id']]){
+				returnError("UNABLE_TO_MANAGE_USER");
+			}
+			$login_db->setUserIP($user['user_id'], "");
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "resetUserSLID"){
+			$user = $login_db->getUserInfo($_GET['user_id']);
+			if($user['user_id'] == ""){
+				returnError("UNKNOWN_USER");
+			}
+			if($allowed_admins[$user['user_id']]){
+				returnError("UNABLE_TO_MANAGE_USER");
+			}
+			$login_db->regenerateSLID($user['user_id']);
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "banUser"){
+			$user = $login_db->getUserInfo($_GET['user_id']);
+			if($user['user_id'] == ""){
+				returnError("UNKNOWN_USER");
+			}
+			if($allowed_admins[$user['user_id']]){
+				returnError("UNABLE_TO_MANAGE_USER");
+			}
+			$login_db->banUser($user['user_id'], $_GET['reason']);
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if($method == "unbanUser"){
+			$user = $login_db->getUserInfo($_GET['user_id']);
+			if($user['user_id'] == ""){
+				returnError("UNKNOWN_USER");
+			}
+			$login_db->unbanUser($user['user_id']);
 			$return = array(
 				'result' => "OK",
 				'description' => 'Success'

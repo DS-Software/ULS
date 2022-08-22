@@ -19,10 +19,10 @@ class database{
 	public function getUserInfo($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
-		$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `user_salt`, `password_hash`, `ip_ver_code`, `user_ip`, `api_key_seed`, `SLID`, `last_sid`, `easylogin`, `email_check`, `2fa_active`, `2fa_secret`, `2fa_disable_code` FROM `users` WHERE `user_id`='$user_id'";
+		$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `user_salt`, `password_hash`, `ip_ver_code`, `user_ip`, `api_key_seed`, `SLID`, `last_sid`, `easylogin`, `email_check`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `is_banned`, `ban_reason` FROM `users` WHERE `user_id`='$user_id'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $salt, $password_hash, $ip_ver_code, $user_ip, $api_key_seed, $SLID, $last_sid, $easylogin, $email_check, $totp_active, $totp_secret, $totp_disable_code);
+		$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $salt, $password_hash, $ip_ver_code, $user_ip, $api_key_seed, $SLID, $last_sid, $easylogin, $email_check, $totp_active, $totp_secret, $totp_disable_code, $is_banned, $ban_reason);
 		$statement->fetch();
 
 		$user_object = array(
@@ -44,7 +44,9 @@ class database{
 			'email_check' => $email_check,
 			'2fa_active' => $totp_active,
 			'2fa_secret' => $totp_secret,
-			'2fa_disable_code' => $totp_disable_code
+			'2fa_disable_code' => $totp_disable_code,
+			'is_banned' => $is_banned,
+			'ban_reason' => $ban_reason
 		);
 
 		return $user_object;
@@ -326,6 +328,13 @@ class database{
 		$req = "UPDATE `projects` SET `verified` = IF(`verified`=1, 0, 1) WHERE `project_id`='$project_id'";
 		$login_db->query($req);
 	}
+	
+	public function adminVerifyUser($user_id){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+		$req = "UPDATE `users` SET `verified` = IF(`verified`=1, 0, 1) WHERE `user_id`='$user_id'";
+		$login_db->query($req);
+	}
 
 	public function createProject($owner_id, $project_name){
 		$login_db = $this->ldb;
@@ -492,6 +501,23 @@ class database{
 		$user_id = $login_db->real_escape_string($user_id);
 		$state = $login_db->real_escape_string($state);
 		$req = "UPDATE `users` SET `email_check`='$state' WHERE `user_id`='$user_id'";
+		$login_db->query($req);
+	}
+	
+	public function banUser($user_id, $reason){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+		$reason = $login_db->real_escape_string($reason);
+
+		$req = "UPDATE `users` SET `is_banned`='1', `ban_reason`='$reason' WHERE `user_id`='$user_id'";
+		$login_db->query($req);
+	}
+	
+	public function unbanUser($user_id){
+		$login_db = $this->ldb;
+		$user_id = $login_db->real_escape_string($user_id);
+
+		$req = "UPDATE `users` SET `is_banned`='0', `ban_reason`='' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
 	

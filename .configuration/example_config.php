@@ -60,6 +60,7 @@
 
 	$login_site = "https://example.com/login";
 	$status_page = "https://status.example.com/";
+	$support = "Either support link or EMail address.";
 	
 	$domain_name = "/"; /*    / is default  */
 	

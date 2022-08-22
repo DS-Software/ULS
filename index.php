@@ -189,6 +189,9 @@ function login(user_login, password){
 			if(auth_result.reason == 'DISPOSABLE_EMAIL'){
 				alertify.notify("Данная почта не может быть использована для входа!", 'error', 5);
 			}
+			if(auth_result.reason == 'ACCOUNT_BANNED'){
+				alertify.notify("Данный аккаунт был заблокирован Администрацией проекта. Больше информации: " + auth_result.support, 'error', 5);
+			}
 			if(auth_result.reason == "RATE_LIMIT_EXCEEDED"){
 				window.failed_request = function(){
 					login(user_login, password);

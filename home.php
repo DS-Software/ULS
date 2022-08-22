@@ -277,17 +277,73 @@ function close_sidebar(){
 				<div class="align-left icon">
 					<i class="fa-solid fa-key"></i>
 				</div>
-				<span class="input-placeholder">ID Пользователя</span>
-				<input class="text-input max-width input-field-decoration" id="user_id" autocomplete="off">
+				<span class="input-placeholder">EMail Пользователя или ID</span>
+				<input class="text-input max-width input-field-decoration" id="user_email" autocomplete="off">
 			</div>
 			<div class="align-left full-width">
-				<button class="button-primary" onclick="admin_user_info(user_id.value)">Продолжить</button>
+				<button class="button-primary" onclick="admin_user_info(user_email.value)">Продолжить</button>
 				<button class="button-primary float-right" onclick="choose_tab('admin')">Вернуться</button>
 			</div>
 			<br><br>
 		</div>
 		<br>
 	</div>
+	<div id="admin_user_actions">
+		<div class="user-overview">
+			<span id="user_name" class="middle-text"></span><br>
+			<span id="admin_email"></span><br>
+			<span id="admin_id"></span>
+		</div>
+		<h2 class="thin-text">Управление Пользователем</h2>
+		<div class="data-container">
+			<span class="middle-text">
+				<i class="fa-solid fa-circle-check content-icon"></i>
+				<span>Подтвердить Пользователя</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_verify_user()" id="verify_user">Подтвердить</button><br><br>
+			<span class="hint-text">Подтверждает пользователя.<br>Пользователь получит статус Verified и дополнительные права.</span>
+		<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-redo content-icon"></i>
+				<span>Сбросить Пароль</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_reset_user_password()">Выполнить</button><br><br>
+			<span class="hint-text">Сбрасывает пароль пользователя.<br>Пользователь сможет войти только после восстановления пароля.</span>
+		<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-redo content-icon"></i>
+				<span>Сбросить IP Адрес</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_reset_user_ip()">Выполнить</button><br><br>
+			<span class="hint-text">Сбрасывает последний IP пользователя.<br>Пользователь сможет войти только после прохождения проверки по почте.</span>
+		<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-redo content-icon"></i>
+				<span>Сбросить SLID</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_reset_user_slid()">Выполнить</button><br><br>
+			<span class="hint-text">Сбрасывает SLID пользователя.<br>Все сеансы пользователя станут недействительными.</span>
+		<br><br>
+			<span class="middle-text">
+				<i class="fa-solid fa-ban content-icon"></i>
+				<span>Заблокировать Аккаунт</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_ban_user()" id="ban_user">Заблокировать</button><br><br>
+			<span class="hint-text">Аккаунт пользователя будет заблокирован.<br>Пользователь не сможет производить операций с аккаунтом и входить при помощи ULS.<span id="current_ban_reason" class="hidden-el"><br>Причина Блокировки: </span></span>
+		<br>
+			<h2 class="thin-text">Функции Безопасности</h2>
+			<div class="align-center">
+				<button class="button-primary" id="sec_totp">2FA (Enabled)</button>&nbsp;
+				<button class="button-primary" id="sec_easylogin">EasyLogin (Enabled)</button>&nbsp;
+				<button class="button-primary" id="sec_emailcheck">EMail Check (Enabled)</button>
+			</div>
+		<br>
+		<div class="full-width">
+			<button class="button-primary max-width" onclick="choose_tab('admin_user')">Вернуться</button>
+		</div>
+		</div>
+		<br><br>
+	</div>	
 	<div id="admin_project">
 		<div class="data-prompt align-center">
 			<br>
@@ -698,10 +754,10 @@ function admin_project_info(project_id){
 	}
 }
 
-function admin_user_info(user_id){
+function admin_user_info(user_email){
 	if(window.is_admin){
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=admin&method=getUserInfo&user_id=' + user_id, true);
+		xhr.open('GET', 'api.php?section=admin&method=getUserInfo&email=' + user_email, true);
 		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
@@ -709,40 +765,225 @@ function admin_user_info(user_id){
 				let result = JSON.parse(xhr.responseText);
 				if(result.result == "OK"){
 					choose_tab("admin_user_actions");
-					project_name.textContent = result.project_name;
-					if(result.verified == 1){
-						verify_project.classList.add('button-secondary');
-						verify_project.classList.remove('button-primary');
-						verify_project.textContent = "Отозвать";
+					user_name.textContent = result.user_name + " " + result.user_surname + " (" + result.user_nick + ")";
+					admin_email.textContent = result.user_email;
+					admin_id.textContent = "ID: " + result.user_id;
+					
+					let verification_mark = "";
+					
+					ban_user.classList.remove('button-secondary');
+					ban_user.classList.add('button-primary');
+					ban_user.textContent = "Заблокировать";
+					current_ban_reason.classList.add('hidden-el');
+					
+					if(result.is_banned == 1){
+						ban_user.classList.add('button-secondary');
+						ban_user.classList.remove('button-primary');
+						ban_user.textContent = "Разблокировать";
 						
-						let verification_mark = "&nbsp;<span class=\"verify_mark\">Verified</span>";
-						project_name.innerHTML += verification_mark;
+						current_ban_reason.classList.remove('hidden-el');
+						current_ban_reason.textContent = "Причина Блокировки: " + result.ban_reason;
+						current_ban_reason.innerHTML = "<br>" + current_ban_reason.innerHTML;
+					}
+					
+					verify_user.classList.remove('button-secondary');
+					verify_user.classList.add('button-primary');
+					verify_user.textContent = "Подтвердить";
+					
+					if(result.verified == 1){
+						verify_user.classList.add('button-secondary');
+						verify_user.classList.remove('button-primary');
+						verify_user.textContent = "Отозвать";
+						
+						verification_mark = "&nbsp;<span class=\"verify_mark\">Verified</span>";
+					}
+					
+					if(result.admin){
+						verify_user.classList.add('button-secondary');
+						verify_user.classList.remove('button-primary');
+						verify_user.textContent = "Администратор";
+						
+						verification_mark = "&nbsp;<span class=\"verify_mark\">Administrator</span>";
+					}
+					
+					if(result['2fa_active'] != 1){
+						sec_totp.classList.add('button-secondary');
+						sec_totp.classList.remove('button-primary');
+						sec_totp.textContent = "2FA (Disabled)";
 					}
 					else{
-						verify_project.classList.add('button-primary');
-						verify_project.classList.remove('button-secondary');
-						verify_project.textContent = "Подтвердить";
+						sec_totp.classList.remove('button-secondary');
+						sec_totp.classList.add('button-primary');
+						sec_totp.textContent = "2FA (Enabled)";
 					}
-					redirect_uri.textContent = result.redirect_uri;
-					owner_id.textContent = "ID Владельца: " + result.owner_id;
-					window.admin_current_project = project_id;
-					window.admin_project_state = result.enabled;
-					if(window.admin_project_state != 0){
-						delete_project.classList.add('button-secondary');
-						delete_project.classList.remove('button-primary');
-						
-						restore_project.classList.add('button-secondary');
-						restore_project.classList.remove('button-primary');
+					
+					if(result['easylogin'] != 1){
+						sec_easylogin.classList.add('button-secondary');
+						sec_easylogin.classList.remove('button-primary');
+						sec_easylogin.textContent = "EasyLogin (Disabled)";
 					}
+					else{
+						sec_easylogin.classList.remove('button-secondary');
+						sec_easylogin.classList.add('button-primary');
+						sec_easylogin.textContent = "EasyLogin (Enabled)";
+					}
+					
+					if(result['email_check'] != 1){
+						sec_emailcheck.classList.add('button-secondary');
+						sec_emailcheck.classList.remove('button-primary');
+						sec_emailcheck.textContent = "EMail Check (Disabled)";
+					}
+					else{
+						sec_emailcheck.classList.remove('button-secondary');
+						sec_emailcheck.classList.add('button-primary');
+						sec_emailcheck.textContent = "EMail Check (Enabled)";
+					}
+					
+					window.admin_user_result = result;
+					user_name.innerHTML += verification_mark;
 				}
 				else{
 					choose_tab("admin_user");
-					alertify.notify("Пользователя с указанным ID не существует!", 'error', 5);
+					alertify.notify("Пользователя с указанной почтой / ID не существует!", 'error', 5);
 				}
 			}
 		}
 	}
 }
+
+function admin_verify_user(){
+	if(window.is_admin){
+		if(window.admin_user_result.admin){
+			alertify.notify("Подтверждение Администратора не может быть отозвано!", 'warning', 5);
+			return;
+		}
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=toggleUserVerify&user_id=' + window.admin_user_result.user_id, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					admin_user_info(window.admin_user_result.user_email);
+				}
+			}
+		}
+	}
+}
+
+function admin_reset_user_password(){
+	if(window.is_admin){
+		if(window.admin_user_result.admin){
+			alertify.notify("Данное действие не может быть выполнено с аккаунтом администратора.", 'warning', 5);
+			return;
+		}
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=resetUserPassword&user_id=' + window.admin_user_result.user_id, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					alertify.notify("Действие было успешно выполнено.", 'success', 5);
+					admin_user_info(window.admin_user_result.user_email);
+				}
+			}
+		}
+	}
+}
+
+function admin_reset_user_ip(){
+	if(window.is_admin){
+		if(window.admin_user_result.admin){
+			alertify.notify("Данное действие не может быть выполнено с аккаунтом администратора.", 'warning', 5);
+			return;
+		}
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=resetUserIP&user_id=' + window.admin_user_result.user_id, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					alertify.notify("Действие было успешно выполнено.", 'success', 5);
+					admin_user_info(window.admin_user_result.user_email);
+				}
+			}
+		}
+	}
+}
+
+function admin_reset_user_slid(){
+	if(window.is_admin){
+		if(window.admin_user_result.admin){
+			alertify.notify("Данное действие не может быть выполнено с аккаунтом администратора.", 'warning', 5);
+			return;
+		}
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=admin&method=resetUserSLID&user_id=' + window.admin_user_result.user_id, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					alertify.notify("Действие было успешно выполнено.", 'success', 5);
+					admin_user_info(window.admin_user_result.user_email);
+				}
+			}
+		}
+	}
+}
+
+function admin_ban_user(){
+	if(window.is_admin){
+		if(window.admin_user_result.admin && window.admin_user_result.is_banned == 0){
+			alertify.notify("Данное действие не может быть выполнено с аккаунтом администратора.", 'warning', 5);
+			return;
+		}
+		if(window.admin_user_result.is_banned == 0){
+			alertify.prompt('Причина', 'Укажите причину блокировки:', '',
+				function(evt, value){
+					var xhr = new XMLHttpRequest();
+					xhr.open('GET', 'api.php?section=admin&method=banUser&user_id=' + window.admin_user_result.user_id + "&reason=" + encodeURIComponent(value), true);
+					xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+					xhr.send();
+					xhr.onload = function (e) {
+						if (xhr.readyState == 4 && xhr.status == 200) {
+							let result = JSON.parse(xhr.responseText);
+							if(result.result == "OK"){
+								alertify.notify("Действие было успешно выполнено.", 'success', 5);
+								admin_user_info(window.admin_user_result.user_email);
+							}
+						}
+					}
+				},
+				function(){
+					return;
+				}
+			);
+		}
+		else{
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', 'api.php?section=admin&method=unbanUser&user_id=' + window.admin_user_result.user_id, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+			xhr.send();
+			xhr.onload = function (e) {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+					let result = JSON.parse(xhr.responseText);
+					if(result.result == "OK"){
+						alertify.notify("Действие было успешно выполнено.", 'success', 5);
+						admin_user_info(window.admin_user_result.user_email);
+					}
+				}
+			}
+		}
+	}
+}
+
 
 function admin_delete_project(){
 	if(window.is_admin && window.admin_project_state == 0){

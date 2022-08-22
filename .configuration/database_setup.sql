@@ -9,7 +9,8 @@ CREATE TABLE `projects` (
   `secret_key` text NOT NULL,
   `public_key` text NOT NULL,
   `owner_id` int(11) NOT NULL,
-  `verified` int(11) NOT NULL
+  `verified` int(11) NOT NULL,
+  `enabled` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `requests` (
@@ -48,7 +49,9 @@ CREATE TABLE `users` (
   `email_check` int(11) NOT NULL DEFAULT 1,
   `2fa_active` int(11) NOT NULL DEFAULT 0,
   `2fa_secret` text DEFAULT NULL,
-  `2fa_disable_code` text DEFAULT NULL
+  `2fa_disable_code` text DEFAULT NULL,
+  `is_banned` int(11) NOT NULL DEFAULT 0,
+  `ban_reason` text NOT NULL DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE `projects`
@@ -64,14 +67,14 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`user_id`);
 
 ALTER TABLE `projects`
-  MODIFY `project_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `project_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `requests`
-  MODIFY `request_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `request_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `sessions`
-  MODIFY `session_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `session_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `users`
-  MODIFY `user_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `user_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 COMMIT;
