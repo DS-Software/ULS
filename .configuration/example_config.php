@@ -3,7 +3,7 @@
 	$scope_desc = array(
 		'auth' => array(
 			"name" => "Проверка Данных",
-			"description" => "• Приложение узнает ваш ключ авторизации."
+			"description" => "• Приложение узнает ваш Ключ Доступа Пользователя."
 		),
 		'email' => array(
 			"name" => "Доступ к общей информации",
@@ -17,29 +17,33 @@
 			"name" => "Управление Аккаунтом",
 			"description" => "• Приложение сможет управлять вашим аккаунтом!"
 		),
+		'admin' => array(
+			"name" => "Доступ к управлению ULS",
+			"description" => "• Приложение сможет управлять ULS!"
+		)
 	);
 
-	function getScopes($scope_text, $infinite=1){
-		global $scope_desc;
-		$scopes = array_fill_keys(array_keys($scope_desc), false);
-		$scopes['auth'] = true;
+	function getScopes($expl_scopes, $infinite=0, $admin_required=false){
+		$scopes = array(
+			'auth' => true,
+			'email' => false,
+			'personal' => false,
+			'profile_management' => false,
+			'admin' => false
+		);
 		
-		$expl_scopes = explode(",", $scope_text);
-			
-		if(in_array("personal", $expl_scopes)){
+		if(isset($expl_scopes["personal"])){
 			$scopes['personal'] = true;
 		}
-		if(in_array("email", $expl_scopes)){
+		if(isset($expl_scopes["email"])){
 			$scopes['email'] = true;
 		}
-		if(in_array("profile_management", $expl_scopes) && $infinite == 1){
+		if(isset($expl_scopes["profile_management"]) && $infinite == 1){
 			$scopes['profile_management'] = true;
 		}
-		if(in_array("all", $expl_scopes)){
-			$scopes = array_fill_keys(array_keys($scopes), true);
-			if($infinite != 1){
-				$scopes['profile_management'] = false;
-			}
+		
+		if($admin_required){
+			$scopes['admin'] = true;
 		}
 		
 		return $scopes;
@@ -48,17 +52,21 @@
 	if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) { $_SERVER['REMOTE_ADDR'] = $_SERVER['HTTP_CF_CONNECTING_IP']; }
 	
 	$maintenance_mode = false;
-
-	$spam_provider = "https://spam.ds-software.xyz/api/?email=";
+	
+	$spam_check = true;
+	$spam_provider = "https://disposable.debounce.io/?email=";
+	
+	$captcha_required = true;
 
 	$login_site = "https://example.com/login";
 	$status_page = "https://status.example.com/";
+	$support = "Either support link or EMail address.";
 	
 	$domain_name = "/"; /*    / is default  */
 	
 	$session_length = 32;
 	
-	$service_key = "Very_Long_Service_Key"
+	$service_key = "Very_Long_Service_Key";
 	
 	$encryption_key = "Long_Key_For_AES_Encryption.";
 	
@@ -85,4 +93,8 @@
 		'password' => 'SMTP Password'
 	);
 	
+	$enable_creation = true;
+	$int_url = $login_site . "/apps";
+	
+	$allowed_admins = []; // [1 => true] ([USER_ID => true])
 ?>

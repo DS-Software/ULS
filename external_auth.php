@@ -1,71 +1,50 @@
-<?php
-	require 'config.php';
-	
-	$scopes = getScopes($_GET['scopes']);
-?>
-
-
-<link href="style.css" rel="stylesheet" type="text/css">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
+<link href="libs/alertify.min.css" rel="stylesheet">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
+<script src="libs/main.js"></script>
+<script src="libs/captcha_utils.php"></script>
+<script src="libs/alertify.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>Авторизация</title>
 
-<link href="libs/alertify.min.css" rel="stylesheet">
-<script src="libs/alertify.min.js"></script>
+<script>
+	window.params = (new URL(document.location)).searchParams;
+	let solid_scopes = "auth," + window.params.get("scopes");
+	
+	window.scopes = solid_scopes.split(",");
+</script>
 
-<div id="action_required" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display:none;">
-	<iframe style="border: 0px; width: 100%; height: 100%;" id="action"></iframe>
+<div id="action_required" class="hidden-el overlap">
+	<iframe class="full-screen" id="action"></iframe>
 </div>
 
-<div id="main_module" class="main_module" style="display: none;">
-	<h1>Авторизация</h1>
-	<form id="el_form" action="javascript:void('')">
-		<h2 class="center" style="width: 90%; margin-bottom: 0; padding-bottom: 0;" id="project_name"></h2>
-		<h2 class="center" style="width: 90%; margin-top: 0; padding-top: 0;">запрашивает доступ к вашему аккаунту.</h2>
-		
-		<div class="center" style="width: 70%; text-align: left;">
-			<?php
-				foreach($scopes AS $key => $value){
-					if($value){
-						$s_name = $scope_desc[$key]['name'];
-						$s_desc = $scope_desc[$key]['description'];
-						
-						echo("<b>" . htmlspecialchars($s_name) . "</b><br>" . htmlspecialchars($s_desc) . "<br><br>");
-					}
-				}
-			?>
+<div class="extended-form" id="main">
+	<h1 class="thin-text">Авторизация</h1>
+	<div class="sep-line"></div>
+	<div class="full-width">
+		<h2 class="thin-text no-mrg-bottom no-padding-bottom" id="project_name"></h2>
+		<h2 class="thin-text no-mrg-top no-padding-top">запрашивает доступ к вашему аккаунту.</h2>
+		<div class="full-width align-left">
+			<div id="scope_container"></div>
 		</div>
-		
-		<button class="button_submit" onclick="authenticate()">Продолжить</button>
-		<button class="button_cancel_new" onclick="back()">Вернуться</button>
-		<br>
-	</form>
+	</div>
+	<div class="align-left full-width">
+		<button class="button-primary" onclick="authenticate()">Продолжить</button>
+		<button class="button-secondary float-right" onclick="back()">Вернуться</button>
+	</div>
+	<br>
 </div>
 
 <script>
+	prepare_view();
 
-	window.fault_redirect  = "index.php";
+	window.fault_redirect = "home.php";
 
 	function back(){
 		location.href = window.fault_redirect;
-	}
-	
-	function logout(){
-		alertify.confirm("Выход", "Вы уверены, что хотите выйти?",
-			function(){
-				var xhr = new XMLHttpRequest();
-				xhr.open('GET', 'api.php?section=users&method=logout', true);
-				xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-				xhr.send();
-				xhr.onload = function (e) {
-					location.reload();
-				}
-			},
-			function(){
-				console.log("[DEBUG] Cancelled Logout");
-			}
-		);
 	}
 
 	var token_xhr = new XMLHttpRequest();
@@ -80,6 +59,9 @@
 			case "unfinishedReg":
 				open_login_menu();
 				break;
+			case "IPVerificationRequired":
+				open_login_menu();
+				break;
 			default:
 				window.token = access_token.token;
 				bootstrap();
@@ -88,7 +70,8 @@
 	}
 	
 	function open_login_menu(){
-		document.getElementById("action_required").style.display = "";
+		action_required.classList.remove("hidden-el");
+		main.classList.add("hidden-el");
 		document.getElementById("action").src = "index.php";
 		
 		window.token_check = setInterval(checkaction, 500);
@@ -103,7 +86,8 @@
 			if(access_token.result == "OK" && access_token.token != null && access_token.description == undefined){
 				window.token = access_token.token;
 				bootstrap();
-				document.getElementById("action_required").style.display = "none";
+				action_required.classList.add("hidden-el");
+				main.classList.remove("hidden-el");
 				document.getElementById("action").src = "";
 				clearInterval(window.token_check);
 			}
@@ -115,16 +99,57 @@
 			open_login_menu();
 		}
 		else{
-			document.getElementById("main_module").style.display = "";
+			document.getElementById("main").style.display = "";
 			getProjectInfo();
+			prepare_scopes();
+		}
+	}
+	
+	function prepare_scopes(){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=projects&method=getScopes', true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			let result = JSON.parse(xhr.responseText);
+			
+			if(result.result != "FAULT"){
+				let scope_container = document.getElementById('scope_container');
+				window.scopes_edited = [];
+				window.final_scopes = "";
+				window.scopes.forEach(element => {
+					if(result['scopes'][element] == undefined){
+						return;
+					}
+					if(element != ""){
+						window.final_scopes += "&scopes[" + element + "]";
+					}
+					window.scopes_edited[element] = "true"; 
+					let scope_id = "scope_" + element;
+					let child = document.createElement('b');
+					child.id = scope_id + "_header";
+					child.textContent = result['scopes'][element]['name'];
+					scope_container.appendChild(child);
+					
+					var content = document.createElement('p');
+					content.id = scope_id + "_content";
+					content.textContent = result['scopes'][element]['description'];
+					content.classList.add('no-mrg-top');
+					child.after(content);
+				});
+			}
+			else{
+				alertify.notify("Произошла ошибка при обращении к серверам ULS. Повторите попытку позже.", 'error', 2, function(){back()});
+			}
 		}
 	}
 	
 	function getProjectInfo(){
-		let project_public = "<?php echo(htmlspecialchars($_GET['public'])); ?>";
-		let scopes = "<?php echo(htmlspecialchars($_GET['scopes'])); ?>";
+		let project_public = window.params.get('public');
+		let onFault = window.params.get('onFault');
+		let sign = window.params.get('sign');
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=projects&method=getProjectInfo&public=' + project_public + "&onFault=<?php echo(htmlspecialchars($_GET['onFault'])); ?>&sign=<?php echo(htmlspecialchars($_GET['sign'])); ?>", true);
+		xhr.open('GET', 'api.php?section=projects&method=getProjectInfo&public=' + project_public + "&onFault=" + onFault + "&sign=" + sign, true);
 		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
@@ -152,24 +177,24 @@
 	}
 	
 	function authenticate(){
-		<?php if($scopes['profile_management']){ ?>
-		alertify.confirm("Внимание!", "При продолжении, это приложение сможет управлять вашим аккаунтом! Не давайте это разрешение приложениям, которым вы не доверяете!",
-			function(){ sendrequest()},
-			function(){
-				console.log("[DEBUG] Cancelled Potentially Malicious Consent.")
-			}
-		);
-		<?php } 
-		else { ?>
-		sendrequest();
-		<?php } ?>
+		if(window.scopes_edited['profile_management'] == 'true'){
+			alertify.confirm("Внимание!", "При продолжении, это приложение сможет управлять вашим аккаунтом! Не давайте это разрешение приложениям, которым вы не доверяете!",
+				function(){ sendrequest()},
+				function(){
+					console.log("[DEBUG] Cancelled Potentially Malicious Consent.")
+				}
+			);
+		}
+		else{
+			sendrequest();
+		}
 	}
 	
 	function sendrequest(){
-		let project_public = "<?php echo(htmlspecialchars($_GET['public'])); ?>";
-		let scopes = "<?php echo(htmlspecialchars($_GET['scopes'])); ?>";
+		let project_public = window.params.get('public');
+		let scopes = window.final_scopes;
 		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=projects&method=login&public=' + project_public + '&scopes=' + scopes, true);
+		xhr.open('GET', 'api.php?section=projects&method=login&public=' + project_public + scopes, true);
 		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
 		xhr.send();
 		xhr.onload = function (e) {
@@ -177,10 +202,16 @@
 			
 			if(result.redirect != "" && result.redirect != undefined){
 				location.href = result.redirect;
+				return;
 			}
-			else{
-				alertify.notify("Произошла ошибка при авторизации! Повторите вход в необходимом сервисе!", 'error', 2, function(){back()});
+			if(result.reason == 'RATE_LIMIT_EXCEEDED'){
+				window.failed_request = function(){
+					sendrequest();
+				};
+				callCaptcha();
+				return;
 			}
+			alertify.notify("Произошла ошибка при авторизации! Повторите вход в необходимом сервисе!", 'error', 2, function(){back()});
 		}
 	}
 </script>

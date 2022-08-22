@@ -1,9 +1,9 @@
 <?php
 
-require_once "libs/phpqrcode.php";
-require_once "libs/Base32.php";
-require_once "libs/Hotp.php";
-require_once "libs/Totp.php";
+require_once "phpqrcode.php";
+require_once "Base32.php";
+require_once "Hotp.php";
+require_once "Totp.php";
 
 use lfkeitel\phptotp\{Base32,Totp};
 
