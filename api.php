@@ -1665,7 +1665,8 @@ else{
 				'redirect_uri' => $project['redirect_uri'],
 				'verified' => $project['verified'],
 				'owner_id' => $project['owner_id'],
-				'enabled' => $project['enabled']
+				'enabled' => $project['enabled'],
+				'banned' => $project['banned']
 			);
 			echo(json_encode($return));
 			die();
@@ -1856,6 +1857,34 @@ else{
 				returnError("UNKNOWN_USER");
 			}
 			$login_db->unbanUser($user['user_id']);
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if ($method == "banProject") {
+			$project = $login_db->getAdminProjectInfo($_REQUEST['project_id']);
+			if (!$project["exists"]) {
+				returnError("UNKNOWN_PROJECT");
+			}
+			$login_db->banProject($project['project_id']);
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+
+		if ($method == "unbanProject") {
+			$project = $login_db->getAdminProjectInfo($_REQUEST['project_id']);
+			if (!$project["exists"]) {
+				returnError("UNKNOWN_PROJECT");
+			}
+			$login_db->unbanProject($project['project_id']);
 			$return = array(
 				'result' => "OK",
 				'description' => 'Success'
