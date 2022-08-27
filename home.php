@@ -277,7 +277,7 @@ function close_sidebar(){
 				<div class="align-left icon">
 					<i class="fa-solid fa-key"></i>
 				</div>
-				<span class="input-placeholder">EMail Пользователя или ID</span>
+				<span class="input-placeholder">EMail / ID</span>
 				<input class="text-input max-width input-field-decoration" id="user_email" autocomplete="off">
 			</div>
 			<div class="align-left full-width">
@@ -352,7 +352,7 @@ function close_sidebar(){
 				<div class="align-left icon">
 					<i class="fa-solid fa-key"></i>
 				</div>
-				<span class="input-placeholder">ID Проекта</span>
+				<span class="input-placeholder">ID</span>
 				<input class="text-input max-width input-field-decoration" id="project_id" autocomplete="off">
 			</div>
 			<div class="align-left full-width">
