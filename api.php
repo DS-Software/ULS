@@ -337,7 +337,7 @@ if ($section == "unauth") {
 			$timestamp = time();
 			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
 
-			$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_info['user_id']}_{$user_info['user_ip']}_$service_key");
+			$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 
 			setcookie("user_id", $log_user_id, time() + 2678400, $domain_name);
 			setcookie("email", $login, time() + 2678400, $domain_name);
