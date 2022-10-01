@@ -3,6 +3,7 @@ require_once 'config.php';
 require_once 'database.php';
 
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
 
 function returnError($message) {
 	$error = array(
