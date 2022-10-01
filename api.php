@@ -868,7 +868,7 @@ if ($section == "unauth") {
 
 		$ua = json_encode($ua);
 
-		$session_link = base64_encode($login_site . "/easylogin_accept.php?session_id=" . $session . "&session_ver=" . $session_ver . "&user_agent=" . base64_encode($ua) . "&user_agent_ver=" . hash("sha256", $ua . "_" . $service_key));
+		$session_link = base64_encode($login_site . "/easylogin_accept.php?session_id=" . $session . "&session_ver=" . $session_ver . "&user_agent=" . urlencode(base64_encode($ua)) . "&user_agent_ver=" . hash("sha256", $ua . "_" . $service_key));
 
 		$session_qr = "libs/gen_2fa_qr.php?method=EasyLoginSession&session=" . $session_link;
 
@@ -1452,6 +1452,29 @@ else{
 			echo(json_encode($return));
 			die();
 		}
+		
+		if ($method == "checkELInfo") {
+			$useragent_encoded = $_GET['user_agent'];
+			$useragent_ver = $_GET['user_agent_ver'];
+			
+			$true_ver = hash("sha256", base64_decode($useragent_encoded) . "_" . $service_key);
+			
+			if($true_ver == $useragent_ver){
+				$user_agent = json_decode(base64_decode($useragent_encoded), true);
+				
+				$return = array(
+					'result' => "OK",
+					'browser' => $user_agent['browser'],
+					'version' => $user_agent['version'],
+					'platform' => $user_agent['platform'],
+					'ip' => $user_agent['ip']
+				);
+				echo(json_encode($return));
+				die();
+			}
+
+			returnError("INVALID_USER_AGENT");
+		}
 	}
 
 	if ($section == "integration" && $token_scopes['profile_management']) {
@@ -1666,7 +1689,8 @@ else{
 				'redirect_uri' => $project['redirect_uri'],
 				'verified' => $project['verified'],
 				'owner_id' => $project['owner_id'],
-				'enabled' => $project['enabled']
+				'enabled' => $project['enabled'],
+				'banned' => $project['banned']
 			);
 			echo(json_encode($return));
 			die();
@@ -1857,6 +1881,34 @@ else{
 				returnError("UNKNOWN_USER");
 			}
 			$login_db->unbanUser($user['user_id']);
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		
+		if ($method == "banProject") {
+			$project = $login_db->getAdminProjectInfo($_REQUEST['project_id']);
+			if (!$project["exists"]) {
+				returnError("UNKNOWN_PROJECT");
+			}
+			$login_db->banProject($project['project_id']);
+			$return = array(
+				'result' => "OK",
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+
+		if ($method == "unbanProject") {
+			$project = $login_db->getAdminProjectInfo($_REQUEST['project_id']);
+			if (!$project["exists"]) {
+				returnError("UNKNOWN_PROJECT");
+			}
+			$login_db->unbanProject($project['project_id']);
 			$return = array(
 				'result' => "OK",
 				'description' => 'Success'

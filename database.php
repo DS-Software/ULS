@@ -238,16 +238,17 @@ class database{
 	public function getUserProjects($owner_id){
 		$login_db = $this->ldb;
 		$owner_id = $login_db->real_escape_string($owner_id);
-		$req = "SELECT `project_id`, `project_name`, `enabled` FROM `projects` WHERE `owner_id`='$owner_id'";
+		$req = "SELECT `project_id`, `project_name`, `enabled`, `banned` FROM `projects` WHERE `owner_id`='$owner_id'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($project_id, $project_name, $enabled);
+		$statement->bind_result($project_id, $project_name, $enabled, $banned);
 		$projects = [];
 		while ($statement->fetch()) {
 			$projects[$project_id] = array(
 				"project_id" => $project_id,
 				"project_name" => $project_name,
-				"enabled" => $enabled
+				"enabled" => $enabled,
+				"banned" => $banned
 			);
 		}
 		return $projects;
@@ -267,7 +268,7 @@ class database{
 	public function getProjectInfo($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
-		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified` FROM `projects` WHERE `project_id`='$project_id' AND `enabled`=1";
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified` FROM `projects` WHERE `project_id`='$project_id' AND `enabled`=1 AND `banned`=0";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $verified);
@@ -289,10 +290,10 @@ class database{
 	public function getAdminProjectInfo($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
-		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `owner_id`, `verified`, `enabled` FROM `projects` WHERE `project_id`='$project_id'";
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `owner_id`, `verified`, `enabled`, `banned` FROM `projects` WHERE `project_id`='$project_id'";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($project_id, $project_name, $redirect_uri, $owner_id, $verified, $enabled);
+		$statement->bind_result($project_id, $project_name, $redirect_uri, $owner_id, $verified, $enabled, $banned);
 		$project["exists"] = false;
 		if($statement->fetch()){
 			$project = array(
@@ -302,6 +303,7 @@ class database{
 				"owner_id" => $owner_id,
 				"verified" => $verified,
 				"enabled" => $enabled,
+				"banned" => $banned,
 				"exists" => true
 			);
 		}
@@ -387,7 +389,7 @@ class database{
 	public function getLoginProjectInfo($public_key){
 		$login_db = $this->ldb;
 		$public_key = $login_db->real_escape_string($public_key);
-		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `verified` FROM `projects` WHERE `public_key`='$public_key' AND `enabled`=1";
+		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `verified` FROM `projects` WHERE `public_key`='$public_key' AND `enabled`=1 AND `banned`=0";
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $verified);
@@ -518,6 +520,22 @@ class database{
 		$user_id = $login_db->real_escape_string($user_id);
 
 		$req = "UPDATE `users` SET `is_banned`='0', `ban_reason`='' WHERE `user_id`='$user_id'";
+		$login_db->query($req);
+	}
+	
+	public function banProject($project_id){
+		$login_db = $this->ldb;
+		$project_id = $login_db->real_escape_string($project_id);
+
+		$req = "UPDATE `projects` SET `banned`='1' WHERE `project_id`='$project_id'";
+		$login_db->query($req);
+	}
+	
+	public function unbanProject($project_id){
+		$login_db = $this->ldb;
+		$project_id = $login_db->real_escape_string($project_id);
+
+		$req = "UPDATE `projects` SET `banned`='0' WHERE `project_id`='$project_id'";
 		$login_db->query($req);
 	}
 	

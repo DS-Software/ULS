@@ -277,7 +277,7 @@ function close_sidebar(){
 				<div class="align-left icon">
 					<i class="fa-solid fa-key"></i>
 				</div>
-				<span class="input-placeholder">EMail Пользователя или ID</span>
+				<span class="input-placeholder">EMail / ID</span>
 				<input class="text-input max-width input-field-decoration" id="user_email" autocomplete="off">
 			</div>
 			<div class="align-left full-width">
@@ -352,7 +352,7 @@ function close_sidebar(){
 				<div class="align-left icon">
 					<i class="fa-solid fa-key"></i>
 				</div>
-				<span class="input-placeholder">ID Проекта</span>
+				<span class="input-placeholder">ID</span>
 				<input class="text-input max-width input-field-decoration" id="project_id" autocomplete="off">
 			</div>
 			<div class="align-left full-width">
@@ -371,6 +371,13 @@ function close_sidebar(){
 		</div>
 		<h2 class="thin-text">Управление Проектом</h2>
 		<div class="data-container">
+			<span class="middle-text">
+				<i class="fa-solid fa-ban content-icon"></i>
+				<span>Заблокировать Проект</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" onclick="admin_ban_project()" id="ban_project">Заблокировать</button><br><br>
+			<span class="hint-text">Блокирует проект.<br>Пользователи не смогут войти в проект, а владелец не сможет управлять проектом.</span>
+		<br><br>
 			<span class="middle-text">
 				<i class="fa-solid fa-trash-can content-icon"></i>
 				<span>Удалить Проект</span>
@@ -737,6 +744,7 @@ function admin_project_info(project_id){
 					owner_id.textContent = "ID Владельца: " + result.owner_id;
 					window.admin_current_project = project_id;
 					window.admin_project_state = result.enabled;
+					window.admin_project_ban = result.banned;
 					if(window.admin_project_state != 0){
 						delete_project.classList.add('button-secondary');
 						delete_project.classList.remove('button-primary');
@@ -744,10 +752,56 @@ function admin_project_info(project_id){
 						restore_project.classList.add('button-secondary');
 						restore_project.classList.remove('button-primary');
 					}
+					
+					if(result.banned == 0){
+						ban_project.classList.remove('button-secondary');
+						ban_project.classList.add('button-primary');
+						ban_project.textContent = "Заблокировать";
+					}
+					else{
+						ban_project.classList.add('button-secondary');
+						ban_project.classList.remove('button-primary');
+						ban_project.textContent = "Разблокировать";
+					}
 				}
 				else{
 					choose_tab("admin_project");
 					alertify.notify("Такого проекта не существует, либо он был удалён.", 'error', 5);
+				}
+			}
+		}
+	}
+}
+
+function admin_ban_project(){
+	if(window.is_admin){
+		if(window.admin_project_ban == 0){
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', 'api.php?section=admin&method=banProject&project_id=' + window.admin_current_project, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+			xhr.send();
+			xhr.onload = function (e) {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+					let result = JSON.parse(xhr.responseText);
+					if(result.result == "OK"){
+						alertify.notify("Действие было успешно выполнено.", 'success', 5);
+						admin_project_info(window.admin_current_project);
+					}
+				}
+			}
+		}
+		else{
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', 'api.php?section=admin&method=unbanProject&project_id=' + window.admin_current_project, true);
+			xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+			xhr.send();
+			xhr.onload = function (e) {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+					let result = JSON.parse(xhr.responseText);
+					if(result.result == "OK"){
+						alertify.notify("Действие было успешно выполнено.", 'success', 5);
+						admin_project_info(window.admin_current_project);
+					}
 				}
 			}
 		}

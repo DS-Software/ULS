@@ -165,6 +165,7 @@
 				
 				let name_container = document.getElementById("project_name");
 				name_container.textContent = project_name;
+				name_container.title = result.project_id;
 				if(verified == 1){
 					let verification_mark = "<span class=\"verify_mark\">Verified</span>";
 					name_container.innerHTML = name_container.innerHTML + " " + verification_mark;
