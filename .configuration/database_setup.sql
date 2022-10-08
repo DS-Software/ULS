@@ -10,7 +10,8 @@ CREATE TABLE `projects` (
   `public_key` text NOT NULL,
   `owner_id` int(11) NOT NULL,
   `verified` int(11) NOT NULL,
-  `enabled` int(11) NOT NULL DEFAULT 1
+  `enabled` int(11) NOT NULL DEFAULT 1,
+  `banned` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `requests` (
