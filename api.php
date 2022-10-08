@@ -1761,14 +1761,18 @@ else{
 		}
 
 		if ($method == "getUserInfo") {
-			$test_user_id = $login_db->getUIDByEMail($_REQUEST['email']);
 			if (is_numeric($_REQUEST['email'])) {
 				$test_user_id = $_REQUEST['email'];
 			}
-			if ($test_user_id == "") {
-				returnError("UNKNOWN_USER");
+			else{
+				$test_user_id = $login_db->getUIDByEMail($_REQUEST['email']);
 			}
 			$user = $login_db->getUserInfo($test_user_id);
+			
+			if ($user['user_id'] == null) {
+				returnError("UNKNOWN_USER");
+			}
+			
 			$is_admin = false;
 			if ($allowed_admins[$user['user_id']]) {
 				$is_admin = true;
