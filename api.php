@@ -1553,10 +1553,10 @@ else{
 			if (isRateExceeded($section . '-' . $method, $_SERVER['REMOTE_ADDR'], 5, 60)) {
 				returnError("RATE_LIMIT_EXCEEDED");
 			}
-			if (!$enable_creation && $uinfo['verified'] != 1) {
+			if (!$enable_creation && $uinfo['verified'] != 1 && !$allowed_admins[$user_id]) {
 				returnError("PROJECT_CREATION_WAS_DISABLED");
 			}
-			if ($login_db->countUserProjects($user_id) >= $integrations_limit && $uinfo['verified'] != 1) {
+			if ($login_db->countUserProjects($user_id) >= $integrations_limit && $uinfo['verified'] != 1 && !$allowed_admins[$user_id]) {
 				returnError("REACHED_LIMIT_OF_PROJECTS");
 			}
 			if (strlen($_REQUEST['name']) < 3 or strlen($_REQUEST['name']) > 32) {
