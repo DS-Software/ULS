@@ -20,6 +20,7 @@ class database{
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
 		$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `user_salt`, `password_hash`, `ip_ver_code`, `user_ip`, `api_key_seed`, `SLID`, `last_sid`, `easylogin`, `email_check`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `is_banned`, `ban_reason` FROM `users` WHERE `user_id`='$user_id'";
+		$user_id = null;
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $salt, $password_hash, $ip_ver_code, $user_ip, $api_key_seed, $SLID, $last_sid, $easylogin, $email_check, $totp_active, $totp_secret, $totp_disable_code, $is_banned, $ban_reason);
@@ -269,6 +270,7 @@ class database{
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
 		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified` FROM `projects` WHERE `project_id`='$project_id' AND `enabled`=1 AND `banned`=0";
+		$project_id = null;
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $verified);
@@ -291,6 +293,7 @@ class database{
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
 		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `owner_id`, `verified`, `enabled`, `banned` FROM `projects` WHERE `project_id`='$project_id'";
+		$project_id = null;
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $redirect_uri, $owner_id, $verified, $enabled, $banned);

@@ -393,6 +393,65 @@ if ($section == "unauth") {
 		echo(json_encode($return));
 		die();
 	}
+	
+	if ($method == "sendIPCode") {
+		if (isRateExceeded($section . '-' . $method, $_SERVER['REMOTE_ADDR'], 1, 300)) {
+			returnError("RATE_LIMIT_EXCEEDED");
+		}
+		
+		$user_id = $_COOKIE['user_id'];
+		$SLID = $_COOKIE['SLID'];
+		$email = $_COOKIE['email'];
+		$session = $_COOKIE['session'];
+		$user_ip = $_COOKIE['user_ip'];
+		$user_key = $_COOKIE['user_verkey'];
+
+		$user_info = $login_db->getUserInfo($user_id);
+
+		$verified = checkLoggedIn($user_id, $SLID, $email, $session, $user_ip, $user_key, $user_info);
+
+		if ($verified) {
+			if ($user_info['is_banned'] == 1 && !$allowed_admins[$user_id]) {
+				$return = array(
+					'result' => 'FAULT',
+					'reason' => 'ACCOUNT_BANNED',
+					'support' => "$support"
+				);
+				echo(json_encode($return));
+				die();
+			}
+			
+			if($user_info['email_check'] != 0){
+				require_once 'libs' . DIRECTORY_SEPARATOR . 'email_templates.php';
+				require_once 'libs' . DIRECTORY_SEPARATOR . 'email_handler.php';
+
+				$ip_ver_code = strtoupper(uniqidReal(8));
+				$ip_ver_code_hash = hash("sha512", "{$ip_ver_code}_{$user_info['SLID']}_$service_key");
+				$login_db->setIPCode($user_id, $ip_ver_code_hash);
+
+				$replaceArray = array(
+					'$username' => $user_info['user_nick'] == "" ? "Неизвестный Пользователь" : $user_info['user_nick'],
+					'$code' => $ip_ver_code,
+					'$ip' => $_SERVER['REMOTE_ADDR']
+				);
+
+				$replaceArray = array_merge($replaceArray, $email_info);
+
+				$email_html = strtr($NewIPEmail, $replaceArray);
+				$subject = strtr($messageNewIPSubject, $replaceArray);
+
+				send_email($email_settings, $user_info['user_email'], $email_html, $subject);
+			}
+			
+			$return = array(
+				'result' => 'OK',
+				'description' => 'Success'
+			);
+			echo(json_encode($return));
+			die();
+		}
+		returnError("WRONG_CREDENTIALS");
+	}
 
 	if ($method == 'verifyIP') {
 		if (isRateExceeded($section . '-' . $method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
