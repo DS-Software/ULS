@@ -95,6 +95,7 @@
 	
 	$enable_creation = true;
 	$int_url = $login_site . "/apps";
+	$integrations_limit = 15;
 	
 	$allowed_admins = []; // [1 => true] ([USER_ID => true])
 ?>

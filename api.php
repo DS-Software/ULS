@@ -358,7 +358,8 @@ if ($section == "unauth") {
 			require_once 'libs' . DIRECTORY_SEPARATOR . 'email_handler.php';
 
 			$ip_ver_code = strtoupper(uniqidReal(8));
-			$login_db->setIPCode($log_user_id, $ip_ver_code);
+			$ip_ver_code_hash = hash("sha512", "{$ip_ver_code}_{$user_info['SLID']}_$service_key");
+			$login_db->setIPCode($log_user_id, $ip_ver_code_hash);
 
 			$replaceArray = array(
 				'$username' => $user_info['user_nick'] == "" ? "Неизвестный Пользователь" : $user_info['user_nick'],
@@ -411,9 +412,11 @@ if ($section == "unauth") {
 
 		if ($verified) {
 			if ($user_info['user_id'] == $user_id && $user_id != "") {
-				$true_code = $user_info['ip_ver_code'];
+				$true_code_hash = $user_info['ip_ver_code'];
+				
+				$new_code_hash = hash("sha512", "{$code}_{$user_info['SLID']}_$service_key");
 
-				if ($code == $true_code) {
+				if ($true_code_hash == $new_code_hash) {
 					$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key");
 
 					setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
@@ -1472,7 +1475,6 @@ else{
 				echo(json_encode($return));
 				die();
 			}
-
 			returnError("INVALID_USER_AGENT");
 		}
 	}
@@ -1495,7 +1497,7 @@ else{
 			if (!$enable_creation && $uinfo['verified'] != 1) {
 				returnError("PROJECT_CREATION_WAS_DISABLED");
 			}
-			if ($login_db->countUserProjects($user_id) >= 15 && $uinfo['verified'] != 1) {
+			if ($login_db->countUserProjects($user_id) >= $integrations_limit && $uinfo['verified'] != 1) {
 				returnError("REACHED_LIMIT_OF_PROJECTS");
 			}
 			if (strlen($_REQUEST['name']) < 3 or strlen($_REQUEST['name']) > 32) {
