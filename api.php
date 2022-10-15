@@ -11,7 +11,7 @@ function returnError($message) {
 		'reason' => $message
 	);
 
-	echo(json_encode($error, 1));
+	echo json_encode($error, 1);
 	die();
 }
 
@@ -232,7 +232,7 @@ if ($section == "unauth") {
 					'token' => null
 				);
 
-				echo(json_encode($return, 1));
+				echo json_encode($return, 1);
 				die();
 			}
 			if ($user_info['2fa_active'] == 1) {
@@ -252,7 +252,7 @@ if ($section == "unauth") {
 						'token' => null
 					);
 
-					echo(json_encode($return, 1));
+					echo json_encode($return, 1);
 					die();
 				}
 			}
@@ -280,7 +280,7 @@ if ($section == "unauth") {
 					'token' => $access_token
 				);
 
-				echo(json_encode($return, 1));
+				echo json_encode($return, 1);
 				die();
 			}
 
@@ -289,7 +289,7 @@ if ($section == "unauth") {
 				'token' => $access_token
 			);
 
-			echo(json_encode($return, 1));
+			echo json_encode($return, 1);
 		}
 		else{
 			deleteLoginCookies();
@@ -327,7 +327,7 @@ if ($section == "unauth") {
 				'reason' => 'ACCOUNT_BANNED',
 				'support' => "$support"
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -390,7 +390,7 @@ if ($section == "unauth") {
 				'description' => 'emailVerificationRequired'
 			);
 		}
-		echo(json_encode($return));
+		echo json_encode($return);
 		die();
 	}
 	
@@ -417,7 +417,7 @@ if ($section == "unauth") {
 					'reason' => 'ACCOUNT_BANNED',
 					'support' => "$support"
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			
@@ -447,7 +447,7 @@ if ($section == "unauth") {
 				'result' => 'OK',
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 		returnError("WRONG_CREDENTIALS");
@@ -487,7 +487,7 @@ if ($section == "unauth") {
 						'description' => 'Success'
 					);
 
-					echo(json_encode($return));
+					echo json_encode($return);
 					die();
 				}
 				else{
@@ -547,7 +547,7 @@ if ($section == "unauth") {
 			'result' => 'OK',
 			'description' => 'emailVerificationRequired'
 		);
-		echo(json_encode($return));
+		echo json_encode($return);
 		die();
 	}
 
@@ -626,7 +626,7 @@ if ($section == "unauth") {
 			'description' => 'Success'
 		);
 
-		echo(json_encode($return));
+		echo json_encode($return);
 		die();
 	}
 
@@ -676,7 +676,7 @@ if ($section == "unauth") {
 			'result' => 'OK',
 			'description' => 'emailVerificationRequired'
 		);
-		echo(json_encode($return));
+		echo json_encode($return);
 		die();
 	}
 
@@ -746,7 +746,7 @@ if ($section == "unauth") {
 			'description' => 'Success'
 		);
 
-		echo(json_encode($return));
+		echo json_encode($return);
 		die();
 	}
 
@@ -795,7 +795,7 @@ if ($section == "unauth") {
 			'description' => 'Success'
 		);
 
-		echo(json_encode($return));
+		echo json_encode($return);
 		die();
 	}
 
@@ -847,7 +847,7 @@ if ($section == "unauth") {
 						'description' => 'Success'
 					);
 
-					echo(json_encode($return));
+					echo json_encode($return);
 					die();
 				}
 				else{
@@ -889,7 +889,7 @@ if ($section == "unauth") {
 						'description' => "Success"
 					);
 
-					echo(json_encode($return));
+					echo json_encode($return);
 					die();
 				}
 				else{
@@ -941,7 +941,7 @@ if ($section == "unauth") {
 			'session_verifier' => $session_ver
 		);
 
-		echo(json_encode($return));
+		echo json_encode($return);
 		die();
 	}
 
@@ -962,7 +962,7 @@ if ($section == "unauth") {
 					'description' => "Success"
 				);
 
-				echo(json_encode($return));
+				echo json_encode($return);
 			}
 			else{
 				returnError("UNAUTHORIZED");
@@ -1027,7 +1027,7 @@ if ($section == "unauth") {
 			'description' => 'Success'
 		);
 
-		echo(json_encode($return));
+		echo json_encode($return);
 		die();
 	}
 }
@@ -1064,7 +1064,7 @@ else{
 				'result' => "OK",
 				'scopes' => $scope_desc
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 		if ($method == "login") {
@@ -1137,7 +1137,7 @@ else{
 				'result' => "OK",
 				'redirect' => $redirect_url
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1162,7 +1162,7 @@ else{
 				'verified' => $project['verified'],
 				'fault_redirect' => $fault_redirect
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 	}
@@ -1183,7 +1183,7 @@ else{
 				'admin' => $is_admin
 			);
 
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1195,7 +1195,7 @@ else{
 					'result' => "OK",
 					'description' => "Success"
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			else{
@@ -1211,7 +1211,7 @@ else{
 					'result' => "OK",
 					'description' => "Success"
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			else{
@@ -1226,7 +1226,7 @@ else{
 				'result' => "OK",
 				'description' => "Success"
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1237,7 +1237,7 @@ else{
 				'result' => "OK",
 				'description' => "Success"
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1261,7 +1261,7 @@ else{
 					'result' => "OK",
 					"description" => "Success"
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			else{
@@ -1321,7 +1321,7 @@ else{
 				'description' => 'emailVerificationRequired'
 			);
 
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 	}
@@ -1335,7 +1335,7 @@ else{
 				'easylogin' => $uinfo['easylogin']
 			);
 
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 	}
@@ -1367,7 +1367,7 @@ else{
 					'url' => $totp_url,
 					'secret' => $true_secret
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			else{
@@ -1401,7 +1401,7 @@ else{
 						'description' => 'Success',
 						'disableCode' => $dis_code
 					);
-					echo(json_encode($return));
+					echo json_encode($return);
 					die();
 				}
 				else{
@@ -1435,7 +1435,7 @@ else{
 						'result' => "OK",
 						'description' => 'Success'
 					);
-					echo(json_encode($return));
+					echo json_encode($return);
 					die();
 				}
 				else{
@@ -1457,7 +1457,7 @@ else{
 					'result' => "OK",
 					'description' => 'Success'
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			else{
@@ -1473,7 +1473,7 @@ else{
 					'result' => "OK",
 					'description' => 'Success'
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			else{
@@ -1511,7 +1511,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 		
@@ -1531,7 +1531,7 @@ else{
 					'platform' => $user_agent['platform'],
 					'ip' => $user_agent['ip']
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			returnError("INVALID_USER_AGENT");
@@ -1546,7 +1546,7 @@ else{
 				'result' => "OK",
 				'projects' => $projects
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 		if ($method == "createProject") {
@@ -1569,7 +1569,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 		if ($method == "getProjectInfo") {
@@ -1586,7 +1586,7 @@ else{
 				'public_key' => $project['public_key'],
 				'verified' => $project['verified']
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1600,7 +1600,7 @@ else{
 				'result' => "OK",
 				'description' => "Success"
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1614,7 +1614,7 @@ else{
 				'result' => "OK",
 				'description' => "Success"
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1628,7 +1628,7 @@ else{
 				'result' => "OK",
 				'description' => "Success"
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1647,7 +1647,7 @@ else{
 				'result' => "OK",
 				'description' => "Success"
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 		if ($method == "delete") {
@@ -1663,7 +1663,7 @@ else{
 				'result' => "OK",
 				'description' => "Success"
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 	}
@@ -1696,7 +1696,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 	}
@@ -1714,7 +1714,7 @@ else{
 				'users' => $user_st,
 				'projects' => $project_st
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1724,7 +1724,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1734,7 +1734,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1753,7 +1753,7 @@ else{
 				'enabled' => $project['enabled'],
 				'banned' => $project['banned']
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1768,7 +1768,7 @@ else{
 					'result' => "OK",
 					'description' => 'Success'
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			returnError("PROJECT_CANNOT_BE_DELETED");
@@ -1785,7 +1785,7 @@ else{
 					'result' => "OK",
 					'description' => 'Success'
 				);
-				echo(json_encode($return));
+				echo json_encode($return);
 				die();
 			}
 			returnError("PROJECT_CANNOT_BE_RESTORED");
@@ -1801,7 +1801,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1815,7 +1815,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1851,7 +1851,7 @@ else{
 				'is_banned' => $user['is_banned'],
 				'ban_reason' => $user['ban_reason']
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1868,7 +1868,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1885,7 +1885,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1902,7 +1902,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1919,7 +1919,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1936,7 +1936,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1950,7 +1950,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 		
@@ -1964,7 +1964,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 
@@ -1978,7 +1978,7 @@ else{
 				'result' => "OK",
 				'description' => 'Success'
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 	}
@@ -2005,7 +2005,7 @@ else{
 				'description' => "VALID",
 				'user_info' => $user_info
 			);
-			echo(json_encode($return));
+			echo json_encode($return);
 			die();
 		}
 	}
