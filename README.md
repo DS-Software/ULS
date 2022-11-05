@@ -27,9 +27,9 @@ The only file you need to modify is config.php.
 * $domain_name
   * Used to create cookies with proper path.
   * If you don't use root folder of your site, put the extension here:
-    * If you use something like `https://ds-software.xyz/login` - put `/login` here
-    * If you use something like `https://login.ds-software.xyz/` - leave `/`
-    * If you use something like `https://example.ds-software.xyz/login` - put `/login` here
+    * If you use something like `https://dssoftware.ru/login` - put `/login` here
+    * If you use something like `https://dssoftware.ru/` - leave `/`
+    * If you use something like `https://example.dssoftware.ru/login` - put `/login` here
 * $session_length
   * Defines the length of a random_session_id. If too small, RSID will duplicate. If too big, might cause some performance issues.
     * Optimal value - `32`
@@ -53,4 +53,4 @@ There is a list of all libraries that are used in ULS.
 ## Contributing & Issues
 When contributing changes to the project, please provide as much detail on the changes. Malicious or meaningless contributions won't be accepted.
 Please, if you found an issue in ULS, create a GitHub issue.
-Besides, you can contact DS Software team: https://ds-software.xyz/about/
+Besides, you can contact DS Software team: https://dssoftware.ru/about/
