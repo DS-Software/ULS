@@ -28,7 +28,7 @@ The only file you need to modify is config.php.
   * Used to create cookies with proper path.
   * If you don't use root folder of your site, put the extension here:
     * If you use something like `https://dssoftware.ru/login` - put `/login` here
-    * If you use something like `https://login.dssoftware.ru/` - leave `/`
+    * If you use something like `https://dssoftware.ru/` - leave `/`
     * If you use something like `https://example.dssoftware.ru/login` - put `/login` here
 * $session_length
   * Defines the length of a random_session_id. If too small, RSID will duplicate. If too big, might cause some performance issues.
