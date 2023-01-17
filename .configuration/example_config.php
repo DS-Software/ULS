@@ -56,8 +56,6 @@
 	$spam_check = true;
 	$spam_provider = "https://disposable.debounce.io/?email=";
 	
-	$captcha_required = true;
-	
 	/*
 		If using CAPTCHA (field $captcha_required is true), put the correct values 
 		in the field below. For more info - https://dash.cloudflare.com/?to=/:account/turnstile
@@ -68,6 +66,8 @@
 		If you aren't using CAPTCHA - set $captcha_required to false and ignore
 		the fields below.
 	*/
+	
+	$captcha_required = true;
 	
 	$turnstile_public = "";
 	$turnstile_private = "";
