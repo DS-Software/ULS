@@ -16,26 +16,18 @@ function callCaptcha(){
 	turnstile.render('#turnstile_captcha', {
         sitekey: '$turnstile_public',
         callback: function(token) {
+			try{
+				window.alert_prompt.close();
+			}
+			catch(e){
+				console.warn(e);
+			}
             repeatRequest(token);
         }
     });
-	
-	try{
-		window.alert_prompt.close();
-	}
-	catch(e){
-		console.warn(e);
-	}
 }
 
 function repeatRequest(captcha){
-	try{
-		window.alert_prompt.close();
-	}
-	catch(e){
-		console.warn(e);
-	}
-	alertify.notify("Вы успешно прошли проверку!", 'success', 3);
 	document.cookie = "passed_captcha=" + captcha + ";path=/";
 	window.failed_request();
 	window.cpi = true;
