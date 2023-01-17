@@ -4,6 +4,7 @@
 <link href="libs/alertify.min.css" rel="stylesheet">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
 <script src="libs/main.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="libs/captcha_utils.php"></script>
 <script src="libs/alertify.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">

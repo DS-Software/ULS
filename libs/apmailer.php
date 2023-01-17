@@ -1009,8 +1009,8 @@ namespace ApMailer {
             return mb_encode_mimeheader($str);
         }
     }
-    
-    class Part
+	
+	class Part
     {
         protected $headers = null;
         protected $content = null;
@@ -1108,8 +1108,8 @@ namespace ApMailer {
             return trim(chunk_split(base64_encode((string) $this->getContent())));
         }
     }
-	
-	class MultiPart extends Part
+    
+    class MultiPart extends Part
     {
         private $boundary = null;
         

@@ -33,22 +33,29 @@ function isRateExceeded($method, $ip, $max_rate, $expired) {
 		if (isset($_COOKIE['passed_captcha'])) {
 			global $domain_name;
 			global $captcha_required;
+			global $turnstile_private;
 
 			if ($captcha_required) {
-				session_start();
-				$captcha_true = $_SESSION['captcha_keystring'];
-				$captcha_time = $_SESSION['captcha_time'];
-
-				$_SESSION['captcha_keystring'] = "";
-				$_SESSION['captcha_time'] = "";
-				setcookie("passed_captcha", "", time() - 3600, $domain_name);
-
-				if ((strtolower($_COOKIE['passed_captcha']) == $captcha_true) && $captcha_true != '') {
-					if ($captcha_time + 180 >= time()) {
-						return false;
-					}
+				$turnstile_token = $_COOKIE['passed_captcha'];
+				
+				$ip = $_SERVER['REMOTE_ADDR'];
+				$url_path = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+				$data = array('secret' => $turnstile_private, 'response' => $turnstile_token, 'remoteip' => $ip);
+					
+				$options = array(
+					'http' => array(
+					'method' => 'POST',
+					'content' => http_build_query($data))
+				);
+					
+				$stream = stream_context_create($options);
+				$result = file_get_contents($url_path, false, $stream);
+				   
+				$responseKeys = json_decode($result,true);
+				
+				if($responseKeys['success']){
+					return false;
 				}
-				return true;
 			}
 		}
 		return true;

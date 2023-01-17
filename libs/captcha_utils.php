@@ -4,21 +4,41 @@ require_once "../config.php";
 
 if($captcha_required){
 $script = <<<EOT
+window.cpi = false;
 function callCaptcha(){
-	window.alert_prompt = alertify.prompt('CAPTCHA', '<div id="captcha_content"></div>', '',
-		function(evt, value){
-			repeatRequest(value);
-		},
-		function(){
-			console.log("Cancelled CAPTCHA Event");
-		}
-	);
-	captcha_content.innerHTML = '<div class="align-center">Введите символы с картинки ниже:<br><br><img src="$login_site/captcha/"></div><br>';
+	if(window.cpi){
+		alertify.notify("Проверка не была пройдена. Попробуйте позже!", 'error', 3);
+		window.cpi = false;
+		return;
+	}
+	window.alert_prompt = alertify.alert('CAPTCHA', 'Your request is being processed... Wait a bit.<br><div id="captcha_content"></div>');
+	captcha_content.innerHTML = '<div id="turnstile_captcha"></div>';
+	turnstile.render('#turnstile_captcha', {
+        sitekey: '$turnstile_public',
+        callback: function(token) {
+            repeatRequest(token);
+        }
+    });
+	
+	try{
+		window.alert_prompt.close();
+	}
+	catch(e){
+		console.warn(e);
+	}
 }
 
 function repeatRequest(captcha){
+	try{
+		window.alert_prompt.close();
+	}
+	catch(e){
+		console.warn(e);
+	}
+	alertify.notify("Вы успешно прошли проверку!", 'success', 3);
 	document.cookie = "passed_captcha=" + captcha + ";path=/";
 	window.failed_request();
+	window.cpi = true;
 }
 EOT;
 }

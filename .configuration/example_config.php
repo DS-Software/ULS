@@ -57,6 +57,20 @@
 	$spam_provider = "https://disposable.debounce.io/?email=";
 	
 	$captcha_required = true;
+	
+	/*
+		If using CAPTCHA (field $captcha_required is true), put the correct values 
+		in the field below. For more info - https://dash.cloudflare.com/?to=/:account/turnstile
+		
+		$turnstile_public is your Site Key.
+		$turnstile_private is your Secret Key.
+		
+		If you aren't using CAPTCHA - set $captcha_required to false and ignore
+		the fields below.
+	*/
+	
+	$turnstile_public = "";
+	$turnstile_private = "";
 
 	$login_site = "https://example.com/login";
 	$status_page = "https://status.example.com/";
