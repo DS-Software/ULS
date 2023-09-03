@@ -4,14 +4,11 @@
 <link href="libs/alertify.min.css" rel="stylesheet">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
 <script src="libs/main.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="libs/captcha_utils.php"></script>
 <script src="libs/alertify.min.js"></script>
 <script src="libs/qr_reader.min.js" async defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
-<?php
-	require 'config.php';
-?>
 
 <title>Беспарольный вход</title>
 
@@ -43,25 +40,9 @@ function back(){
 	</form>
 </div>
 
-<?php
-
-if(hash("sha256", base64_decode($_GET['user_agent']) . "_" . $service_key) != $_GET['user_agent_ver']){
-	echo("<script>back();</script>");
-}
-else{
-	$user_agent = json_decode(base64_decode($_GET['user_agent']), true);
-	$browser = htmlentities($user_agent['browser']);
-	$version = htmlentities($user_agent['version']);
-	$platform = htmlentities($user_agent['platform']);
-	$ip = htmlentities($user_agent['ip']);
-}
-
-?>
-
 <script>
 prepare_view();
 checkAPIToken();
-showData();
 
 function checkAPIToken(){
 	var xhr = new XMLHttpRequest();
@@ -85,6 +66,7 @@ function checkAPIToken(){
 				}
 				else{
 					window.token = access_token.token;
+					showData();
 				}
 				break;
 		}
@@ -131,10 +113,23 @@ function accept(){
 }
 
 function showData(){
-	browser.textContent = "Браузер: <?php echo($browser) ?>";
-	version.textContent = "Версия: <?php echo($version) ?>";
-	platform.textContent = "ОС: <?php echo($platform) ?>";
-	ip.textContent = "IP: <?php echo($ip) ?>";
+	var xhr = new XMLHttpRequest();
+	let user_agent = window.params.get('user_agent');
+	let user_agent_ver = window.params.get('user_agent_ver');
+	xhr.open('GET', 'api.php?section=easylogin&method=checkELInfo&user_agent=' + user_agent +"&user_agent_ver=" + user_agent_ver, true);
+	xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+	xhr.send();
+	xhr.onload = function (e) {
+		let result = JSON.parse(xhr.responseText);
+		if(result.result == "OK"){
+			browser.textContent = "Браузер: " + result.browser;
+			version.textContent = "Версия: " + result.version;
+			platform.textContent = "ОС: " + result.platform;
+			ip.textContent = "IP: " + result.ip;
+			return;
+		}
+		back();
+	}
 }
 
 </script>

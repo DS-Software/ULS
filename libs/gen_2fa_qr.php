@@ -30,10 +30,4 @@ if($_GET['method'] == "TOTP" || $_GET['method'] == ''){
 	$QR->png($QR_Base);
 }
 
-if($_GET['method'] == "EasyLoginSession"){
-	$QR_Base = base64_decode($_GET['session']);
-	
-	$QR->png($QR_Base);
-}
-
 ?>

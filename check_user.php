@@ -4,6 +4,7 @@
 <link href="libs/alertify.min.css" rel="stylesheet">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
 <script src="libs/main.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="libs/captcha_utils.php"></script>
 <script src="libs/alertify.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -46,6 +47,9 @@
 			<input class="text-input max-width input-field-decoration" id="email_code">
 		</div>
 		<br>
+		<div class="align-left full-width">
+			<p class="no-mrg-top"><a onclick="resend_email()">Отправить код повторно</a></p>
+		</div>
 		<div class="align-left full-width">
 			<button class="button-primary" onclick="checkIP(email_code.value)">Продолжить</button>
 			<button class="button-secondary float-right" onclick="logout()">Выйти</button>
@@ -213,6 +217,29 @@ function checkIP(ip_ver_code){
 		}
 		else{
 			alertify.notify("Вы успешно прошли проверку!", 'success', 2, checkRequirements);
+		}
+	}
+}
+
+function resend_email(){
+	xhr2.open('GET', 'api.php?section=UNAUTH&method=sendIPCode', true);
+	xhr2.send();
+	xhr2.onload = function (e) {
+		let json = JSON.parse(xhr2.responseText);
+		if(json.result == "FAULT"){
+			if(json.reason == "RATE_LIMIT_EXCEEDED"){
+				window.failed_request = function(){
+					resend_email();
+				};
+				callCaptcha();
+				return;
+			}
+			else{
+				alertify.notify("Во время выполнения запроса произошла ошибка!", 'error', 5);
+			}
+		}
+		else{
+			alertify.notify("Письмо было отправлено повторно, проверьте почту.", 'success', 2);
 		}
 	}
 }

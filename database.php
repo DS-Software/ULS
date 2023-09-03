@@ -19,10 +19,11 @@ class database{
 	public function getUserInfo($user_id){
 		$login_db = $this->ldb;
 		$user_id = $login_db->real_escape_string($user_id);
-		$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `user_salt`, `password_hash`, `ip_ver_code`, `user_ip`, `api_key_seed`, `SLID`, `last_sid`, `easylogin`, `email_check`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `is_banned`, `ban_reason` FROM `users` WHERE `user_id`='$user_id'";
+		$req = "SELECT `user_id`, `user_nick`, `user_email`, `user_name`, `user_surname`, `birthday`, `verified`, `user_salt`, `password_hash`, `ip_ver_code`, `user_ip`, `api_key_seed`, `SLID`, `last_sid`, `email_check`, `2fa_active`, `2fa_secret`, `2fa_disable_code`, `is_banned`, `ban_reason` FROM `users` WHERE `user_id`='$user_id'";
+		$user_id = null;
 		$statement = $login_db->prepare($req);
 		$statement->execute();
-		$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $salt, $password_hash, $ip_ver_code, $user_ip, $api_key_seed, $SLID, $last_sid, $easylogin, $email_check, $totp_active, $totp_secret, $totp_disable_code, $is_banned, $ban_reason);
+		$statement->bind_result($user_id, $user_nick, $user_email, $user_name, $user_surname, $birthday, $verified, $salt, $password_hash, $ip_ver_code, $user_ip, $api_key_seed, $SLID, $last_sid, $email_check, $totp_active, $totp_secret, $totp_disable_code, $is_banned, $ban_reason);
 		$statement->fetch();
 
 		$user_object = array(
@@ -40,7 +41,6 @@ class database{
 			'api_key_seed' => $api_key_seed,
 			'SLID' => $SLID,
 			'last_sid' => $last_sid,
-			'easylogin' => $easylogin,
 			'email_check' => $email_check,
 			'2fa_active' => $totp_active,
 			'2fa_secret' => $totp_secret,
@@ -101,14 +101,6 @@ class database{
 		$user_id = $login_db->real_escape_string($user_id);
 		$state = $login_db->real_escape_string($state);
 		$req = "UPDATE `users` SET `2fa_active`='$state' WHERE `user_id`='$user_id'";
-		$login_db->query($req);
-	}
-	
-	public function setEasyloginState($user_id, $state){
-		$login_db = $this->ldb;
-		$user_id = $login_db->real_escape_string($user_id);
-		$state = $login_db->real_escape_string($state);
-		$req = "UPDATE `users` SET `easylogin`='$state' WHERE `user_id`='$user_id'";
 		$login_db->query($req);
 	}
 
@@ -182,52 +174,6 @@ class database{
 		return false;
 	}
 
-	public function createELSession($session_key, $session_salt, $ip){
-		$login_db = $this->ldb;
-		$session_key = $login_db->real_escape_string($session_key);
-		$session_salt = $login_db->real_escape_string($session_salt);
-		$ip = $login_db->real_escape_string($ip);
-		$created = time();
-		$req = "INSERT INTO `sessions`(`session`, `session_seed`, `claimed`, `created`, `session_ip`) VALUES ('$session_key', '$session_salt', 0, $created, '$ip')";
-		$login_db->query($req);
-		return $login_db->insert_id;
-	}
-
-	public function getELSession($session_key){
-		$login_db = $this->ldb;
-		$session_key = $login_db->real_escape_string($session_key);
-		$req = "SELECT `session`, `session_seed`, `user_id`, `claimed`, `created`, `session_ip` FROM `sessions` WHERE `session`='$session_key'";
-		$statement = $login_db->prepare($req);
-		$statement->execute();
-		$statement->bind_result($session, $session_seed, $user_id, $claimed, $created, $ip);
-		$statement->fetch();
-		$result = array(
-			'session' => $session,
-			'session_seed' => $session_seed,
-			'user_id' => $user_id,
-			'claimed' => $claimed,
-			'created' => $created,
-			'ip' => $ip
-		);
-
-		return $result;
-	}
-
-	public function claimELSession($user_id, $session_key){
-		$login_db = $this->ldb;
-		$user_id = $login_db->real_escape_string($user_id);
-		$session_key = $login_db->real_escape_string($session_key);
-		$req = "UPDATE `sessions` SET `claimed`=1, `user_id`='$user_id' WHERE `session`='$session_key' AND `claimed`=0";
-		$login_db->query($req);
-	}
-
-	public function deleteELSession($session_key){
-		$login_db = $this->ldb;
-		$session_key = $login_db->real_escape_string($session_key);
-		$req = "DELETE FROM `sessions` WHERE `session`='$session_key'";
-		$login_db->query($req);
-	}
-
 	public function deleteProject($project_id){
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
@@ -269,6 +215,7 @@ class database{
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
 		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `secret_key`, `public_key`, `owner_id`, `verified` FROM `projects` WHERE `project_id`='$project_id' AND `enabled`=1 AND `banned`=0";
+		$project_id = null;
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $redirect_uri, $secret_key, $public_key, $owner_id, $verified);
@@ -291,6 +238,7 @@ class database{
 		$login_db = $this->ldb;
 		$project_id = $login_db->real_escape_string($project_id);
 		$req = "SELECT `project_id`, `project_name`, `redirect_uri`, `owner_id`, `verified`, `enabled`, `banned` FROM `projects` WHERE `project_id`='$project_id'";
+		$project_id = null;
 		$statement = $login_db->prepare($req);
 		$statement->execute();
 		$statement->bind_result($project_id, $project_name, $redirect_uri, $owner_id, $verified, $enabled, $banned);
@@ -468,7 +416,7 @@ class database{
 		$method = $login_db->real_escape_string($method);
 		$user_ip = $login_db->real_escape_string($user_ip);
 		
-		$req = "SELECT COUNT(*), `request_time` FROM `requests` WHERE `request_ip`='$user_ip' AND `method`='$method' LIMIT 1";
+		$req = "SELECT COUNT(*), `request_time` FROM `requests` WHERE `request_ip`='$user_ip' AND `method`='$method' GROUP BY `request_time` LIMIT 1";
 		
 		$statement = $login_db->prepare($req);
 		$statement->execute();
@@ -549,18 +497,6 @@ class database{
 		return $count;
 	}
 	
-	public function getSessionStats(){
-		$login_db = $this->ldb;
-		
-		$req = "SELECT COUNT(*) FROM `sessions`";
-		
-		$statement = $login_db->prepare($req);
-		$statement->execute();
-		$statement->bind_result($count);
-		$statement->fetch();
-		return $count;
-	}
-	
 	public function getUserStats(){
 		$login_db = $this->ldb;
 		
@@ -590,10 +526,88 @@ class database{
 		$req = "TRUNCATE `requests`";
 		$login_db->query($req);
 	}
-	
-	public function cleanupSessions(){
+
+	/* Webauthn Methods */
+	public function getPKByCredentials($credential_id){
 		$login_db = $this->ldb;
-		$req = "TRUNCATE `sessions`";
+		
+		$credential_id = $login_db->real_escape_string($credential_id);
+		
+		$req = "SELECT `user_id`, `owner_id`, `final_key` FROM `webauthn` WHERE `credential_id`='$credential_id'";
+		
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($user_id, $owner_id, $final_key);
+		$response = false;
+		if($statement->fetch()){
+			$response = [
+				"final_key" => $final_key,
+				"owner_id" => $owner_id,
+				"user_id" => $user_id
+			];
+		}
+		return $response;
+	}
+
+	public function savePasskey($owner_id, $user_id, $final_key, $credential_id, $attest_format = "none"){
+		$login_db = $this->ldb;
+		
+		$owner_id = $login_db->real_escape_string($owner_id);
+		$user_id = $login_db->real_escape_string($user_id);
+		$final_key = $login_db->real_escape_string($final_key);
+		$credential_id = $login_db->real_escape_string($credential_id);
+		$attest_format = $login_db->real_escape_string($attest_format);
+		
+		$req = "INSERT INTO `webauthn`(`user_id`, `owner_id`, `final_key`, `credential_id`, `attest_type`) VALUES ('$user_id','$owner_id','$final_key','$credential_id', '$attest_format')";
+		$login_db->query($req);
+	}
+
+	public function getPasskeys($owner_id){
+		$login_db = $this->ldb;
+		
+		$owner_id = $login_db->real_escape_string($owner_id);
+		
+		$req = "SELECT `keyID`, `attest_type` FROM `webauthn` WHERE `owner_id`='$owner_id'";
+
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($keyID, $attest_type);
+		$response = [];
+		while($statement->fetch()){
+			$response[] = array(
+				'key_id' => $keyID,
+				'attest_type' => $attest_type
+			);
+		}
+
+		return $response;
+	}
+
+	public function getCredentialIDS($owner_id){
+		$login_db = $this->ldb;
+		
+		$owner_id = $login_db->real_escape_string($owner_id);
+		
+		$req = "SELECT `credential_id` FROM `webauthn` WHERE `owner_id`='$owner_id'";
+
+		$statement = $login_db->prepare($req);
+		$statement->execute();
+		$statement->bind_result($credential_id);
+		$response = [];
+		while($statement->fetch()){
+			$response[] = base64_decode($credential_id);
+		}
+
+		return $response;
+	}
+
+	public function removePasskey($owner_id, $key_id){
+		$login_db = $this->ldb;
+		
+		$owner_id = $login_db->real_escape_string($owner_id);
+		$key_id = $login_db->real_escape_string($key_id);
+		
+		$req = "DELETE FROM `webauthn` WHERE `owner_id`='$owner_id' AND `keyID`='$key_id'";
 		$login_db->query($req);
 	}
 }
