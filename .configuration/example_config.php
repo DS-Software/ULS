@@ -55,7 +55,7 @@
 	
 	$spam_check = true;
 	$spam_provider = "https://disposable.debounce.io/?email=";
-	
+
 	/*
 		If using CAPTCHA (field $captcha_required is true), put the correct values 
 		in the field below. For more info - https://dash.cloudflare.com/?to=/:account/turnstile
@@ -68,21 +68,71 @@
 	*/
 	
 	$captcha_required = true;
-	
 	$turnstile_public = "";
 	$turnstile_private = "";
 
 	$login_site = "https://example.com/login";
 	$status_page = "https://status.example.com/";
 	$support = "Either support link or EMail address.";
+	$support_email = "Either support link or EMail address.";
+	$platform_name = "DS Software ULS";
 	
-	$domain_name = "/"; /*    / is default  */
+	$domain_name = "/"; #  / is default
 	
 	$session_length = 32;
 	
 	$service_key = "Very_Long_Service_Key";
 	
-	$encryption_key = "Long_Key_For_AES_Encryption.";
+	$encryption_key = "Long_Key_For_AES_Encryption";
+
+	$enable_webauthn = true;
+	$user_verification_requirement = "required";
+	/* 
+		Types of UV Requirements:
+		- required : user must verify, otherwise fail
+		- preferred : user verification is preferred, but it won't fail
+		- discouraged : user verification should not be used
+
+		Required might break some authenticators that
+		cannot verify users.
+	*/
+
+	/*
+		Relying party ID is the address of your site, for example:
+		https://webauthn.example.com/auth relying party will be webauthn.example.com
+	*/
+	$relying_party_id = "example.com";
+
+	$attestation_formats = array(
+		"android-key" => [
+			"name" => "Android Key",
+			"icon" => "fa-mobile"
+		],
+		"android-safetynet" => [
+			"name" => "Android SafetyNet",
+			"icon" => "fa-mobile"
+		],
+		"apple" => [
+			"name" => "Apple Attestation",
+			"icon" => "fa-mobile"
+		],
+		"fido-u2f" => [
+			"name" => "FIDO U2F",
+			"icon" => "fa-microchip"
+		],
+		"none" => [
+			"name" => "Passkey",
+			"icon" => "fa-key"
+		],
+		"packed" => [
+			"name" => "Hardware Key",
+			"icon" => "fa-microchip"
+		],
+		"tpm" => [
+			"name" => "TPM Attestation",
+			"icon" => "fa-desktop"
+		]
+	);
 	
 	$database = array(
 		'login' => 'database_login',
@@ -92,24 +142,31 @@
 	);
 	
 	$email_info = array(
-		'$project_name' => "",
+		'$project_name' => $platform_name,
 		'$main_link' => $login_site,
 		'$login_site' => $login_site,
-		'$support_email' => "mailto:",
-		'$support_email_label' => ""
+		'$support_email' => "mailto:{$support_email}",
+		'$support_email_label' => $support_email
 	);
+	
+	/*
+		Do not use this feature unless you are experiencing severe issues with email delivery. This flag will disable all email verification.
+		
+		DO NOT USE THIS FEATURE ON A REAL SERVER!
+	*/
+	$disable_email = false;
 
 	$email_settings = array(
 		'smtp' => 'your.smtp.provider',
 		'port' => '465',
 		'messageFrom' => 'Sender Name',
 		'login' => 'SMTP Login',
-		'password' => 'SMTP Password'
+		'password' => 'SMTP Password',
+		'email_debug' => false // Use it when u get EMAIL_DELIVERY_FAULT error.
 	);
 	
 	$enable_creation = true;
 	$int_url = $login_site . "/apps";
-	$integrations_limit = 15;
 	
 	$allowed_admins = []; // [1 => true] ([USER_ID => true])
 ?>
