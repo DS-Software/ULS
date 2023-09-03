@@ -25,8 +25,12 @@
 <div class="extended-form" id="main">
 	<h1 class="thin-text">Авторизация</h1>
 	<div class="sep-line"></div>
+	<div style="border-radius: 20px; border: 1px solid var(--border-color); box-sizing: border-box; padding: 1rem; width: fit-content; margin: auto;">
+		<h3 class="thin-text no-mrg-bottom no-padding-bottom no-mrg-top" id="loggedin_as"></h3>
+		<u style="cursor: pointer;"><h3 onclick="logout()" class="thin-text no-mrg-top no-mrg-bottom no-padding-top">Нажмите здесь, чтобы выйти.</h3></u>
+	</div>
 	<div class="full-width">
-		<h2 class="thin-text no-mrg-bottom no-padding-bottom" id="project_name"></h2>
+		<h2 class="thin-text no-mrg-bottom no-padding-bottom no-mrg-top" id="project_name"></h2>
 		<h2 class="thin-text no-mrg-top no-padding-top">запрашивает доступ к вашему аккаунту.</h2>
 		<div class="full-width align-left">
 			<div id="scope_container"></div>
@@ -41,6 +45,7 @@
 
 <script>
 	prepare_view();
+	loadToken();
 
 	window.fault_redirect = "home.php";
 
@@ -48,27 +53,29 @@
 		location.href = window.fault_redirect;
 	}
 
-	var token_xhr = new XMLHttpRequest();
-	token_xhr.open('GET', 'api.php?section=UNAUTH&method=getAccessToken', true);
-	token_xhr.send();
-	token_xhr.onload = function (e) {
-		let access_token = JSON.parse(token_xhr.responseText);
-		switch (access_token.description) {
-			case "2faVerificationRequired":
-				open_login_menu();
-				break;
-			case "unfinishedReg":
-				open_login_menu();
-				break;
-			case "IPVerificationRequired":
-				open_login_menu();
-				break;
-			default:
-				window.token = access_token.token;
-				bootstrap();
-				break;
+	function loadToken(){
+		var token_xhr = new XMLHttpRequest();
+		token_xhr.open('GET', 'api.php?section=UNAUTH&method=getAccessToken', true);
+		token_xhr.send();
+		token_xhr.onload = function (e) {
+			let access_token = JSON.parse(token_xhr.responseText);
+			switch (access_token.description) {
+				case "2faVerificationRequired":
+					open_login_menu();
+					break;
+				case "unfinishedReg":
+					open_login_menu();
+					break;
+				case "IPVerificationRequired":
+					open_login_menu();
+					break;
+				default:
+					window.token = access_token.token;
+					bootstrap();
+					break;
+			}
 		}
-	}
+	}	
 	
 	function open_login_menu(){
 		action_required.classList.remove("hidden-el");
@@ -103,7 +110,13 @@
 			document.getElementById("main").style.display = "";
 			getProjectInfo();
 			prepare_scopes();
+			prepare_logged_info();
 		}
+	}
+
+	function prepare_logged_info(){
+		let current_email = decodeURIComponent(getCookie("email"));
+		loggedin_as.textContent = `Вы вошли как ${current_email}`;
 	}
 	
 	function prepare_scopes(){
@@ -116,6 +129,7 @@
 			
 			if(result.result != "FAULT"){
 				let scope_container = document.getElementById('scope_container');
+				scope_container.innerHTML = "";
 				window.scopes_edited = [];
 				window.final_scopes = "";
 				window.scopes.forEach(element => {
@@ -215,5 +229,23 @@
 			}
 			alertify.notify("Произошла ошибка при авторизации! Повторите вход в необходимом сервисе!", 'error', 2, function(){back()});
 		}
+	}
+
+	function logout(){
+		alertify.confirm("Выход", "Вы уверены, что хотите выйти?",
+			function(){
+				document.cookie = 'user_id=; Max-Age=0;';
+				document.cookie = 'email=; Max-Age=0;';
+				document.cookie = 'user_ip=; Max-Age=0;';
+				document.cookie = 'user_verkey=; Max-Age=0;';
+				document.cookie = 'session=; Max-Age=0;';
+				document.cookie = 'SLID=; Max-Age=0;';
+				document.cookie = 'ip_verify=; Max-Age=0;';
+				document.cookie = 'totp_timestamp=; Max-Age=0;';
+				document.cookie = 'totp_verification=; Max-Age=0;';
+				loadToken();
+			},
+			function(){ }
+		);
 	}
 </script>
