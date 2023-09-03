@@ -3,11 +3,11 @@
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
 <link href="libs/alertify.min.css" rel="stylesheet">
 <link rel="shortcut icon" href="favicon.gif" type="image/gif">
+<script src="localization.php"></script>
 <script src="libs/main.js"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<script src="libs/captcha_utils.php"></script>
-<script src="libs/alertify.min.js"></script>
-<script src="libs/qr_reader.min.js" async defer></script>
+<script src="libs/captcha_utils.php" async></script>
+<script src="libs/alertify.min.js" async></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <?php
@@ -34,9 +34,9 @@ require_once "config.php";
 		<i class="fa-solid fa-code content-icon"></i>
 		API
 	</div>
-	<div class="menu-item padding-1em align-left" onclick="choose_tab('easylogin')">
-		<i class="fa-solid fa-barcode content-icon"></i>
-		Беспарольный Вход
+	<div class="menu-item padding-1em align-left" onclick="choose_tab('webauthn')">
+		<i class="fa-solid fa-key content-icon"></i>
+		Ключи Доступа
 	</div>
 	<div class="menu-item padding-1em align-left" onclick="integrations()">
 		<i class="fa-solid fa-link content-icon"></i>
@@ -153,13 +153,6 @@ function close_sidebar(){
 				<span class="hint-text">Подтверждение входа посредством получения кодов из<br>сообщения, отправленного на основную почту.</span>
 			<br><br>
 				<span class="middle-text">
-					<i class="fa-solid fa-barcode content-icon"></i>
-					Беспарольный Вход
-				</span>&nbsp;&nbsp;&nbsp;
-				<button id="easylogin_state" class="button-primary float-right" onclick="manage_easylogin()">Включить</button><br><br>
-				<span class="hint-text">Вход без пароля посредством подтверждения<br>входа с авторизированного устройства.</span>
-			<br><br>
-				<span class="middle-text">
 					<i class="fa-solid fa-circle-xmark content-icon"></i>
 					Выход из всех сессий
 				</span>&nbsp;&nbsp;&nbsp;
@@ -191,16 +184,19 @@ function close_sidebar(){
 		</div>
 		<br>
 	</div>
-	<div id="easylogin">
-		<div class="data-prompt align-center">
-			<br>
-			<h1 class="thin-text">Беспарольный Вход</h1>
-			<div id="QR_Container"><div id="reader"></div></div>
-			<br>
-			<div class="align-сenter full-width">
-				<button class="button-primary" onclick="choose_tab('main')">Вернуться</button>
-			</div>
-			<br>
+	<div id="webauthn">
+		<h2 class="thin-text">Вход при помощи Ключа Доступа</h2>
+		<div class="data-container">
+			<span class="middle-text">
+				<i class="fa-solid fa-plus content-icon"></i>
+				<span>Создать ключ</span>
+			</span>&nbsp;&nbsp;&nbsp;
+			<button class="button-primary float-right" style="width: fit-content;" onclick="create_webauthn_key(false)">Создать</button><br><br>
+			<span class="hint-text"><span>Вы сможете войти при помощи этого ключа.</span></span>
+		</div>
+		<h2 class="thin-text">Список ключей:</h2>
+		<div id="webauthn_keys" class="data-container">
+
 		</div>
 		<br>
 	</div>
@@ -214,13 +210,6 @@ function close_sidebar(){
 			</span>&nbsp;&nbsp;&nbsp;<span class="big-text" id="requests"></span>
 			<br>
 			<span class="hint-text">Количество запросов к методам, ограниченным лимитами.</span>
-			<br><br>
-			<span class="middle-text">
-				<i class="fa-solid fa-ticket content-icon"></i>
-				<span>Количество Сессий EasyLogin:</span>
-			</span>&nbsp;&nbsp;&nbsp;<span class="big-text" id="sessions"></span>
-			<br>
-			<span class="hint-text">Количество активных сессий EasyLogin созданных для беспарольного входа.</span>
 			<br><br>
 			<span class="middle-text">
 				<i class="fa-solid fa-user content-icon"></i>
@@ -245,13 +234,6 @@ function close_sidebar(){
 			</span>&nbsp;&nbsp;&nbsp;
 			<button class="button-primary float-right" onclick="purgeRequests()">Очистить</button><br><br>
 			<span class="hint-text">Очистит таблицу запросов, что приведёт к обнулению лимитов API.</span>
-			<br><br>
-			<span class="middle-text">
-				<i class="fa-solid fa-eraser content-icon"></i>
-				<span>Очистить сессии EasyLogin</span>
-			</span>&nbsp;&nbsp;&nbsp;
-			<button class="button-primary float-right" onclick="purgeSessions()">Очистить</button><br><br>
-			<span class="hint-text">Очистит таблицу сессий EasyLogin, что приведёт к аннулированию предыдущих сессий.</span>
 			<br><br>
 			<span class="middle-text">
 				<i class="fa-solid fa-gear content-icon"></i>
@@ -335,7 +317,6 @@ function close_sidebar(){
 			<h2 class="thin-text">Функции Безопасности</h2>
 			<div class="align-center">
 				<button class="button-primary" id="sec_totp">2FA (Enabled)</button>&nbsp;
-				<button class="button-primary" id="sec_easylogin">EasyLogin (Enabled)</button>&nbsp;
 				<button class="button-primary" id="sec_emailcheck">EMail Check (Enabled)</button>
 			</div>
 		<br>
@@ -574,7 +555,7 @@ function checkAPIToken(){
 					|| tab == "personal_info"
 					|| tab == "security"
 					|| tab == "api"
-					|| tab == "easylogin"){
+					|| tab == "webauthn"){
 						choose_tab(tab);
 						if(!(tab == "main" || tab == "personal_info")){
 							load_admin();
@@ -606,14 +587,6 @@ function choose_tab(tab){
 	if(window.current_tab == tab){
 		return;
 	}
-	if(window.current_tab == "easylogin"){
-		try{
-			window.html5QrCode.stop();
-		}
-		catch(err){ 
-			console.log(err);
-		}
-	}
 	
 	window.current_tab = tab;
 	
@@ -638,9 +611,9 @@ function choose_tab(tab){
 		sel_tab.innerHTML = api.textContent;
 		update_state = true;
 	}
-	if(tab == "easylogin"){
-		sel_tab.innerHTML = easylogin.textContent;
-		initQRReader();
+	if(tab == "webauthn"){
+		sel_tab.innerHTML = webauthn.textContent;
+		prepareWebauthn();
 		update_state = true;
 	}
 	if(tab == "admin" && window.is_admin){
@@ -696,6 +669,164 @@ var xhr2 = new XMLHttpRequest();
 	Internal Functions
 */
 
+function deleteWebauthnKey(key_id){
+	alertify.confirm('Удаление Ключа', 'Ключ будет безвозвратно удалён и вы больше не сможете входить с помощью этого ключа! Вы уверены, что хотите продолжить?', function(){
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'api.php?section=webauthn&method=removePasskey&PK_UID=' + key_id, true);
+		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+		xhr.send();
+		xhr.onload = function (e) {
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				let result = JSON.parse(xhr.responseText);
+				if(result.result == "OK"){
+					prepareWebauthn();
+					alertify.notify("Ключ был успешно удалён.", 'success', 5);
+				}
+				else{
+					alertify.notify("Произошла ошибка при удалении ключа.", 'error', 5);
+				}
+			}
+		};
+	}, function(){});
+}
+
+function prepareWebauthn(){
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', 'api.php?section=webauthn&method=getPasskeys', true);
+	xhr.setRequestHeader("Authorization", "Bearer " + window.token);
+	xhr.send();
+	xhr.onload = function (e) {
+		if (xhr.readyState == 4 && xhr.status == 200) {
+			let result = JSON.parse(xhr.responseText);
+			if(result.result == "OK"){
+				webauthn_keys.innerHTML = "";
+
+				function format_key_data(key_data){
+					let key_div = document.createElement('span');
+					let key_icon = document.createElement('span');
+					let key_description = document.createElement('span');
+
+					let key_type = result.attest_format?.[key_data.attest_type];
+
+					key_icon.classList.add("fa-solid");
+					key_icon.classList.add(key_type?.icon == undefined ? "fa-key" : key_type?.icon);
+					key_icon.classList.add("content-icon");
+
+					key_description.textContent = key_type?.name == undefined ? "Passkey" : key_type?.name;
+
+					key_div.append(key_icon, key_description); // Important Div
+
+					let cancel_button = `<button class="button-primary float-right" style="width: fit-content" onclick="deleteWebauthnKey(${key_data.key_id})">Отозвать</button>`; // Important Div
+
+					let revoke_desc = document.createElement('span'); // Important Div
+					revoke_desc.innerHTML = "Если отозвать ключ, то вы больше не сможете<br>авторизоваться при помощи этого ключа.";
+					revoke_desc.classList.add("hint-text");
+
+					webauthn_keys.append(key_div);
+					webauthn_keys.innerHTML += "&nbsp;&nbsp;&nbsp;";
+					webauthn_keys.innerHTML += cancel_button;
+					webauthn_keys.innerHTML += "<br><br>";
+					webauthn_keys.append(revoke_desc);
+					webauthn_keys.innerHTML += "<br><br>";
+				}
+
+				result.keys.forEach((key_info)=>{
+					format_key_data(key_info);
+				});
+			}	
+		}
+	}
+}
+
+async function create_webauthn_key(is_old){
+	try {
+		if (!window.fetch || !navigator.credentials || !navigator.credentials.create) {
+			throw new Error('Browser not supported.');
+		}
+
+		let rep = await window.fetch('api.php?method=getNewKeyArgs&section=webauthn&token=' + window.token + `&disable_res=${is_old}`, {
+			method:'GET', 
+			cache:'no-cache',
+			headers: {
+				'Authorization': `Bearer ${window.token}`,
+			}
+		});
+		let response_server = await rep.json();
+		const createArgs = response_server.args;
+
+		if (createArgs == undefined) {
+			throw new Error("Failed to get authentication arguments.");
+		}
+
+		recursiveBase64StrToArrayBuffer(createArgs);
+
+		const cred = await navigator.credentials.create(createArgs);
+
+		const authenticatorAttestationResponse = {
+			transports: cred.response.getTransports  ? cred.response.getTransports() : null,
+			clientDataJSON: cred.response.clientDataJSON  ? arrayBufferToBase64(cred.response.clientDataJSON) : null,
+			attestationObject: cred.response.attestationObject ? arrayBufferToBase64(cred.response.attestationObject) : null
+		};
+
+		rep = await window.fetch('api.php?method=createNewKey&section=webauthn&token=' + window.token, {
+			method  : 'POST',
+			body    : JSON.stringify(authenticatorAttestationResponse),
+			cache   : 'no-cache',
+			headers : {
+				'Authorization': `Bearer ${window.token}`,
+			}
+		});
+		const authenticatorAttestationServerResponse = await rep.json();
+
+		// prompt server response
+		if (authenticatorAttestationServerResponse.result == "OK") {
+			prepareWebauthn();
+			alertify.notify("Ключ был успешно добавлен.", 'success', 5);
+
+		} else {
+			throw new Error(authenticatorAttestationServerResponse.reason);
+		}
+
+	} catch (err) {
+		alertify.notify("Не удалось выполнить запрос! Возможно ваш браузер не поддерживается, или истекло время ожидания!", 'error', 5);
+	}
+}
+
+function recursiveBase64StrToArrayBuffer(obj) {
+    let prefix = '=?BINARY?B?';
+    let suffix = '?=';
+    if (typeof obj === 'object') {
+        for (let key in obj) {
+            if (typeof obj[key] === 'string') {
+                let str = obj[key];
+                if (str.substring(0, prefix.length) === prefix && str.substring(str.length - suffix.length) === suffix) {
+                    str = str.substring(prefix.length, str.length - suffix.length);
+
+                    let binary_string = window.atob(str);
+                    let len = binary_string.length;
+                    let bytes = new Uint8Array(len);
+                    for (let i = 0; i < len; i++)        {
+                        bytes[i] = binary_string.charCodeAt(i);
+                    }
+                    obj[key] = bytes.buffer;
+                }
+            } else {
+                recursiveBase64StrToArrayBuffer(obj[key]);
+            }
+        }
+    }
+}
+
+function arrayBufferToBase64(buffer) {
+    let binary = '';
+    let bytes = new Uint8Array(buffer);
+    let len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+	return window.btoa(binary);
+}
+
 function load_admin_stats(){
 	if(window.is_admin){
 		var xhr = new XMLHttpRequest();
@@ -708,7 +839,6 @@ function load_admin_stats(){
 				if(result.result == "OK"){
 					projects.textContent = result.projects;
 					users.textContent = result.users;
-					sessions.textContent = result.sessions;
 					requests.textContent = result.requests;
 				}	
 			}
@@ -870,17 +1000,6 @@ function admin_user_info(user_email){
 						sec_totp.classList.remove('button-secondary');
 						sec_totp.classList.add('button-primary');
 						sec_totp.textContent = "2FA (Enabled)";
-					}
-					
-					if(result['easylogin'] != 1){
-						sec_easylogin.classList.add('button-secondary');
-						sec_easylogin.classList.remove('button-primary');
-						sec_easylogin.textContent = "EasyLogin (Disabled)";
-					}
-					else{
-						sec_easylogin.classList.remove('button-secondary');
-						sec_easylogin.classList.add('button-primary');
-						sec_easylogin.textContent = "EasyLogin (Enabled)";
 					}
 					
 					if(result['email_check'] != 1){
@@ -1348,17 +1467,6 @@ function getSecurityInfo(){
 					totp_state.classList.add('button-secondary');
 					totp_state.textContent = "Отключить";
 				}
-				
-				if(result.easylogin == 1){
-					easylogin_state.classList.remove('button-primary');
-					easylogin_state.classList.add('button-secondary');
-					easylogin_state.textContent = "Отключить";
-				}
-				else{
-					easylogin_state.classList.remove('button-secondary');
-					easylogin_state.classList.add('button-primary');
-					easylogin_state.textContent = "Включить";
-				}
 			}
 		}
 	}
@@ -1378,16 +1486,6 @@ function getSecurityInfo(){
 			totp_state.classList.add('button-secondary');
 			totp_state.textContent = "Отключить";
 		}
-		if(window.security_info.easylogin == 1){
-			easylogin_state.classList.remove('button-primary');
-			easylogin_state.classList.add('button-secondary');
-			easylogin_state.textContent = "Отключить";
-		}
-		else{
-			easylogin_state.classList.remove('button-secondary');
-			easylogin_state.classList.add('button-primary');
-			easylogin_state.textContent = "Включить";
-		}	
 	}
 }
 
@@ -1429,53 +1527,6 @@ function manage_email(){
 				}
 				window.security_info = undefined;
 				getSecurityInfo();
-			}
-		}
-	}
-}
-
-function manage_easylogin(){
-	if(window.security_info.easylogin == 1){
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=easylogin&method=disable', true);
-		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-		xhr.send();
-		xhr.onload = function (e) {
-			if (xhr.readyState == 4 && xhr.status == 200) {
-				if (xhr.readyState == 4 && xhr.status == 200) {
-					let result = JSON.parse(xhr.responseText);
-					if(result.reason == 'RATE_LIMIT_EXCEEDED'){
-						window.failed_request = function(){
-							manage_easylogin();
-						};
-						callCaptcha();
-						return;
-					}
-					window.security_info = undefined;
-					getSecurityInfo();
-				}
-			}
-		}
-	}
-	else{
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', 'api.php?section=easylogin&method=enable', true);
-		xhr.setRequestHeader("Authorization", "Bearer " + window.token);
-		xhr.send();
-		xhr.onload = function (e) {
-			if (xhr.readyState == 4 && xhr.status == 200) {
-				if (xhr.readyState == 4 && xhr.status == 200) {
-					let result = JSON.parse(xhr.responseText);
-					if(result.reason == 'RATE_LIMIT_EXCEEDED'){
-						window.failed_request = function(){
-							manage_easylogin();
-						};
-						callCaptcha();
-						return;
-					}
-					window.security_info = undefined;
-					getSecurityInfo();
-				}
 			}
 		}
 	}
@@ -1689,20 +1740,36 @@ function change_password(old_password, new_password){
 
 function update_user_info(tag, name, surname, bday){
 	bday = bday / 1000;
-	if(tag.length < 3 || tag.length > 16){
-		alertify.notify('Tag Пользователя не должен быть короче 3 символов!', 'error', 5);
+	if(tag.length < 3){
+		alertify.notify('Tag Пользователя не должен быть короче 3 символов!', 'error', 3);
 		return;
 	}
-	if(name.length < 2 && name.length > 32){
-		alertify.notify('Имя не должно быть короче 2 символов!', 'error', 5);
+	if(tag.length > 16){
+		alertify.notify('Tag Пользователя не должен быть длиннее 16 символов!', 'error', 3);
 		return;
 	}
-	if(surname.length < 2 && surname.length > 32){
-		alertify.notify('Фамилия не должна быть короче 2 символов!', 'error', 5);
+	
+	if(name.length < 2){
+		alertify.notify('Имя не должно быть короче 2 символов!', 'error', 3);
 		return;
 	}
+	if(name.length > 32){
+		alertify.notify('Имя не должно быть длиннее 32 символов!', 'error', 3);
+		return;
+	}
+	
+	if(surname.length < 2){
+		alertify.notify('Фамилия не должна быть короче 2 символов!', 'error', 3);
+		return;
+	}
+	if(surname.length > 32){
+		alertify.notify('Фамилия не должна быть длиннее 32 символов!', 'error', 3);
+		return;
+	}
+	
 	if(bday == 0){
-		alertify.notify('Укажите свою дату рождения!', 'error', 5);
+		alertify.notify('Укажите свою дату рождения!', 'error', 3);
+		return;
 	}
 	
 	xhr2.open('GET', '/api.php?section=register&method=saveInfo&user_name=' + encodeURIComponent(name) + '&user_surname=' + encodeURIComponent(surname) + '&user_nick=' + encodeURIComponent(tag) + '&birthday=' + encodeURIComponent(bday), true);
@@ -1711,27 +1778,27 @@ function update_user_info(tag, name, surname, bday){
 	xhr2.onload = function (e) {
 		let ret = JSON.parse(xhr2.responseText);
 		if(ret.result == "FAULT"){
-			if(result.reason == 'RATE_LIMIT_EXCEEDED'){
+			if(ret.reason == 'RATE_LIMIT_EXCEEDED'){
 				window.failed_request = function(){
 					update_user_info(tag, name, surname, bday);
 				};
 				callCaptcha();
 			}
 			if(ret.reason == "MALFORMED_NICK"){
-				alertify.notify('Tag Пользователя занят, либо содержит запрещённые знаки!', 'error', 5);
+				alertify.notify('Tag Пользователя занят, либо содержит запрещённые знаки!', 'error', 3);
 			}
 			if(ret.reason == "MALFORMED_NAME"){
-				alertify.notify('Имя содержит запрещённые знаки!', 'error', 5);
+				alertify.notify('Имя содержит запрещённые знаки!', 'error', 3);
 			}
 			if(ret.reason == "MALFORMED_SURNAME"){
-				alertify.notify('Фамилия содержит запрещённые знаки!', 'error', 5);
+				alertify.notify('Фамилия содержит запрещённые знаки!', 'error', 3);
 			}
 			if(ret.reason == "MALFORMED_BIRTHDAY"){
-				alertify.notify('Дата Рождения не указана!', 'error', 5);
+				alertify.notify('Дата Рождения не указана!', 'error', 3);
 			}
 		}
 		else{
-			alertify.notify('Данные пользователя были обновлены!', 'success', 5);
+			alertify.notify('Данные пользователя были обновлены!', 'success', 3);
 			window.user_info = undefined;
 			checkAPIToken();
 		}

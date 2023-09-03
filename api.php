@@ -1,6 +1,10 @@
 <?php
+
 require_once 'config.php';
 require_once 'database.php';
+require_once './libs/webauthn/WebAuthn.php';
+
+session_start();
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -118,7 +122,7 @@ function checkDisposableEmail($email) {
 	global $spam_provider;
 	global $spam_check;
 	if (!$spam_check) {
-		return true;
+		return false;
 	}
 	$link = $spam_provider . urlencode($email);
 	$curl = curl_init($link);
@@ -340,7 +344,7 @@ if ($section == "unauth") {
 
 		$needs_email_check = $user_info['email_check'];
 
-		if (($_SERVER['REMOTE_ADDR'] == $user_info['user_ip']) || $needs_email_check == 0) {
+		if (($_SERVER['REMOTE_ADDR'] == $user_info['user_ip']) || $needs_email_check == 0 || $disable_email) {
 			$rsid = bin2hex(random_bytes($session_length / 2));
 			$timestamp = time();
 			$session_id = hash('sha256', $rsid . "_" . $timestamp . "_" . $_SERVER['REMOTE_ADDR'] . "_" . $service_key);
@@ -562,6 +566,7 @@ if ($section == "unauth") {
 		if (isRateExceeded($section . '-' . $method, $_SERVER['REMOTE_ADDR'], 1, 300)) {
 			returnError("RATE_LIMIT_EXCEEDED");
 		}
+
 		$login = $_REQUEST['login'];
 		if (checkDisposableEmail($login)) {
 			returnError("DISPOSABLE_EMAIL");
@@ -908,134 +913,100 @@ if ($section == "unauth") {
 		returnError("WRONG_LOGIN_INFO");
 	}
 
-	if ($method == "getELSession") {
-		if (isRateExceeded($section . '-' . $method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-			returnError("RATE_LIMIT_EXCEEDED");
+	if ($method == "getWebauthnSession") {
+		try{
+			$WebAuthn = new lbuchs\WebAuthn\WebAuthn($platform_name, $relying_party_id, null);
+			$getArgs = $WebAuthn->getGetArgs([], 300, true, true, true, true, true, $user_verification_requirement === "required");
+
+			$_SESSION['challenge'] = $WebAuthn->getChallenge();
+
+			$return = array(
+				'result' => 'OK',
+				'description' => 'WAITING_INTERACTION',
+				'args' => $getArgs
+			);
+
+			echo json_encode($return);
+			die();
 		}
-
-		require_once 'libs' . DIRECTORY_SEPARATOR . 'browser_libs.php';
-
-		if ($login_db->countSessionsByIP($_SERVER['REMOTE_ADDR']) >= 10) {
-			$login_db->deleteSessionsByIP($_SERVER['REMOTE_ADDR']);
-			returnError("RATE_LIMIT_FOR_THIS_IP");
+		catch(Exception $e){
+			returnError("FAILED_TO_AUTHENTICATE");
 		}
-
-		$session = "session_" . convBase(uniqidReal(256), 16, 36);
-		$sess_salt = convBase(uniqidReal(32), 16, 36);
-		$login_db->createELSession($session, $sess_salt, $_SERVER['REMOTE_ADDR']);
-
-		$session_ver = hash("sha256", $session . "_" . $service_key . "_" . $sess_salt . "_" . $_SERVER['REMOTE_ADDR']);
-
-		$browser = getBrowser();
-
-		$ua = array(
-			'browser' => $browser['name'],
-			'version' => $browser['version'],
-			'platform' => ucfirst($browser['platform']),
-			'ip' => $_SERVER['REMOTE_ADDR']
-		);
-
-		$ua = json_encode($ua);
-
-		$session_link = base64_encode($login_site . "/easylogin_accept.php?session_id=" . $session . "&session_ver=" . $session_ver . "&user_agent=" . urlencode(base64_encode($ua)) . "&user_agent_ver=" . hash("sha256", $ua . "_" . $service_key));
-
-		$session_qr = "libs/gen_2fa_qr.php?method=EasyLoginSession&session=" . $session_link;
-
-		$return = array(
-			'result' => "OK",
-			'session' => $session,
-			'session_qr' => $session_qr,
-			'session_verifier' => $session_ver
-		);
-
-		echo json_encode($return);
-		die();
 	}
 
-	if ($method == "removeELSession") {
-		if (isRateExceeded($section . '-' . $method, $_SERVER['REMOTE_ADDR'], 10, 60)) {
-			returnError("RATE_LIMIT_EXCEEDED");
-		}
-
-		$session = $login_db->getELSession($_REQUEST['session_id']);
-
-		if ($session['session'] != '') {
-			$true_sess_ver = hash("sha256", $session['session'] . "_" . $service_key . "_" . $session['session_seed'] . "_" . $_SERVER['REMOTE_ADDR']);
-
-			if ($true_sess_ver == $_REQUEST['session_ver']) {
-				$login_db->deleteELSession($session['session']);
-				$return = array(
-					'result' => "OK",
-					'description' => "Success"
-				);
-
-				echo json_encode($return);
+	if ($method == "verifyWebauthnSession") {
+		try{
+			$WebAuthn = new lbuchs\WebAuthn\WebAuthn($platform_name, $relying_party_id, null);
+			$post = trim(file_get_contents('php://input'));
+			if ($post) {
+				$post = json_decode($post);
 			}
-			else{
-				returnError("UNAUTHORIZED");
+			
+			$clientDataJSON = base64_decode($post->clientDataJSON);
+			$authenticatorData = base64_decode($post->authenticatorData);
+			$signature = base64_decode($post->signature);
+			$userHandle = base64_decode($post->userHandle);
+			$id = base64_decode($post->id);
+			$challenge = $_SESSION['challenge'] ?? '';
+			$credentialPublicKey = null;
+
+			$passkey_info = $login_db->getPKByCredentials(base64_encode($id));
+			if($passkey_info === false){
+				returnError("FAILED_TO_AUTHENTICATE");
 			}
+
+			$final_key = json_decode($passkey_info['final_key']);
+
+			$credentialPublicKey = $final_key->credentialPublicKey;
+
+			if ($credentialPublicKey === null) {
+				returnError("FAILED_TO_AUTHENTICATE");
+			}
+
+			if ($userHandle !== hex2bin($final_key->userId) && $userHandle != null) {
+				returnError("FAILED_TO_AUTHENTICATE");
+			}
+
+			$WebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, $user_verification_requirement === "required");
+
+			$user_info = $login_db->getUserInfo($passkey_info['owner_id']);
+			if($user_info['user_id'] != $passkey_info['owner_id']){
+				returnError("FAILED_TO_AUTHENTICATE");
+			}
+
+			$rsid = bin2hex(random_bytes($session_length / 2));
+			$timestamp = time();
+
+			$login_db->setUserIP($user_info['user_id'], $_SERVER['REMOTE_ADDR']);
+
+			setcookie("user_id", $user_info['user_id'], time() + 2678400, $domain_name);
+			setcookie("email", $user_info['user_email'], time() + 2678400, $domain_name);
+			setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
+			setcookie("user_verkey", hash("sha512", "{$rsid}_{$user_info['user_email']}_{$user_info['user_id']}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
+			setcookie("session", $rsid, time() + 2678400, $domain_name);
+			setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
+
+			$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key");
+			setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
+
+			if ($user_info['2fa_active'] == 1) {
+				$totp_timestamp = time();
+				$true_totp_ver = hash("sha512", "{$user_info['SLID']}_{$user_info['2fa_secret']}_{$user_info['user_id']}_{$totp_timestamp}_$service_key");
+
+				setcookie("totp_timestamp", $totp_timestamp, time() + 2678400, $domain_name);
+				setcookie("totp_verification", $true_totp_ver, time() + 2678400, $domain_name);
+			}
+
+			$return = array(
+				'result' => "OK",
+				'desc' => "AUTHENTICATED"
+			);
+			echo json_encode($return);
+			die();
 		}
-		else{
-			returnError("WRONG_SESSION");
+		catch(Exception $e){
+			returnError("FAILED_TO_AUTHENTICATE");
 		}
-		die();
-	}
-
-	if ($method == "checkELSession") {
-		$session = $login_db->getELSession($_REQUEST['session_id']);
-
-		if ($session['session'] == '') {
-			returnError("WRONG_SESSION");
-		}
-
-		if ($session['created'] + 300 < time()) {
-			$login_db->deleteELSession($session['session']);
-			returnError("WRONG_SESSION");
-		}
-
-		$true_sess_ver = hash("sha256", $session['session'] . "_" . $service_key . "_" . $session['session_seed'] . "_" . $_SERVER['REMOTE_ADDR']);
-
-		if ($true_sess_ver != $_REQUEST['session_ver']) {
-			returnError("UNAUTHORIZED");
-		}
-
-		if ($session['claimed'] != 1) {
-			returnError("UNCLAIMED");
-		}
-
-		$user_info = $login_db->getUserInfo($session['user_id']);
-
-		if ($user_info['easylogin'] != 1) {
-			returnError("THIS_FEATURE_WAS_DISABLED_BY_OWNER");
-		}
-
-		if ($_SERVER['REMOTE_ADDR'] != $session['ip']) {
-			returnError("UNKNOWN_IP");
-		}
-
-		$rsid = bin2hex(random_bytes($session_length / 2));
-		$timestamp = time();
-
-		$login_db->setUserIP($user_info['user_id'], $_SERVER['REMOTE_ADDR']);
-		$login_db->deleteELSession($session['session']);
-
-		setcookie("user_id", $user_info['user_id'], time() + 2678400, $domain_name);
-		setcookie("email", $user_info['user_email'], time() + 2678400, $domain_name);
-		setcookie("user_ip", $_SERVER['REMOTE_ADDR'], time() + 2678400, $domain_name);
-		setcookie("user_verkey", hash("sha512", "{$rsid}_{$user_info['user_email']}_{$user_info['user_id']}_{$user_info['SLID']}_{$_SERVER['REMOTE_ADDR']}_$service_key"), time() + 2678400, $domain_name);
-		setcookie("session", $rsid, time() + 2678400, $domain_name);
-		setcookie("SLID", $user_info['SLID'], time() + 2678400, $domain_name);
-
-		$ip_verify = hash("sha512", "{$user_info['SLID']}_{$user_info['user_id']}_{$_SERVER['REMOTE_ADDR']}_$service_key");
-		setcookie("ip_verify", $ip_verify, time() + 2678400, $domain_name);
-
-		$return = array(
-			'result' => 'OK',
-			'description' => 'Success'
-		);
-
-		echo json_encode($return);
-		die();
 	}
 }
 else{
@@ -1338,8 +1309,7 @@ else{
 			$return = array(
 				'result' => "OK",
 				'totp' => $uinfo['2fa_active'],
-				'email_check' => $uinfo['email_check'],
-				'easylogin' => $uinfo['easylogin']
+				'email_check' => $uinfo['email_check']
 			);
 
 			echo json_encode($return);
@@ -1455,95 +1425,7 @@ else{
 		}
 	}
 
-	if ($section == "easylogin" && $token_scopes['profile_management']) {
-		if ($method == "enable") {
-			if ($uinfo['easylogin'] == 0) {
-				$login_db->setEasyloginState($user_id, 1);
 
-				$return = array(
-					'result' => "OK",
-					'description' => 'Success'
-				);
-				echo json_encode($return);
-				die();
-			}
-			else{
-				returnError("EASYLOGIN_WAS_ENABLED_BEFORE");
-			}
-		}
-
-		if ($method == "disable") {
-			if ($uinfo['easylogin'] == 1) {
-				$login_db->setEasyloginState($user_id, 0);
-
-				$return = array(
-					'result' => "OK",
-					'description' => 'Success'
-				);
-				echo json_encode($return);
-				die();
-			}
-			else{
-				returnError("EASYLOGIN_WAS_DISABLED_BEFORE");
-			}
-		}
-
-		if ($method == "claim") {
-			$session = $login_db->getELSession($_REQUEST['session_id']);
-
-			if ($session['session'] == '') {
-				returnError("WRONG_SESSION");
-			}
-
-			$true_sess_ver = hash("sha256", $session['session'] . "_" . $service_key . "_" . $session['session_seed'] . "_" . $session['ip']);
-
-			if ($true_sess_ver != $_REQUEST['session_ver']) {
-				returnError("UNAUTHORIZED");
-			}
-			if ($session['created'] + 300 < time()) {
-				$login_db->deleteELSession($session['session']);
-				returnError("TIMEOUT");
-			}
-
-			if ($uinfo['easylogin'] != 1) {
-				returnError("THIS_FEATURE_WAS_DISABLED_BY_OWNER");
-			}
-			if ($uinfo['2fa_active'] != 1) {
-				returnError("2FA_DISABLED");
-			}
-
-			$login_db->claimELSession($user_id, $session['session']);
-
-			$return = array(
-				'result' => "OK",
-				'description' => 'Success'
-			);
-			echo json_encode($return);
-			die();
-		}
-		
-		if ($method == "checkELInfo") {
-			$useragent_encoded = $_GET['user_agent'];
-			$useragent_ver = $_GET['user_agent_ver'];
-			
-			$true_ver = hash("sha256", base64_decode($useragent_encoded) . "_" . $service_key);
-			
-			if($true_ver == $useragent_ver){
-				$user_agent = json_decode(base64_decode($useragent_encoded), true);
-				
-				$return = array(
-					'result' => "OK",
-					'browser' => $user_agent['browser'],
-					'version' => $user_agent['version'],
-					'platform' => $user_agent['platform'],
-					'ip' => $user_agent['ip']
-				);
-				echo json_encode($return);
-				die();
-			}
-			returnError("INVALID_USER_AGENT");
-		}
-	}
 
 	if ($section == "integration" && $token_scopes['profile_management']) {
 		if ($method == "getUserProjects") {
@@ -1711,13 +1593,11 @@ else{
 	if ($section == "admin" && $token_scopes['admin'] && $allowed_admins[$user_id]) {
 		if ($method == "getStats") {
 			$request_st = $login_db->getRequestStats();
-			$session_st = $login_db->getSessionStats();
 			$user_st = $login_db->getUserStats();
 			$project_st = $login_db->getProjectStats();
 			$return = array(
 				'result' => "OK",
 				'requests' => $request_st,
-				'sessions' => $session_st,
 				'users' => $user_st,
 				'projects' => $project_st
 			);
@@ -1727,16 +1607,6 @@ else{
 
 		if ($method == "purgeRequests") {
 			$login_db->cleanupRequests();
-			$return = array(
-				'result' => "OK",
-				'description' => 'Success'
-			);
-			echo json_encode($return);
-			die();
-		}
-
-		if ($method == "purgeSessions") {
-			$login_db->cleanupSessions();
 			$return = array(
 				'result' => "OK",
 				'description' => 'Success'
@@ -1851,7 +1721,6 @@ else{
 				'user_name' => $user['user_name'],
 				'user_surname' => $user['user_surname'],
 				'verified' => $user['verified'],
-				'easylogin' => $user['easylogin'],
 				'email_check' => $user['email_check'],
 				'2fa_active' => $user['2fa_active'],
 				'admin' => $is_admin,
@@ -2014,6 +1883,122 @@ else{
 			);
 			echo json_encode($return);
 			die();
+		}
+	}
+
+	if ($section == "webauthn") {
+		try{
+			if ($method === 'getPasskeys') {
+				$passkeys_list = $login_db->getPasskeys($uinfo['user_id']);
+
+
+				$return = array(
+					'result' => "OK",
+					'keys' => $passkeys_list,
+					'attest_format' => $attestation_formats
+				);
+				echo json_encode($return);
+				die();
+			}
+
+			if ($method === 'removePasskey') {
+				$pkuid = $_GET['PK_UID'];
+
+				$login_db->removePasskey($uinfo['user_id'], $pkuid);
+
+				$return = array(
+					'result' => "OK"
+				);
+				echo json_encode($return);
+				die();
+			}
+
+
+			if ($method === 'getNewKeyArgs') {
+				$WebAuthn = new lbuchs\WebAuthn\WebAuthn($platform_name, $relying_party_id, null);
+
+				$userId = bin2hex(random_bytes(64));
+				$userName = $uinfo['user_email'];
+				$userDisplayName = $uinfo['user_nick'];
+
+				$userId = preg_replace('/[^0-9a-f]/i', '', $userId);
+				/*$userName = preg_replace('/[^0-9a-z]/i', '_', $userName);
+				$userDisplayName = preg_replace('/[^0-9a-z öüäéèàÖÜÄÉÈÀÂÊÎÔÛâêîôû]/i', '_', $userDisplayName);*/
+
+				$createArgs = $WebAuthn->getCreateArgs(hex2bin($userId), $userName, $userDisplayName, 300, true, $user_verification_requirement, null);
+
+				$return = array(
+					'result' => "OK",
+					'description' => "WAITING_VERIFICATION",
+					'args' => $createArgs
+				);
+				echo json_encode($return);
+
+				$_SESSION['challenge'] = $WebAuthn->getChallenge();
+				$_SESSION['pkid'] = $userId;
+
+				die();
+			}
+
+			$post = trim(file_get_contents('php://input'));
+			if ($post) {
+				$post = json_decode($post);
+			}
+
+			if ($method === 'createNewKey') {
+				$WebAuthn = new lbuchs\WebAuthn\WebAuthn($platform_name, $relying_party_id, null);
+
+				$userName = $uinfo['user_nick'];
+				$userDisplayName = $uinfo['user_email'];
+
+				/*$userName = preg_replace('/[^0-9a-z]/i', '_', $userName);
+				$userDisplayName = preg_replace('/[^0-9a-z öüäéèàÖÜÄÉÈÀÂÊÎÔÛâêîôû]/i', '_', $userDisplayName);*/
+
+				$clientDataJSON = base64_decode($post->clientDataJSON);
+				$attestationObject = base64_decode($post->attestationObject);
+				$challenge = $_SESSION['challenge'];
+
+				$data = $WebAuthn->processCreate($clientDataJSON, $attestationObject, $challenge, $user_verification_requirement === "required", true, false);
+				$userId = $_SESSION['pkid'];
+
+				$data->userId = $userId;
+				$data->userName = $userName;
+				$data->userDisplayName = $userDisplayName;
+
+				$credential_id = base64_encode($data->credentialId);
+
+				$passkey_serialized = array(
+					"rpId" => $data->rpId,
+					"attestationFormat" => $data->attestationFormat,
+					"credentialId" => base64_encode($data->credentialId),
+					"credentialPublicKey" => $data->credentialPublicKey,
+					"certificateChain" => $data->certificateChain,
+					"certificate" => $data->certificate,
+					"certificateIssuer" => $data->certificateIssuer,
+					"certificateSubject" => $data->certificateSubject,
+					"signatureCounter" => $data->signatureCounter,
+					"AAGUID" => base64_encode($data->AAGUID),
+					"rootValid" => $data->rootValid,
+					"userPresent" => $data->userPresent,
+					"userVerified" => $data->userVerified,
+					"userId" => $data->userId,
+					"userName" => $data->userName,
+					"userDisplayName" => $data->userDisplayName,
+				);
+
+				$login_db->savePasskey($uinfo['user_id'], $userId, json_encode($passkey_serialized), $credential_id, $data->attestationFormat);
+
+				$return = array(
+					'result' => "OK",
+					'description' => "SUCCESS"
+				);
+				echo json_encode($return);
+				die();
+			}
+		}
+		catch(Exception $e){
+			echo($e);
+			returnError("FAILED_TO_AUTHENTICATE");
 		}
 	}
 }
